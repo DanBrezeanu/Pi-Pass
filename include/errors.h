@@ -38,4 +38,15 @@
 #define ERR_AES_DEC_EVP_DECRYPT      0x1018
 #define ERR_AES_DEC_EVP_FINAL        0x1019
 #define ERR_AES_DEC_EVP_MAC          0x101A
+
+/* Storage Error Codes */
+#define STORAGE_OK                   0x0000
+#define ERR_USER_NOT_FOUND           0x2001
+#define ERR_NO_USER_PROVIDED         0x2002
+#define ERR_MEM_LEAK                 0x2003
+#define ERR_STORAGE_MEM_ALLOC        0x2004
+#define ERR_OPEN_PASSW_FILE          0x2005
+#define ERR_OPEN_SALT_FILE           0x2006
+#define ERR_READ_SALT_FILE           0x2007
+
 #endif
