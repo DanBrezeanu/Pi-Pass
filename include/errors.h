@@ -12,14 +12,30 @@
 
 /* Crypto Error Codes */
 #define CRYPTO_OK                    0x0000
-#define SSL_OK                       0x1001
+#define SSL_OK                       0x0001
 #define ERR_SHA_INIT_CTX_FAIL        0x1002
 #define ERR_SHA_UPDATE_FAIL          0x1003
 #define ERR_SHA_FINAL_FAIL           0x1004
 #define ERR_SHA_HASH_INV_PARAMS      0x1005
 #define ERR_READ_HASH_FAIL           0x1006
 #define ERR_HASH_DIFFER              0x1007
-#define ERR_HWRNG_OPEN_FAIL          0x1008
-#define ERR_HWRNG_READ_FAIL          0x1009
+#define ERR_RAND_NOT_SUPPORTED       0x1008
+#define ERR_RAND_FAIL                0x1009
 #define ERR_AES_PBKDF_INV_PARAMS     0x100A
+#define ERR_AES_ENC_INV_PARAMS       0x100B
+#define ERR_AES_ENC_EVP_INIT         0x100C
+#define ERR_AES_ENC_SET_IVLEN        0x100D
+#define ERR_AES_ENC_EVP_INIT_KEY     0x100E
+#define ERR_AES_ENC_EVP_AAD          0x100F
+#define ERR_AES_ENC_EVP_ENCRYPT      0x1010
+#define ERR_AES_ENC_EVP_FINAL        0x1011
+#define ERR_AES_ENC_EVP_MAC          0x1012
+#define ERR_AES_DEC_INV_PARAMS       0x1013
+#define ERR_AES_DEC_EVP_INIT         0x1014
+#define ERR_AES_DEC_SET_IVLEN        0x1015
+#define ERR_AES_DEC_EVP_INIT_KEY     0x1016
+#define ERR_AES_DEC_EVP_AAD          0x1017
+#define ERR_AES_DEC_EVP_DECRYPT      0x1018
+#define ERR_AES_DEC_EVP_FINAL        0x1019
+#define ERR_AES_DEC_EVP_MAC          0x101A
 #endif
