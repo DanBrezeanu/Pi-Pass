@@ -1,6 +1,6 @@
 #include <sha256.h>
 
-CRYPTO_ERR hash_sha256(uint8_t *input, size_t input_len, uint8_t *salt, uint8_t salt_len, uint8_t *digest) {
+CRYPTO_ERR hash_sha256(uint8_t *input, size_t input_len, uint8_t *salt, uint32_t salt_len, uint8_t *digest) {
     int32_t res;
     SHA256_CTX ctx;
 
@@ -26,7 +26,7 @@ CRYPTO_ERR hash_sha256(uint8_t *input, size_t input_len, uint8_t *salt, uint8_t 
     return CRYPTO_OK;
 }
 
-CRYPTO_ERR verify_sha256(uint8_t *input, size_t input_len, uint8_t *salt, uint8_t salt_len, int32_t fd_dgst) {
+CRYPTO_ERR verify_sha256(uint8_t *input, size_t input_len, uint8_t *salt, uint32_t salt_len, int32_t fd_dgst) {
     uint8_t *dgst = malloc(SHA256_DGST_SIZE);
     uint8_t *stored_dgst = malloc(SHA256_DGST_SIZE);
     
@@ -54,24 +54,4 @@ error:
     free(stored_dgst);
 
     return err;
-}
-
-int main() {
-    uint8_t *pass = malloc(MASTER_PASS_SIZE);
-    uint8_t *salt = malloc(SALT_SIZE);
-    
-    memcpy(pass, "1235", MASTER_PASS_SIZE);
-    int32_t fd = open("/pipass/passw/0/._salt", O_RDONLY);
-    if (fd == -1) {
-        printf("No fdr\n");
-        return 1;
-    }
-
-    read(fd, salt, SALT_SIZE);
-    int32_t fdw = open("/pipass/passw/0/._passw", O_RDONLY);
-
-    CRYPTO_ERR err = verify_sha256(pass, MASTER_PASS_SIZE, salt, SALT_SIZE, fdw);
-    printf("0x%.4X\n", err);
-    
-    return 0;
 }

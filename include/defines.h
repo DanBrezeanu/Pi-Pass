@@ -8,6 +8,7 @@
 #define MASTER_PASS_SIZE    4
 #define SALT_SIZE           64
 #define SHA256_DGST_SIZE    32
+#define SHA256_HEX_SIZE     64
 #define PBKDF2_ITERATIONS   256
 #define AES256_KEY_SIZE     32
 #define IV_SIZE             16
