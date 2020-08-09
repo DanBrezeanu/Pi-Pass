@@ -46,6 +46,7 @@
 #define ERR_CRYPTO_DEK_BLOB_MEM_LEAK   0x1020
 #define ERR_CRYPTO_GEN_HASH_INV_PARAMS 0x1021
 #define ERR_CRYPTO_HASH_MEM_LEAK       0x1022
+#define ERR_BUF_SANITY_CHECK_FAIL      0x1023
 
 /* Storage Error Codes */
 #define STORAGE_OK                     0x0000
@@ -69,5 +70,13 @@
 #define ERR_STORE_WRITE_FILE           0x2012
 #define ERR_STORE_FILE_INV_PARAMS      0x2013
 #define ERR_STORE_HASH_INV_PARAMS      0x2014
+
+/* Database Error Codes */
+#define DB_OK                          0x0000
+#define ERR_POPULATE_FIELD_INV_PARAMS  0x4001
+#define ERR_FIELD_LIMIT_EXCEEDED       0x4002
+#define ERR_INVALID_FIELD              0x4003
+#define ERR_DB_MEM_LEAK                0x4004
+#define ERR_DB_MEM_ALLOC               0x4005
 
 #endif

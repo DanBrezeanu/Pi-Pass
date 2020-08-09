@@ -26,11 +26,7 @@ STORAGE_ERR create_user_directory(uint8_t *user_hash) {
     err = STORAGE_OK;
 
 error:
-    if (user_dir != NULL) {
-        zero_buffer(user_dir, user_dir_len);
-        free(user_dir);
-        user_dir = NULL;
-    }
+    erase_buffer(&user_dir, user_dir_len);
 
     return err;
 }
@@ -52,10 +48,7 @@ STORAGE_ERR verify_user_directory(uint8_t *user_hash) {
            : (ERR_USER_NOT_FOUND));
 
 error:
-    if (user_dir != NULL) {
-        zero_buffer(user_dir, user_dir_len);
-        free(user_dir);
-    }
+    erase_buffer(&user_dir, user_dir_len);
 
     return err;
 }
@@ -82,9 +75,7 @@ STORAGE_ERR store_file(uint8_t *user_hash, uint8_t *content, int32_t content_len
         goto error;
     }
 
-    zero_buffer(file_path, file_path_len);
-    free(file_path);
-    file_path = NULL;
+    erase_buffer(&file_path, file_path_len);
 
     int32_t res = write(file_fd, content, content_len);
     if (res != content_len) {
@@ -100,11 +91,7 @@ error:
         file_fd = -1;
     }
 
-    if (file_path != NULL) {
-        zero_buffer(file_path, file_path_len);
-        free(file_path);
-        file_path = NULL;
-    }
+    erase_buffer(&file_path, file_path_len);
 
     return err;
 }

@@ -15,6 +15,8 @@
 #define IV_SIZE             16
 #define MAC_SIZE            16
 
+#define CREDENTIALS_FIELD_LIMIT         200
+
 typedef uint8_t * usb_packet;
 typedef uint8_t   BYTE;
 typedef uint32_t  USB_ERR;

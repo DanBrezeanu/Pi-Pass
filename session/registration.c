@@ -46,6 +46,13 @@ STORAGE_ERR register_new_user(uint8_t *user_data, int32_t user_data_len, uint8_t
     if (err != STORAGE_OK)
         goto error;
 
+    err = store_user_KEK(user_hash, user_kek, kek_salt);
+    if (err != STORAGE_OK)
+        goto error;
+
+    erase_buffer(&user_kek, AES256_KEY_SIZE);
+    erase_buffer(&kek_salt, SALT_SIZE);
+
     err = store_user_DEK_blob(user_hash, user_dek_blob, dek_blob_iv, dek_blob_mac);
     if (err != STORAGE_OK)
         goto error;
@@ -62,9 +69,6 @@ STORAGE_ERR register_new_user(uint8_t *user_data, int32_t user_data_len, uint8_t
     if (err != STORAGE_OK)
         goto error;
     
-    err = store_user_KEK(user_hash, user_kek, kek_salt);
-    if (err != STORAGE_OK)
-        goto error;
 
     err = STORAGE_OK;
 
@@ -73,6 +77,7 @@ error:
     erase_buffer(&user_kek, AES256_KEY_SIZE);
     erase_buffer(&kek_salt, SALT_SIZE);
     erase_buffer(&user_hash, SHA256_HEX_SIZE);
+    erase_buffer(&user_dek_blob, AES256_KEY_SIZE);
     erase_buffer(&dek_blob_iv, IV_SIZE);
     erase_buffer(&dek_blob_mac, MAC_SIZE);
     erase_buffer(&login_hash, SHA256_DGST_SIZE);

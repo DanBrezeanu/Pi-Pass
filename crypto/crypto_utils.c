@@ -35,3 +35,9 @@ CRYPTO_ERR raw_to_hex(uint8_t *raw, uint32_t raw_len, uint8_t **hex, uint32_t *h
     
     return CRYPTO_OK;
 }
+
+CRYPTO_ERR sanity_check_buffer(uint8_t *buf, uint8_t buf_len) {
+    return ((buf == NULL || buf_len == 0 || buf[buf_len] != 0)
+            ? (ERR_BUF_SANITY_CHECK_FAIL)
+            : (CRYPTO_OK));
+}

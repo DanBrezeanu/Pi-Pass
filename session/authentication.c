@@ -31,9 +31,7 @@ STORAGE_ERR verify_master_password(uint8_t *user, uint8_t *key) {
         goto error;
     }
 
-    zero_buffer(user_passw_file, user_passw_file_len);
-    free(user_passw_file);
-    user_passw_file = NULL;
+    erase_buffer(&user_passw_file, user_passw_file_len);
 
     err = user_login_salt_file(user, &user_salt_file, &user_salt_file_len);
     if (err != STORAGE_OK) {
@@ -46,9 +44,7 @@ STORAGE_ERR verify_master_password(uint8_t *user, uint8_t *key) {
         goto error;
     }
     
-    zero_buffer(user_salt_file, user_salt_file_len);
-    free(user_salt_file);
-    user_salt_file = NULL;
+    erase_buffer(&user_salt_file, user_salt_file_len);
     
     if (salt == NULL) {
         err = ERR_STORAGE_MEM_ALLOC;
@@ -72,23 +68,10 @@ STORAGE_ERR verify_master_password(uint8_t *user, uint8_t *key) {
     err = STORAGE_OK;
 
 error:
-    if (key != NULL)
-        zero_buffer(key, MASTER_PASS_SIZE);
-
-    if (user_passw_file != NULL) {
-        zero_buffer(user_passw_file, user_passw_file_len);
-        free(user_passw_file);
-    }
-
-    if (user_salt_file != NULL) {
-        zero_buffer(user_salt_file, user_salt_file_len);
-        free(user_salt_file);
-    }
-
-    if (salt != NULL) {
-        zero_buffer(salt, SALT_SIZE);
-        free(salt);
-    }
+    erase_buffer(&key, MASTER_PASS_SIZE);
+    erase_buffer(&user_passw_file, user_passw_file_len);
+    erase_buffer(&user_salt_file, user_salt_file_len);
+    erase_buffer(&salt, SALT_SIZE);
 
     if (salt_fd != -1)
         close(salt_fd);

@@ -27,17 +27,8 @@ CRYPTO_ERR generate_KEK(uint8_t *passw, int32_t passw_len, uint8_t **salt, uint8
     return CRYPTO_OK;
 
 error:
-    if (*salt != NULL) {
-        zero_buffer(*salt, SALT_SIZE);
-        free(*salt);
-        *salt = NULL;
-    }
-
-    if (*KEK != NULL) {
-        zero_buffer(*KEK, AES256_KEY_SIZE);
-        free(*KEK);
-        *KEK = NULL;
-    }
+    erase_buffer(salt, SALT_SIZE);
+    erase_buffer(KEK, AES256_KEY_SIZE);
 
     return err;
 }
@@ -84,23 +75,9 @@ CRYPTO_ERR generate_DEK_blob(uint8_t *DEK, uint8_t *KEK, uint8_t* aad, int32_t a
     return CRYPTO_OK;
 
 error:
-    if (*iv != NULL) {
-        zero_buffer(*iv, IV_SIZE);
-        free(*iv);
-        *iv = NULL;
-    }
-
-    if (*DEK_blob != NULL) {
-        zero_buffer(*DEK_blob, AES256_KEY_SIZE);
-        free(*DEK_blob);
-        *DEK_blob = NULL;
-    }
-
-    if (*mac != NULL) {
-        zero_buffer(*mac, MAC_SIZE);
-        free(*mac);
-        *mac = NULL;
-    }
+    erase_buffer(iv, IV_SIZE);
+    erase_buffer(DEK_blob, AES256_KEY_SIZE);
+    erase_buffer(mac, MAC_SIZE);
 
     return err;
 }
@@ -131,25 +108,13 @@ CRYPTO_ERR generate_user_hash(uint8_t *user_data, int32_t user_data_len, uint8_t
         goto error;
     }
 
-    if (user_hash_raw != NULL) {
-        zero_buffer(user_hash_raw, SHA256_DGST_SIZE);
-        free(user_hash_raw);
-    }
+    erase_buffer(&user_hash_raw, SHA256_HEX_SIZE);
 
     return STORAGE_OK;
 
 error:
-    if (*user_hash != NULL) {
-        zero_buffer(*user_hash, SHA256_DGST_SIZE);
-        free(*user_hash);
-        *user_hash = NULL;
-    }
-
-    if (user_hash_raw != NULL) {
-        zero_buffer(user_hash_raw, SHA256_HEX_SIZE);
-        free(user_hash_raw);
-        user_hash_raw = NULL;
-    }
+    erase_buffer(user_hash, SHA256_DGST_SIZE);
+    erase_buffer(&user_hash_raw, SHA256_HEX_SIZE);
 
     return err;
 }

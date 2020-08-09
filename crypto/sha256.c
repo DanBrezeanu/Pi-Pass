@@ -50,10 +50,8 @@ CRYPTO_ERR verify_sha256(uint8_t *input, size_t input_len, uint8_t *salt, uint32
     err = CRYPTO_OK;
 
 error:
-    zero_buffer(dgst, SHA256_DGST_SIZE);
-    zero_buffer(stored_dgst, SHA256_DGST_SIZE);
-    free(dgst);
-    free(stored_dgst);
+    erase_buffer(&dgst, SHA256_DGST_SIZE);
+    erase_buffer(&stored_dgst, SHA256_DGST_SIZE);
 
     return err;
 }
