@@ -7,7 +7,7 @@ CRYPTO_ERR generate_aes256_key(uint8_t *key) {
     }
 
     if (err == 0) {
-        zero_buffer(&key, AES256_KEY_SIZE);
+        zero_buffer(key, AES256_KEY_SIZE);
         return ERR_RAND_FAIL;
     }
 
