@@ -23,48 +23,33 @@ STORAGE_ERR user_directory(uint8_t *user, uint8_t **user_dir, uint32_t *user_dir
     return STORAGE_OK;
 }
 
-STORAGE_ERR user_master_passw_file(uint8_t *user, uint8_t **user_passw_file, uint32_t *user_passw_file_len) {
-    STORAGE_ERR err;
+STORAGE_ERR user_file_path(uint8_t *user, uint8_t *file, uint8_t **user_file_path, uint32_t *user_file_path_len) {
+    if (user == NULL)
+        return ERR_NO_USER_PROVIDED;
 
-    err = user_directory(user, user_passw_file, user_passw_file_len);
+    if (file == NULL)
+        return ERR_NO_FILE_PROVIDED;
+
+    if (*user_file_path != NULL)
+        return ERR_MEM_LEAK;
+    
+    STORAGE_ERR err;
+    err = user_directory(user, user_file_path, user_file_path_len);
     if (err != STORAGE_OK)
         return err;
 
-    const int MASTER_PASSW_LEN = strlen(MASTER_PASSW);
+    const int32_t FILE_LEN = strlen(file);
 
-    uint8_t *_tmp = realloc(*user_passw_file, *user_passw_file_len + MASTER_PASSW_LEN);
+    uint8_t *_tmp = realloc(*user_file_path, *user_file_path_len + FILE_LEN + 1);
     if (_tmp == NULL)
         return ERR_STORAGE_MEM_ALLOC;
 
-    *user_passw_file = _tmp;
+    *user_file_path = _tmp;
 
-    memmove(*user_passw_file + *user_passw_file_len, MASTER_PASSW, MASTER_PASSW_LEN);
+    memmove(*user_file_path + *user_file_path_len, file, FILE_LEN);
 
-    *user_passw_file_len += MASTER_PASSW_LEN;
-    (*user_passw_file)[*user_passw_file_len] = 0;
-
-    return STORAGE_OK;
-}
-
-STORAGE_ERR user_master_salt_file(uint8_t *user, uint8_t **user_salt_file, uint32_t *user_salt_file_len) {
-    STORAGE_ERR err;
-
-    err = user_directory(user, user_salt_file, user_salt_file_len);
-    if (err != STORAGE_OK)
-        return err;
-
-    const int MASTER_SALT_LEN = strlen(MASTER_SALT);
-
-    uint8_t *_tmp = realloc(*user_salt_file, *user_salt_file_len + MASTER_SALT_LEN);
-    if (_tmp == NULL)
-        return ERR_STORAGE_MEM_ALLOC;
-
-    *user_salt_file = _tmp;
-
-    memmove(*user_salt_file + *user_salt_file_len, MASTER_SALT, MASTER_SALT_LEN);
-
-    *user_salt_file_len += MASTER_SALT_LEN;
-    (*user_salt_file)[*user_salt_file_len] = 0;
+    *user_file_path_len += FILE_LEN;
+    (*user_file_path)[*user_file_path_len] = 0;
 
     return STORAGE_OK;
 }

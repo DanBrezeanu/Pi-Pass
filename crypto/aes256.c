@@ -15,7 +15,7 @@ CRYPTO_ERR generate_aes256_key(uint8_t *key) {
 }
 
 CRYPTO_ERR create_PBKDF2_key(uint8_t *input, int32_t input_len, uint8_t *salt, int32_t salt_len, uint8_t *pbkdf2_key) {
-    if (input == NULL || salt == NULL || !input_len || !salt_len)
+    if (input == NULL || salt == NULL || pbkdf2_key == NULL || !input_len || !salt_len)
         return ERR_AES_PBKDF_INV_PARAMS;
 
     fastpbkdf2_hmac_sha256(input, input_len, salt, salt_len, PBKDF2_ITERATIONS, pbkdf2_key, AES256_KEY_SIZE);
@@ -170,64 +170,64 @@ error:
 }
 
 
-int main() {
-    uint8_t *pin = malloc(MASTER_PASS_SIZE);
-    memcpy(pin, "1234", 4);
+// int main() {
+//     uint8_t *pin = malloc(MASTER_PASS_SIZE);
+//     memcpy(pin, "1234", 4);
 
-    uint8_t *salt = malloc(SALT_SIZE);
-    CRYPTO_ERR err = create_salt(SALT_SIZE, salt);
-    if (err != CRYPTO_OK)
-        return err; 
+//     uint8_t *salt = malloc(SALT_SIZE);
+//     CRYPTO_ERR err = create_salt(SALT_SIZE, salt);
+//     if (err != CRYPTO_OK)
+//         return err; 
 
-    int fds = open("test_enc/key_salt", O_WRONLY | O_CREAT, 0644);
-    write(fds, salt, SALT_SIZE);
-    close(fds);  
+//     int fds = open("test_enc/key_salt", O_WRONLY | O_CREAT, 0644);
+//     write(fds, salt, SALT_SIZE);
+//     close(fds);  
 
-    uint8_t *file_key = malloc(AES256_KEY_SIZE);
+//     uint8_t *file_key = malloc(AES256_KEY_SIZE);
 
-    err = create_PBKDF2_key(pin, MASTER_PASS_SIZE, salt, SALT_SIZE, file_key);
-    if (err != CRYPTO_OK)
-        return err;
+//     err = create_PBKDF2_key(pin, MASTER_PASS_SIZE, salt, SALT_SIZE, file_key);
+//     if (err != CRYPTO_OK)
+//         return err;
 
-    uint8_t *iv = malloc(IV_SIZE); 
+//     uint8_t *iv = malloc(IV_SIZE); 
     
-    err = create_salt(IV_SIZE, iv);
-    if (err != CRYPTO_OK)
-        return err;
+//     err = create_salt(IV_SIZE, iv);
+//     if (err != CRYPTO_OK)
+//         return err;
 
-    int fdiv = open("test_enc/iv", O_WRONLY | O_CREAT, 0644);
-    write(fdiv, iv, IV_SIZE);
-    close(fdiv); 
+//     int fdiv = open("test_enc/iv", O_WRONLY | O_CREAT, 0644);
+//     write(fdiv, iv, IV_SIZE);
+//     close(fdiv); 
 
-    uint8_t *mac = malloc(MAC_SIZE);
-    uint8_t *cipher = malloc(500);
-    int cipher_len = 0;
+//     uint8_t *mac = malloc(MAC_SIZE);
+//     uint8_t *cipher = malloc(500);
+//     int cipher_len = 0;
 
-    err = encrypt_aes256("Anamere", 7, "ADDIT", 5, file_key, iv, mac, cipher, &cipher_len);
-    if (err != CRYPTO_OK)
-        return err;
+//     err = encrypt_aes256("Anamere", 7, "ADDIT", 5, file_key, iv, mac, cipher, &cipher_len);
+//     if (err != CRYPTO_OK)
+//         return err;
 
-    int fd = open("result.bin", O_WRONLY | O_CREAT, 0777);
-    write(fd, cipher, cipher_len);
+//     int fd = open("result.bin", O_WRONLY | O_CREAT, 0777);
+//     write(fd, cipher, cipher_len);
 
-    int fdmac = open("test_enc/mac", O_WRONLY | O_CREAT, 0644);
-    write(fdmac, mac, MAC_SIZE);
-    close(fdmac); 
+//     int fdmac = open("test_enc/mac", O_WRONLY | O_CREAT, 0644);
+//     write(fdmac, mac, MAC_SIZE);
+//     close(fdmac); 
 
     
-    uint8_t *message = malloc(5);
-    int message_len = 0;
+//     uint8_t *message = malloc(5);
+//     int message_len = 0;
 
-    uint8_t *file_key_dec = malloc(AES256_KEY_SIZE);
-    create_PBKDF2_key(pin, MASTER_PASS_SIZE, salt, SALT_SIZE, file_key_dec);
+//     uint8_t *file_key_dec = malloc(AES256_KEY_SIZE);
+//     create_PBKDF2_key(pin, MASTER_PASS_SIZE, salt, SALT_SIZE, file_key_dec);
 
-    err = decrypt_aes256(cipher, cipher_len, "ADDIT", 5, mac, file_key_dec, iv, message, &message_len);
-    if (err != CRYPTO_OK)
-        return err;
+//     err = decrypt_aes256(cipher, cipher_len, "ADDIT", 5, mac, file_key_dec, iv, message, &message_len);
+//     if (err != CRYPTO_OK)
+//         return err;
 
-    message[message_len] = 0;
-    printf("%s\n", message);
+//     message[message_len] = 0;
+//     printf("%s\n", message);
     
 
-    return 0;
-}
+//     return 0;
+// }

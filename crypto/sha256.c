@@ -4,16 +4,18 @@ CRYPTO_ERR hash_sha256(uint8_t *input, size_t input_len, uint8_t *salt, uint32_t
     int32_t res;
     SHA256_CTX ctx;
 
-    if (input == NULL || salt == NULL || !input_len || !salt_len)
+    if (input == NULL || !input_len)
         return ERR_SHA_HASH_INV_PARAMS;
 
     res = SHA256_Init(&ctx);
     if (res != SSL_OK)
         return ERR_SHA_INIT_CTX_FAIL;
 
-    res = SHA256_Update(&ctx, salt, salt_len);
-    if (res != SSL_OK)
-        return ERR_SHA_UPDATE_FAIL;
+    if (salt != NULL && salt_len) {
+        res = SHA256_Update(&ctx, salt, salt_len);
+        if (res != SSL_OK)
+            return ERR_SHA_UPDATE_FAIL;
+    }
 
     res = SHA256_Update(&ctx, input, input_len);
     if (res != SSL_OK)

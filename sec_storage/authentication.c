@@ -1,28 +1,6 @@
 #include <storage_utils.h>
 #include <authentication.h>
 
-STORAGE_ERR verify_user(uint8_t *user) {
-    struct stat sb;
-    int32_t user_dir_len = 0;
-    uint8_t *user_dir = NULL;
-
-    STORAGE_ERR err = user_directory(user, &user_dir, &user_dir_len);
-    if (err != STORAGE_OK)
-        goto error;
-
-    err = ((stat(user_dir, &sb) == 0 && S_ISDIR(sb.st_mode))
-           ? (STORAGE_OK)
-           : (ERR_USER_NOT_FOUND));
-
-error:
-    if (user_dir != NULL) {
-        zero_buffer(user_dir, user_dir_len);
-        free(user_dir);
-    }
-
-    return err;
-}
-
 STORAGE_ERR verify_master_password(uint8_t *user, uint8_t *key) {
     STORAGE_ERR err;
 
@@ -37,12 +15,12 @@ STORAGE_ERR verify_master_password(uint8_t *user, uint8_t *key) {
 
     uint8_t *salt = malloc(SALT_SIZE);
 
-    err = verify_user(user);
+    err = verify_user_directory(user);
     if (err != STORAGE_OK) {
         goto error;
     }
 
-    err = user_master_passw_file(user, &user_passw_file, &user_passw_file_len);
+    err = user_file_path(user, MASTER_PASSW, &user_passw_file, &user_passw_file_len);
     if (err != STORAGE_OK) {
         goto error;
     }
@@ -57,7 +35,7 @@ STORAGE_ERR verify_master_password(uint8_t *user, uint8_t *key) {
     free(user_passw_file);
     user_passw_file = NULL;
 
-    err = user_master_salt_file(user, &user_salt_file, &user_salt_file_len);
+    err = user_login_salt_file(user, &user_salt_file, &user_salt_file_len);
     if (err != STORAGE_OK) {
         goto error;
     }
@@ -121,18 +99,18 @@ error:
     return err;
 } 
 
-#include <stdio.h>
+// #include <stdio.h>
 
-int main() {
-    uint8_t *user = malloc(SHA256_HEX_SIZE);
-    uint8_t *key = malloc(MASTER_PASS_SIZE);
+// int main() {
+//     uint8_t *user = malloc(SHA256_HEX_SIZE);
+//     uint8_t *key = malloc(MASTER_PASS_SIZE);
 
-    memcpy(user, "55402817f85b8423f989bc5ed92476a4b4967c302201e9540e9bb55579f00e4b", SHA256_HEX_SIZE);
-    memcpy(key, "1234", MASTER_PASS_SIZE);
+//     memcpy(user, "55402817f85b8423f989bc5ed92476a4b4967c302201e9540e9bb55579f00e4b", SHA256_HEX_SIZE);
+//     memcpy(key, "1234", MASTER_PASS_SIZE);
 
-    STORAGE_ERR err = verify_master_password(user, key);
+//     STORAGE_ERR err = verify_master_password(user, key);
 
-    printf("0x%.4X\n", err);
+//     printf("0x%.4X\n", err);
 
-    return 0;
-}
+//     return 0;
+// }

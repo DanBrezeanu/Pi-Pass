@@ -2,6 +2,7 @@
 #define __DEFINES_H__
 
 #include <stdint.h>
+#include <stdlib.h>
 
 #define PACKET_SIZE 8
 
