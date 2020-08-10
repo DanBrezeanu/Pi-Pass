@@ -6,3 +6,5 @@ CRYPTO_ERR generate_DEK_blob(uint8_t *DEK, uint8_t *KEK, uint8_t* aad, int32_t a
     uint8_t **iv, uint8_t **mac, uint8_t **DEK_blob);
 
 CRYPTO_ERR generate_user_hash(uint8_t *user_data, int32_t user_data_len, uint8_t **user_hash);
+
+CRYPTO_ERR sanity_check_buffer(uint8_t *buf, uint8_t buf_len);

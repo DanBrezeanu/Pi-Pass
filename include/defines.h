@@ -4,6 +4,10 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#ifndef PIPASS_VERISON
+#define PIPASS_VERISON 0x0001
+#endif
+
 #define PACKET_SIZE 8
 
 #define MASTER_PASS_SIZE    4
@@ -15,7 +19,8 @@
 #define IV_SIZE             16
 #define MAC_SIZE            16
 
-#define CREDENTIALS_FIELD_LIMIT         200
+#define CREDENTIALS_FIELD_LIMIT ((1 << 16) - 1)
+#define CREDENTIAL_HEADER_SIZE  (4 + 2*5)
 
 typedef uint8_t * usb_packet;
 typedef uint8_t   BYTE;

@@ -60,7 +60,7 @@ STORAGE_ERR verify_master_password(uint8_t *user, uint8_t *key) {
     close(salt_fd);
     salt_fd = -1;
 
-    err = verify_sha256(key, MASTER_PASS_SIZE, salt, SALT_SIZE, passw_fd);
+    err = verify_sha256_fd(key, MASTER_PASS_SIZE, salt, SALT_SIZE, passw_fd);
     if (err != CRYPTO_OK) {
         goto error;
     }

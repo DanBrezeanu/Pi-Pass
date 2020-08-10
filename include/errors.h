@@ -47,6 +47,18 @@
 #define ERR_CRYPTO_GEN_HASH_INV_PARAMS 0x1021
 #define ERR_CRYPTO_HASH_MEM_LEAK       0x1022
 #define ERR_BUF_SANITY_CHECK_FAIL      0x1023
+#define ERR_ENC_DB_FIELD_INV_PARAMS    0x1024
+#define ERR_ENC_DB_INV_FIELD           0x1025
+#define ERR_ENC_CRED_INV_PARAMS        0x1026
+#define ERR_ENC_CRED_MEM_LEAK          0x1027
+#define ERR_ENC_CRED_MISSING_DEK       0x1028
+#define ERR_ENC_CRED_MISSING_KEK       0x1029
+#define ERR_ENC_CRED_MEM_ALLOC         0x102A
+#define ERR_ENC_CRED_DEK_DECRYPT_FAIL  0x102B
+#define ERR_DEC_DB_FIELD_INV_PARAMS    0x102C
+#define ERR_DEC_DB_FIELD_MEM_LEAK      0x102D
+#define ERR_DEC_DB_INV_FIELD           0x102E
+#define ERR_DEC_DB_FIELD_MISSING_FIELD 0x102F
 
 /* Storage Error Codes */
 #define STORAGE_OK                     0x0000
@@ -71,6 +83,7 @@
 #define ERR_STORE_FILE_INV_PARAMS      0x2013
 #define ERR_STORE_HASH_INV_PARAMS      0x2014
 
+
 /* Database Error Codes */
 #define DB_OK                          0x0000
 #define ERR_POPULATE_FIELD_INV_PARAMS  0x4001
@@ -78,5 +91,10 @@
 #define ERR_INVALID_FIELD              0x4003
 #define ERR_DB_MEM_LEAK                0x4004
 #define ERR_DB_MEM_ALLOC               0x4005
+#define ERR_RECALC_HEADER_INV_PARAMS   0x4006
+#define ERR_DB_UPDATE_DEK_INV_PARAMS   0x4007
+#define ERR_DB_MISSING_KEK             0x4008
+#define ERR_DB_UPDATE_KEK_INV_PARAMS   0x4009
+#define ERR_DB_UPDATE_LOGIN_INV_PARAMS 0x400A
 
 #endif
