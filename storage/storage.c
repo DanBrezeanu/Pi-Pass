@@ -53,9 +53,9 @@ error:
     return err;
 }
 
-STORAGE_ERR store_file(uint8_t *user_hash, uint8_t *content, int32_t content_len, uint8_t *file_name) {
-    if (user_hash == NULL || content == NULL || file_name == NULL)
-        return ERR_STORE_FILE_INV_PARAMS;
+STORAGE_ERR dump_database(struct Database *db, uint8_t *user_hash) {
+    if (db == NULL || user_hash == NULL)
+        return ERR_DUMP_DB_INV_PARAMS;
 
     STORAGE_ERR err = verify_user_directory(user_hash);
     if (err != STORAGE_OK)
@@ -64,8 +64,10 @@ STORAGE_ERR store_file(uint8_t *user_hash, uint8_t *content, int32_t content_len
     uint8_t *file_path = NULL;
     int32_t file_path_len = 0;
     int32_t file_fd = -1;
+    uint8_t *raw_db = NULL;
+    uint32_t raw_db_size = 0;
 
-    err = user_file_path(user_hash, file_name, &file_path, &file_path_len);
+    err = user_file_path(user_hash, PIPASS_DB, &file_path, &file_path_len);
     if (err != STORAGE_OK)
         goto error;
 
@@ -77,8 +79,12 @@ STORAGE_ERR store_file(uint8_t *user_hash, uint8_t *content, int32_t content_len
 
     erase_buffer(&file_path, file_path_len);
 
-    int32_t res = write(file_fd, content, content_len);
-    if (res != content_len) {
+    err = raw_database(&db, &raw_db, &raw_db_size);
+    if (err != DB_OK)
+        goto error;
+
+    int32_t res = write(file_fd, raw_db, raw_db_size);
+    if (res != raw_db_size) {
         err = ERR_STORE_WRITE_FILE;
         goto error;
     }
@@ -92,6 +98,7 @@ error:
     }
 
     erase_buffer(&file_path, file_path_len);
+    erase_buffer(&raw_db, raw_db_size);
 
     return err;
 }

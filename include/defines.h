@@ -27,6 +27,7 @@ typedef uint8_t   BYTE;
 typedef uint32_t  USB_ERR;
 typedef uint32_t  CRYPTO_ERR;
 typedef uint32_t  STORAGE_ERR;
+typedef uint32_t  DB_ERROR;
 typedef uint16_t  KEY;
 
 

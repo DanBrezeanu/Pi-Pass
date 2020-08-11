@@ -53,3 +53,22 @@ STORAGE_ERR user_file_path(uint8_t *user, uint8_t *file, uint8_t **user_file_pat
 
     return STORAGE_OK;
 }
+
+uint8_t *var_to_bin(void *value, size_t size) {
+    uint8_t *bin = malloc(size);
+    if (bin == NULL)
+        return NULL;
+
+    for (int i = 0; i < size; ++i) {
+        bin[i] = *((uint8_t *)value + i);
+    }
+
+    return bin;
+}
+
+void append_to_str(uint8_t *str, int32_t *cursor, uint8_t *substr, int32_t substr_len) {
+    if (substr != NULL) {
+        memcpy(str + *cursor, substr, substr_len);
+        *cursor += substr_len;
+    } 
+}

@@ -12,11 +12,13 @@ STORAGE_ERR register_new_user(uint8_t *user_data, int32_t user_data_len, uint8_t
     uint8_t *user_hash     = NULL;
     uint8_t *user_dek_blob = NULL;
     uint8_t *user_kek      = NULL;
+    uint8_t *user_kek_hash = NULL;
     uint8_t *kek_salt      = NULL;
     uint8_t *dek_blob_iv   = NULL;
     uint8_t *dek_blob_mac  = NULL;
     uint8_t *login_hash    = NULL;
     uint8_t *login_salt    = NULL;
+    struct Database db     = {0};
 
     STORAGE_ERR err = generate_user_hash(user_data, user_data_len, &user_hash);
     if (err != STORAGE_OK)
@@ -42,19 +44,35 @@ STORAGE_ERR register_new_user(uint8_t *user_data, int32_t user_data_len, uint8_t
 
     erase_buffer(&user_dek, AES256_KEY_SIZE);
 
+    user_kek_hash = malloc(SHA256_DGST_SIZE);
+    if (user_kek_hash == NULL) {
+        err = ERR_STORAGE_MEM_ALLOC;
+        goto error;
+    }
+
+    err = hash_sha256(user_kek, AES256_KEY_SIZE, kek_salt, SALT_SIZE, user_kek_hash);
+    if (err != CRYPTO_OK)
+        goto error;
+
+    erase_buffer(&user_kek, AES256_KEY_SIZE);
+
     err = create_user_directory(user_hash);
     if (err != STORAGE_OK)
         goto error;
 
-    err = store_user_KEK(user_hash, user_kek, kek_salt);
-    if (err != STORAGE_OK)
+    err = create_new_db(&db);
+    if (err != DB_OK)
         goto error;
 
-    erase_buffer(&user_kek, AES256_KEY_SIZE);
-    erase_buffer(&kek_salt, SALT_SIZE);
+    err = update_db_KEK(&db, user_kek_hash, kek_salt);
+    if (err != DB_OK)
+        goto error;
 
-    err = store_user_DEK_blob(user_hash, user_dek_blob, dek_blob_iv, dek_blob_mac);
-    if (err != STORAGE_OK)
+    erase_buffer(&kek_salt, SALT_SIZE);
+    erase_buffer(&user_kek_hash, SALT_SIZE);
+
+    err = update_db_DEK(&db, user_dek_blob, dek_blob_iv, dek_blob_mac, master_pass);
+    if (err != DB_OK)
         goto error;
 
     erase_buffer(&user_dek_blob, AES256_KEY_SIZE);
@@ -65,16 +83,20 @@ STORAGE_ERR register_new_user(uint8_t *user_data, int32_t user_data_len, uint8_t
     if (err != CRYPTO_OK)
         goto error;
 
-    err = store_user_login_hash(user_hash, login_hash, login_salt);
-    if (err != STORAGE_OK)
+    err = update_db_login(&db, login_hash, login_salt);
+    if (err != DB_OK)
         goto error;
-    
+
+    err = dump_database(&db, user_hash);
+    if (err != DB_OK)
+        goto error;
 
     err = STORAGE_OK;
 
 error:
     erase_buffer(&user_dek, AES256_KEY_SIZE);
     erase_buffer(&user_kek, AES256_KEY_SIZE);
+    erase_buffer(&user_kek_hash, SHA256_DGST_SIZE);
     erase_buffer(&kek_salt, SALT_SIZE);
     erase_buffer(&user_hash, SHA256_HEX_SIZE);
     erase_buffer(&user_dek_blob, AES256_KEY_SIZE);
@@ -82,6 +104,7 @@ error:
     erase_buffer(&dek_blob_mac, MAC_SIZE);
     erase_buffer(&login_hash, SHA256_DGST_SIZE);
     erase_buffer(&login_salt, SALT_SIZE);
+    memset(&db, 0, sizeof(struct Database));
 
     return err;
 }

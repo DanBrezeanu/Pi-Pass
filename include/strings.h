@@ -8,3 +8,5 @@
 #define LOGIN_SALT_FILE    "._login_salt"
 #define KEK_HASH_FILE      ".kek_hash"
 #define KEK_SALT_FILE      ".kek_salt"
+
+#define PIPASS_DB          "db.pipass"

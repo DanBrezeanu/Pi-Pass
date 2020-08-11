@@ -31,4 +31,4 @@ enum CredentialField {
 enum CredentialEncryptedField {
     USERNAME = 0,
     PASSW    = 1
-}
+};
