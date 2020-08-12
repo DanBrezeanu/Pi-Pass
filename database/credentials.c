@@ -1,12 +1,12 @@
 #include <credentials.h>
 #include <crypto.h>
 
-DB_ERROR new_credential(struct Credential *cr, struct CredentialHeader *crh) {
-    if (cr != NULL || crh != NULL)
+DB_ERROR new_credential(struct Credential **cr, struct CredentialHeader **crh) {
+    if (*cr != NULL || *crh != NULL)
         return ERR_MEM_LEAK;
 
-    cr = calloc(1, sizeof(struct Credential));
-    crh = calloc(1, sizeof(struct CredentialHeader));
+    *cr = calloc(1, sizeof(struct Credential));
+    *crh = calloc(1, sizeof(struct CredentialHeader));
 
     return DB_OK;
 }

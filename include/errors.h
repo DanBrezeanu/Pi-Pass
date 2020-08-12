@@ -90,6 +90,7 @@
 #define ERR_STORE_FILE_INV_PARAMS      0x2013
 #define ERR_STORE_HASH_INV_PARAMS      0x2014
 #define ERR_DUMP_DB_INV_PARAMS         0x2015
+#define ERR_REG_NEW_CRED_INV_PARAMS    0x2016
 
 
 /* Database Error Codes */
@@ -108,5 +109,10 @@
 #define ERR_RAW_DB_INV_PARAMS          0x400C
 #define ERR_RAW_DB_MEM_ALLOC           0x400D
 #define ERR_RAW_DB_MEM_LEAK            0x400E
+#define ERR_DB_APPEND_CRED_INV_PARAMS  0x400F
+#define ERR_LOAD_DB_INV_PARAMS         0x4010
+#define ERR_LOAD_DB_MEM_LEAK           0x4011
+#define ERR_LOAD_DB_OPEN_FILE          0x4012
+#define ERR_LOAD_DB_READ_FIELD         0x4013
 
 #endif

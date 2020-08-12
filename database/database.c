@@ -142,6 +142,67 @@ error:
     return err;
 }
 
+DB_ERROR append_db_credential(struct Database *db, struct Credential *cr, struct CredentialHeader *crh) {
+    if (db == NULL || cr == NULL || crh == NULL)
+        return ERR_DB_APPEND_CRED_INV_PARAMS;
+
+    if (cr->)
+
+    DB_ERROR err = DB_OK;
+
+    struct Credential *_tmp_cr = NULL;
+    _tmp_cr = realloc(db->cred, db->cred_len + 1);
+    if (_tmp_cr == NULL)
+        return ERR_DB_MEM_ALLOC;
+
+    db->cred = _tmp_cr;
+
+    struct CredentialHeader *_tmp_crh = NULL;
+    _tmp_crh = realloc(db->cred_headers, db->cred_len + 1);
+    if (_tmp_crh == NULL)
+        return ERR_DB_MEM_ALLOC;
+
+    db->cred_headers = _tmp_crh;
+
+    struct Credential new_cr = db->cred[db->cred_len];
+    struct CredentialHeader new_crh = db->cred_headers[db->cred_len];
+    db->cred_len++;
+
+    err = populate_plaintext_field(&new_cr, &new_crh, cr->name, crh->name_len, NAME);
+    if (err != DB_OK)
+        goto error;
+
+    err = populate_plaintext_field(&new_cr, &new_crh, cr->url, crh->url_len, URL);
+    if (err != DB_OK)
+        goto error;
+   
+    err = populate_plaintext_field(&new_cr, &new_crh, cr->additional, crh->additional_len, ADDITIONAL);
+    if (err != DB_OK)
+        goto error;
+
+    new_cr.username = malloc(crh->username_len);
+    new_cr.username_iv = malloc(IV_SIZE);
+    new_cr.username_mac = malloc(MAC_SIZE);
+    new_cr.passw = malloc(crh->passw_len);
+    new_cr.passw_iv = malloc(IV_SIZE);
+    new_cr.passw_mac = malloc(MAC_SIZE);
+
+    if (new_cr.username == NULL || new_cr.username_iv == NULL || new_cr.username_mac == NULL ||
+      new_cr.passw == NULL || new_cr.passw_iv == NULL || new_cr.passw_mac == NULL) {
+        
+        err = ERR_DB_MEM_ALLOC;
+        goto error;
+    }
+
+    memcpy()
+
+    return DB_OK;
+
+error:
+
+    return err;
+}
+
 DB_ERROR raw_database(struct Database *db, uint8_t **raw_db, int32_t *raw_db_size) {
     if (db == NULL) 
         return ERR_RAW_DB_INV_PARAMS;

@@ -85,6 +85,8 @@ STORAGE_ERR register_new_user(uint8_t *user_data, int32_t user_data_len, uint8_t
     if (err != CRYPTO_OK)
         goto error;
 
+    zero_buffer(master_pass, MASTER_PASS_SIZE);
+
     err = update_db_login(db, login_hash, login_salt);
     if (err != DB_OK)
         goto error;

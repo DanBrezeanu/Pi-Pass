@@ -1,6 +1,7 @@
 #include <storage.h>
 #include <database.h>
 #include <sha256.h>
+#include <credentials.h>
 
 STORAGE_ERR create_user_directory(uint8_t *user_hash) {
     if (user_hash == NULL)
@@ -103,6 +104,66 @@ error:
     erase_buffer(&raw_db, raw_db_size);
 
     return err;
+}
+
+STORAGE_ERR load_database(struct Database **db, uint8_t *user_hash) {
+    if (user_hash == NULL)
+        return ERR_LOAD_DB_INV_PARAMS;
+
+    if (*db != NULL)
+        return ERR_LOAD_DB_MEM_LEAK;
+
+    STORAGE_ERR err = verify_user_directory(user_hash);
+    if (err != STORAGE_OK)
+        return err;
+
+    uint8_t *db_file_path = NULL;
+    int32_t db_file_path_len = 0;
+    int32_t db_fd = -1;
+
+    err = user_file_path(user_hash, PIPASS_DB, &db_file_path, &db_file_path_len);
+    if (err != STORAGE_OK)
+        goto error;
+
+
+    *db = calloc(1, sizeof(struct Database));
+
+    db_fd = open(db_file_path, O_RDONLY);
+    if (db_fd == -1) {
+        err = ERR_LOAD_DB_OPEN_FILE;
+        goto error;
+    }
+
+    int32_t res = read(db_fd, &((*db)->version), sizeof((*db)->version));
+    if (res == -1 || res != sizeof((*db)->version)) {
+        err = ERR_LOAD_DB_READ_FIELD;
+        goto error;
+    }
+
+    res = read(db_fd, &((*db)->cred_len), sizeof((*db)->cred_len));
+    if (res == -1 || res != sizeof((*db)->cred_len)) {
+        err = ERR_LOAD_DB_READ_FIELD;
+        goto error;
+    }
+
+    for (int i = 0; i < (*db)->cred_len; ++i) {
+        
+    }
+
+error:
+    if (*db != NULL) {
+        memset(*db, 0, sizeof(struct Database));
+        free(*db);
+        *db = NULL;
+    }
+
+    if (db_fd != -1) {
+        close(db_fd);
+        db_fd = -1;
+    }
+
+    erase_buffer(&db_file_path, db_file_path_len);
+
 }
 
 /* TO BE DELETED */

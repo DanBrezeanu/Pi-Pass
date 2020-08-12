@@ -39,7 +39,7 @@ enum CredentialEncryptedField {
     PASSW    = 1
 };
 
-DB_ERROR new_credential(struct Credential *cr, struct CredentialHeader *crh);
+DB_ERROR new_credential(struct Credential **cr, struct CredentialHeader **crh);
 
 DB_ERROR populate_plaintext_field(struct Credential *cr, struct CredentialHeader *crh, uint8_t *data,
   int32_t data_len, enum CredentialField field);
