@@ -3,6 +3,8 @@
 #include <aes256.h>
 #include <crypto.h>
 #include <storage.h>
+#include <database.h>
+#include <credentials.h>
 
 STORAGE_ERR register_new_user(uint8_t *user_data, int32_t user_data_len, uint8_t *master_pass) {
     if (user_data == NULL || master_pass == NULL || user_data_len == 0) 
@@ -18,7 +20,7 @@ STORAGE_ERR register_new_user(uint8_t *user_data, int32_t user_data_len, uint8_t
     uint8_t *dek_blob_mac  = NULL;
     uint8_t *login_hash    = NULL;
     uint8_t *login_salt    = NULL;
-    struct Database db     = {0};
+    struct Database *db    = NULL;
 
     STORAGE_ERR err = generate_user_hash(user_data, user_data_len, &user_hash);
     if (err != STORAGE_OK)
@@ -64,14 +66,14 @@ STORAGE_ERR register_new_user(uint8_t *user_data, int32_t user_data_len, uint8_t
     if (err != DB_OK)
         goto error;
 
-    err = update_db_KEK(&db, user_kek_hash, kek_salt);
+    err = update_db_KEK(db, user_kek_hash, kek_salt);
     if (err != DB_OK)
         goto error;
 
     erase_buffer(&kek_salt, SALT_SIZE);
-    erase_buffer(&user_kek_hash, SALT_SIZE);
+    erase_buffer(&user_kek_hash, SHA256_DGST_SIZE);
 
-    err = update_db_DEK(&db, user_dek_blob, dek_blob_iv, dek_blob_mac, master_pass);
+    err = update_db_DEK(db, user_dek_blob, dek_blob_iv, dek_blob_mac, master_pass);
     if (err != DB_OK)
         goto error;
 
@@ -83,11 +85,11 @@ STORAGE_ERR register_new_user(uint8_t *user_data, int32_t user_data_len, uint8_t
     if (err != CRYPTO_OK)
         goto error;
 
-    err = update_db_login(&db, login_hash, login_salt);
+    err = update_db_login(db, login_hash, login_salt);
     if (err != DB_OK)
         goto error;
 
-    err = dump_database(&db, user_hash);
+    err = dump_database(db, user_hash);
     if (err != DB_OK)
         goto error;
 
@@ -104,7 +106,8 @@ error:
     erase_buffer(&dek_blob_mac, MAC_SIZE);
     erase_buffer(&login_hash, SHA256_DGST_SIZE);
     erase_buffer(&login_salt, SALT_SIZE);
-    memset(&db, 0, sizeof(struct Database));
+    if (db != NULL)
+        free(db);
 
     return err;
 }

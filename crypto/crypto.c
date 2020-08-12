@@ -93,7 +93,7 @@ CRYPTO_ERR generate_user_hash(uint8_t *user_data, int32_t user_data_len, uint8_t
     if (*user_hash != NULL)
         return ERR_MEM_LEAK;
 
-    user_hash_raw = malloc(SHA256_DGST_SIZE);
+    user_hash_raw = malloc(SHA256_DGST_SIZE + 1);
     if (user_hash_raw == NULL)
         return ERR_STORAGE_MEM_ALLOC;
 
@@ -109,7 +109,7 @@ CRYPTO_ERR generate_user_hash(uint8_t *user_data, int32_t user_data_len, uint8_t
         goto error;
     }
 
-    erase_buffer(&user_hash_raw, SHA256_HEX_SIZE);
+    erase_buffer(&user_hash_raw, SHA256_DGST_SIZE);
 
     return STORAGE_OK;
 

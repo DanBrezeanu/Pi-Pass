@@ -1,3 +1,6 @@
+#ifndef __STRINGS_H__
+#define __STRINGS_H__
+
 #define PIPASS_DIR    "/pipass/"
 #define PIPASS_USERS  "/pipass/users/"
 #define LOGIN_SALT   "._login_salt"
@@ -10,3 +13,5 @@
 #define KEK_SALT_FILE      ".kek_salt"
 
 #define PIPASS_DB          "db.pipass"
+
+#endif

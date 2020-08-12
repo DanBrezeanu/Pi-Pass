@@ -1,5 +1,11 @@
-#define CREDENTIAL_INIT { NULL, NULL, NULL, NULL, NULL }
-#define CREDENTIAL_HEADER_INIT { 0, 0, 0, 0, 0, 0 }
+#ifndef __CREDENTIALS_H__
+#define __CREDENTIALS_H__
+
+#include <errors.h>
+#include <defines.h>
+#include <string.h>
+#include <crypto_utils.h>
+#include <database.h>
 
 struct Credential {
     uint8_t *name;
@@ -32,3 +38,15 @@ enum CredentialEncryptedField {
     USERNAME = 0,
     PASSW    = 1
 };
+
+DB_ERROR new_credential(struct Credential *cr, struct CredentialHeader *crh);
+
+DB_ERROR populate_plaintext_field(struct Credential *cr, struct CredentialHeader *crh, uint8_t *data,
+  int32_t data_len, enum CredentialField field);
+
+DB_ERROR populate_encrypted_field(struct Database *db, struct Credential *cr, struct CredentialHeader *crh, uint8_t *data,
+  int32_t data_len, enum CredentialEncryptedField field, uint8_t *master_pass);
+
+DB_ERROR recalculate_header_len(struct CredentialHeader *crh);
+
+#endif

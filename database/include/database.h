@@ -1,3 +1,11 @@
+#ifndef __DATABASE_H__
+#define __DATABASE_H__
+
+#include <errors.h>
+#include <defines.h>
+#include <crypto_utils.h>
+#include <storage_utils.h>
+
 struct Database {
     uint16_t version;
     uint32_t cred_len;
@@ -26,7 +34,10 @@ enum DatabaseEncryptedField {
     MAC_DEK_BLOB = 2,
 };
 
-DB_ERROR create_new_db(struct Database *db);
+DB_ERROR create_new_db(struct Database **db);
 DB_ERROR update_db_DEK(struct Database *db, uint8_t *dek_blob, uint8_t *iv_dek_blob, uint8_t *mac_dek_blob, uint8_t *master_pass);
 DB_ERROR update_db_login(struct Database *db, uint8_t *login_hash, uint8_t *login_salt);
 DB_ERROR update_db_KEK(struct Database *db, uint8_t *kek_hash, uint8_t *kek_salt);
+DB_ERROR raw_database(struct Database *db, uint8_t **raw_db, int32_t *raw_db_size);
+
+#endif

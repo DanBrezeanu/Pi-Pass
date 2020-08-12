@@ -105,5 +105,8 @@
 #define ERR_DB_UPDATE_KEK_INV_PARAMS   0x4009
 #define ERR_DB_UPDATE_LOGIN_INV_PARAMS 0x400A
 #define ERR_ENC_DB_MEM_LEAK            0x400B
+#define ERR_RAW_DB_INV_PARAMS          0x400C
+#define ERR_RAW_DB_MEM_ALLOC           0x400D
+#define ERR_RAW_DB_MEM_LEAK            0x400E
 
 #endif

@@ -1,3 +1,6 @@
+#ifndef __SALT_H__
+#define __SALT_H__
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -9,3 +12,5 @@
 #include <openssl/rand.h>
 
 CRYPTO_ERR create_salt(int32_t size, uint8_t *salt);
+
+#endif

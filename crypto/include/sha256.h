@@ -1,3 +1,6 @@
+#ifndef __SHA256_H__
+#define __SHA256_H__
+
 #include <openssl/evp.h>
 #include <openssl/ssl.h>
 #include <openssl/sha.h>
@@ -17,3 +20,5 @@
 CRYPTO_ERR hash_sha256(uint8_t *input, size_t input_len, uint8_t *salt, uint32_t salt_len, uint8_t *digest);
 CRYPTO_ERR verify_sha256(uint8_t *input, size_t input_len, uint8_t *salt, uint32_t salt_len, uint8_t *digest);
 CRYPTO_ERR verify_sha256_fd(uint8_t *input, size_t input_len, uint8_t *salt, uint32_t salt_len, int32_t fd_dgst);
+
+#endif

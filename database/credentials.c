@@ -1,4 +1,5 @@
 #include <credentials.h>
+#include <crypto.h>
 
 DB_ERROR new_credential(struct Credential *cr, struct CredentialHeader *crh) {
     if (cr != NULL || crh != NULL)
@@ -35,7 +36,7 @@ DB_ERROR populate_plaintext_field(struct Credential *cr, struct CredentialHeader
         field_len = &(crh->url_len);
         break;
     case ADDITIONAL:
-        field_buffer = &(cr->addtional);
+        field_buffer = &(cr->additional);
         field_len = &(crh->additional_len);
         break;
     default:
@@ -50,7 +51,7 @@ DB_ERROR populate_plaintext_field(struct Credential *cr, struct CredentialHeader
         return ERR_DB_MEM_ALLOC;
 
     memcpy(*field_buffer, data, data_len + 1);
-    field_len = data_len;
+    *field_len = data_len;
 
     err = recalculate_header_len(crh);
     if (err != DB_OK) {
@@ -108,10 +109,20 @@ DB_ERROR populate_encrypted_field(struct Database *db, struct Credential *cr, st
     return DB_OK;
 
 error:
-    erase_buffer(field_cipher, field_len);
+    erase_buffer(field_cipher, *field_len);
     erase_buffer(field_iv, IV_SIZE);
     erase_buffer(field_mac, MAC_SIZE);
 
     return err;
 
+}
+
+DB_ERROR recalculate_header_len(struct CredentialHeader *crh) {
+    if (crh == NULL)
+        return ERR_RECALC_HEADER_INV_PARAMS;
+
+    crh->cred_len = crh->name_len + crh->username_len + crh->passw_len +
+        crh->url_len + crh->additional_len;
+
+    return DB_OK;
 }

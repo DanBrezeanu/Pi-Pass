@@ -1,4 +1,6 @@
 #include <storage.h>
+#include <database.h>
+#include <sha256.h>
 
 STORAGE_ERR create_user_directory(uint8_t *user_hash) {
     if (user_hash == NULL)
@@ -79,7 +81,7 @@ STORAGE_ERR dump_database(struct Database *db, uint8_t *user_hash) {
 
     erase_buffer(&file_path, file_path_len);
 
-    err = raw_database(&db, &raw_db, &raw_db_size);
+    err = raw_database(db, &raw_db, &raw_db_size);
     if (err != DB_OK)
         goto error;
 
@@ -102,6 +104,52 @@ error:
 
     return err;
 }
+
+/* TO BE DELETED */
+
+STORAGE_ERR store_file(uint8_t *user_hash, uint8_t *content, int32_t content_len, uint8_t *file_name) {
+    if (user_hash == NULL || content == NULL || file_name == NULL)
+        return ERR_STORE_FILE_INV_PARAMS;
+
+    STORAGE_ERR err = verify_user_directory(user_hash);
+    if (err != STORAGE_OK)
+        return err;
+
+    uint8_t *file_path = NULL;
+    int32_t file_path_len = 0;
+    int32_t file_fd = -1;
+
+    err = user_file_path(user_hash, file_name, &file_path, &file_path_len);
+    if (err != STORAGE_OK)
+        goto error;
+
+    file_fd = open(file_path, O_WRONLY | O_CREAT, 0400);
+    if (file_fd == -1) {
+        err = ERR_STORE_OPEN_FILE;
+        goto error;
+    }
+
+    erase_buffer(&file_path, file_path_len);
+
+    int32_t res = write(file_fd, content, content_len);
+    if (res != content_len) {
+        err = ERR_STORE_WRITE_FILE;
+        goto error;
+    }
+
+    err = STORAGE_OK;
+
+error:
+    if (file_fd != -1) {
+        close(file_fd);
+        file_fd = -1;
+    }
+
+    erase_buffer(&file_path, file_path_len);
+
+    return err;
+}
+
 
 STORAGE_ERR store_user_DEK_blob(uint8_t *user_hash, uint8_t *DEK_blob, uint8_t *iv, uint8_t *mac) {
     if (DEK_blob == NULL || user_hash == NULL || iv == NULL || mac == NULL)

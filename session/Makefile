@@ -1,14 +1,20 @@
 CC=gcc
+OBJ_DIR=obj
+CUR_DIR=$(notdir $(shell pwd))
 SRCS=$(wildcard *.c)
-OBJS=$(patsubst %.c,obj/%.o,$(SRCS))
+OBJS=$(patsubst %.c, $(OBJ_DIR)/%.o,$(SRCS))
 CFLAGS=-std=gnu99 -g
-LDFLAGS=../lib
-LDLIBS=-lssl -lcrypto -lfastpbkdf2
-INCLUDE=-Iinclude/ -I../include -I../crypto/include/ -I../database/include/ -I../storage/include
+INCLUDE=-Iinclude/ $(shell find ../ -name 'include' -type d -exec sh -c 'echo -I{}' \;)
+RM=rm -rf
 
-.PHONY: all
+.PHONY: all clean
 
 all: $(OBJS)
 
-%.o: %.c
-	$(CC) $(CFLAGS) $(INCLUDE) -c $<
+$(OBJ_DIR)/%.o: %.c
+	@echo "CC $^" 
+	@$(CC) $(CFLAGS) $(INCLUDE) $< -c -o $@
+
+clean:
+	@echo "CLEAN $(CUR_DIR)"
+	@$(RM) -rf $(OBJ_DIR)/*.o

@@ -1,3 +1,6 @@
+#ifndef __STORAGE_UTILS_H__
+#define __STORAGE_UTILS_H__
+
 #include <string.h>
 #include <strings.h>
 #include <errors.h>
@@ -6,5 +9,8 @@
 #include <defines.h>
 
 STORAGE_ERR user_directory(uint8_t *user, uint8_t **user_dir, uint32_t *user_dir_len);
-STORAGE_ERR user_master_passw_file(uint8_t *user, uint8_t **user_passw, uint32_t *user_passw_len);
-STORAGE_ERR user_master_salt_file(uint8_t *user, uint8_t **user_salt, uint32_t *user_salt_len);
+STORAGE_ERR user_file_path(uint8_t *user, uint8_t *file, uint8_t **user_file_path, uint32_t *user_file_path_len);
+uint8_t *var_to_bin(void *value, size_t size);
+void append_to_str(uint8_t *str, int32_t *cursor, uint8_t *substr, int32_t substr_len);
+
+#endif

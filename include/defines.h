@@ -4,8 +4,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#ifndef PIPASS_VERISON
-#define PIPASS_VERISON 0x0001
+#ifndef PIPASS_VERSION
+#define PIPASS_VERSION 0x0001
 #endif
 
 #define PACKET_SIZE 8

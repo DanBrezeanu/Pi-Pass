@@ -1,3 +1,7 @@
+#ifndef __AES256_H__
+#define __AES256_H__
+
+
 #include <openssl/evp.h>
 #include <openssl/ssl.h>
 #include <openssl/aes.h>
@@ -20,3 +24,4 @@ CRYPTO_ERR encrypt_aes256(uint8_t *plaintext, int32_t plaintext_len, uint8_t *aa
 CRYPTO_ERR decrypt_aes256(uint8_t *ciphertext, int32_t ciphertext_len, uint8_t *aad, int32_t aad_len, uint8_t *mac,
     uint8_t *key, uint8_t *iv, uint8_t *plaintext, int32_t *plaintext_len);
 
+#endif

@@ -1,5 +1,7 @@
 #include <storage_utils.h>
 #include <authentication.h>
+#include <storage.h>
+#include <sha256.h>
 
 STORAGE_ERR verify_master_password(uint8_t *user, uint8_t *key) {
     STORAGE_ERR err;
@@ -20,7 +22,7 @@ STORAGE_ERR verify_master_password(uint8_t *user, uint8_t *key) {
         goto error;
     }
 
-    err = user_file_path(user, MASTER_PASSW, &user_passw_file, &user_passw_file_len);
+    err = user_file_path(user, LOGIN_HASH_FILE, &user_passw_file, &user_passw_file_len);
     if (err != STORAGE_OK) {
         goto error;
     }
@@ -33,7 +35,7 @@ STORAGE_ERR verify_master_password(uint8_t *user, uint8_t *key) {
 
     erase_buffer(&user_passw_file, user_passw_file_len);
 
-    err = user_login_salt_file(user, &user_salt_file, &user_salt_file_len);
+    err = user_file_path(user, LOGIN_SALT_FILE, &user_salt_file, &user_salt_file_len);
     if (err != STORAGE_OK) {
         goto error;
     }

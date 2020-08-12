@@ -74,16 +74,16 @@ USB_ERR send_string(int fd, BYTE *str) {
 }
 
 
-int main(int argc, char *argv[])
-{
-    int fd = open("/dev/hidg0", O_RDWR);
+// int main(int argc, char *argv[])
+// {
+//     int fd = open("/dev/hidg0", O_RDWR);
 
-    if (fd == -1) {
-        printf("Could not ope\n");
-        return 1;
-    }
+//     if (fd == -1) {
+//         printf("Could not ope\n");
+//         return 1;
+//     }
 
-    USB_ERR res = send_string(fd, "Test string");
+//     USB_ERR res = send_string(fd, "Test string");
 
-    return res;
-}
+//     return res;
+// }

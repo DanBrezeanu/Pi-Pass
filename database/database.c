@@ -1,13 +1,20 @@
-DB_ERROR create_new_db(struct Database *db) {
-    if (db != NULL)
+#include <database.h>
+#include <credentials.h>
+#include <crypto.h>
+#include <aes256.h>
+#include <sha256.h>
+
+
+DB_ERROR create_new_db(struct Database **db) {
+    if (*db != NULL)
         return ERR_DB_MEM_LEAK;
 
-    db = calloc(1, sizeof(struct Database));
-    if (db == NULL)
+    *db = calloc(1, sizeof(struct Database));
+    if (*db == NULL)
         return ERR_DB_MEM_ALLOC;
 
-    db->version = PIPASS_VERSION;
-    db->len = 2 + 4 + 4;
+    (*db)->version = PIPASS_VERSION;
+    (*db)->db_len = 2 + 4 + 4;
 
     return DB_OK;
 }
@@ -28,7 +35,7 @@ DB_ERROR update_db_DEK(struct Database *db, uint8_t *dek_blob, uint8_t *iv_dek_b
     if (kek == NULL)
         return ERR_DB_MEM_ALLOC;
 
-    CRYPTO_ERR err = create_PBKDF2_key(master_pass, MASTE_PASS_SIZE, db->kek_salt, SALT_SIZE, kek);
+    CRYPTO_ERR err = create_PBKDF2_key(master_pass, MASTER_PASS_SIZE, db->kek_salt, SALT_SIZE, kek);
     if (err != CRYPTO_OK)
         goto error;
 
@@ -96,8 +103,8 @@ DB_ERROR update_db_login(struct Database *db, uint8_t *login_hash, uint8_t *logi
     return DB_OK;
 
 error:
-    zero_buffer(&(db->login_hash), SHA256_DGST_SIZE);
-    zero_buffer(&(db->login_salt), SALT_SIZE);
+    erase_buffer(&(db->login_hash), SHA256_DGST_SIZE);
+    erase_buffer(&(db->login_salt), SALT_SIZE);
 
     return err;
 }
@@ -129,8 +136,8 @@ DB_ERROR update_db_KEK(struct Database *db, uint8_t *kek_hash, uint8_t *kek_salt
     return DB_OK;
 
 error:
-    zero_buffer(&(db->kek_hash), SHA256_DGST_SIZE);
-    zero_buffer(&(db->kek_salt), SALT_SIZE);
+    erase_buffer(&(db->kek_hash), SHA256_DGST_SIZE);
+    erase_buffer(&(db->kek_salt), SALT_SIZE);
 
     return err;
 }
@@ -151,7 +158,7 @@ DB_ERROR raw_database(struct Database *db, uint8_t **raw_db, int32_t *raw_db_siz
     if (version_bin == NULL)
         return ERR_RAW_DB_MEM_ALLOC;
 
-    memcpy(*raw_db, &raw_cursor, version_bin, sizeof(db->version));
+    append_to_str(*raw_db, &raw_cursor, version_bin, sizeof(db->version));
     erase_buffer(&version_bin, sizeof(db->version));
 
     uint8_t *cred_len_bin = var_to_bin(&db->cred_len, sizeof(db->cred_len));
@@ -162,8 +169,8 @@ DB_ERROR raw_database(struct Database *db, uint8_t **raw_db, int32_t *raw_db_siz
     erase_buffer(&cred_len_bin, sizeof(db->cred_len));
 
     for (int i = 0; i < db->cred_len; ++i) {
-        struct CredentialHeader *crh = &(db->cred_headers[i])
-        struct Credential *cr = &(db->cred[i])
+        struct CredentialHeader *crh = &(db->cred_headers[i]);
+        struct Credential *cr = &(db->cred[i]);
 
         uint8_t *crh_bin = var_to_bin(crh, CREDENTIAL_HEADER_SIZE);
         if (crh_bin == NULL)
