@@ -134,6 +134,8 @@ STORAGE_ERR load_database(struct Database **db, uint8_t *user_hash) {
         goto error;
     }
 
+    erase_buffer(&db_file_path, db_file_path_len);
+
     int32_t res = read(db_fd, &((*db)->version), sizeof((*db)->version));
     if (res == -1 || res != sizeof((*db)->version)) {
         err = ERR_LOAD_DB_READ_FIELD;
@@ -146,9 +148,273 @@ STORAGE_ERR load_database(struct Database **db, uint8_t *user_hash) {
         goto error;
     }
 
-    for (int i = 0; i < (*db)->cred_len; ++i) {
-        
+    if ((*db)->cred_len == 0)
+        goto skip_reading_creds;
+
+    (*db)->cred = calloc((*db)->cred_len, sizeof(struct Credential) );
+    if ((*db)->cred == NULL) {
+        err = ERR_LOAD_DB_MEM_ALLOC;
+        goto error;
     }
+
+    (*db)->cred_headers = calloc((*db)->cred_len, sizeof(struct CredentialHeader));
+    if ((*db)->cred_headers == NULL) {
+        err = ERR_LOAD_DB_MEM_ALLOC;
+        goto error;
+    }
+
+    for (int i = 0; i < (*db)->cred_len; ++i) {
+        res = read(db_fd, &((*db)->cred_headers[i]), sizeof(struct CredentialHeader));
+        if (res == -1 || res != sizeof(struct CredentialHeader)) {
+            err = ERR_LOAD_DB_READ_CRED;
+            goto error;
+        }
+
+        if ((*db)->cred_headers[i].name_len > 0) {
+            res = read(db_fd, (*db)->cred[i].name, (*db)->cred_headers[i].name_len);
+            if (res == -1 || res != (*db)->cred_headers[i].name_len) {
+                err = ERR_LOAD_DB_READ_CRED;
+                goto error;
+            }
+        }
+
+        if ((*db)->cred_headers[i].username_len <= 0) {
+            err = ERR_LOAD_DB_READ_CRED;
+            goto error;
+        }
+
+        res = read(db_fd, (*db)->cred[i].username, (*db)->cred_headers[i].username_len);
+        if (res == -1 || res != (*db)->cred_headers[i].username_len) {
+            err = ERR_LOAD_DB_READ_CRED;
+            goto error;
+        }
+
+        res = read(db_fd, (*db)->cred[i].username_mac, MAC_SIZE);
+        if (res == -1 || res != MAC_SIZE) {
+            err = ERR_LOAD_DB_READ_CRED;
+            goto error;
+        }
+
+        res = read(db_fd, (*db)->cred[i].username_iv, IV_SIZE);
+        if (res == -1 || res != IV_SIZE) {
+            err = ERR_LOAD_DB_READ_CRED;
+            goto error;
+        }
+
+        if ((*db)->cred_headers[i].passw_len <= 0) {
+            err = ERR_LOAD_DB_READ_CRED;
+            goto error;
+        }
+    
+        res = read(db_fd, (*db)->cred[i].passw, (*db)->cred_headers[i].passw_len);
+        if (res == -1 || res != (*db)->cred_headers[i].passw_len) {
+            err = ERR_LOAD_DB_READ_CRED;
+            goto error;
+        }
+
+        res = read(db_fd, (*db)->cred[i].passw_mac, MAC_SIZE);
+        if (res == -1 || res != MAC_SIZE) {
+            err = ERR_LOAD_DB_READ_CRED;
+            goto error;
+        }
+
+        res = read(db_fd, (*db)->cred[i].passw_iv, IV_SIZE);
+        if (res == -1 || res != IV_SIZE) {
+            err = ERR_LOAD_DB_READ_CRED;
+            goto error;
+        }
+        
+        if ((*db)->cred_headers[i].url_len > 0) {
+            res = read(db_fd, (*db)->cred[i].url, (*db)->cred_headers[i].url_len);
+            if (res == -1 || res != (*db)->cred_headers[i].url_len) {
+                err = ERR_LOAD_DB_READ_CRED;
+                goto error;
+            }
+        }
+        
+        if ((*db)->cred_headers[i].url_len > 0) {
+            res = read(db_fd, (*db)->cred[i].url, (*db)->cred_headers[i].url_len);
+            if (res == -1 || res != (*db)->cred_headers[i].url_len) {
+                err = ERR_LOAD_DB_READ_CRED;
+                goto error;
+            }
+        }
+    }
+
+skip_reading_creds:
+    res = read(db_fd, &((*db)->db_len), sizeof((*db)->db_len));
+    if (res == -1 || res != sizeof((*db)->db_len)) {
+        err = ERR_LOAD_DB_READ_FIELD;
+        goto error;
+    }
+
+    (*db)->dek_blob = malloc(AES256_KEY_SIZE);
+    if ((*db)->dek_blob == NULL) {
+        err = ERR_LOAD_DB_MEM_ALLOC;
+        goto error;
+    }
+
+    res = read(db_fd, (*db)->dek_blob, AES256_KEY_SIZE);
+    if (res == -1 || res != AES256_KEY_SIZE) {
+        err = ERR_LOAD_DB_READ_CRED;
+        goto error;
+    }
+
+
+    (*db)->dek_blob_enc_mac = malloc(MAC_SIZE);
+    if ((*db)->dek_blob_enc_mac == NULL) {
+        err = ERR_LOAD_DB_MEM_ALLOC;
+        goto error;
+    }
+
+    res = read(db_fd, (*db)->dek_blob_enc_mac, MAC_SIZE);
+    if (res == -1 || res != MAC_SIZE) {
+        err = ERR_LOAD_DB_READ_CRED;
+        goto error;
+    }
+
+
+    (*db)->dek_blob_enc_iv = malloc(IV_SIZE);
+    if ((*db)->dek_blob_enc_iv == NULL) {
+        err = ERR_LOAD_DB_MEM_ALLOC;
+        goto error;
+    }
+
+    res = read(db_fd, (*db)->dek_blob_enc_iv, IV_SIZE);
+    if (res == -1 || res != IV_SIZE) {
+        err = ERR_LOAD_DB_READ_CRED;
+        goto error;
+    }
+
+
+    (*db)->iv_dek_blob = malloc(IV_SIZE);
+    if ((*db)->iv_dek_blob == NULL) {
+        err = ERR_LOAD_DB_MEM_ALLOC;
+        goto error;
+    }
+
+    res = read(db_fd, (*db)->iv_dek_blob, IV_SIZE);
+    if (res == -1 || res != IV_SIZE) {
+        err = ERR_LOAD_DB_READ_CRED;
+        goto error;
+    }
+
+
+    (*db)->iv_dek_blob_enc_mac = malloc(MAC_SIZE);
+    if ((*db)->iv_dek_blob_enc_mac == NULL) {
+        err = ERR_LOAD_DB_MEM_ALLOC;
+        goto error;
+    }
+
+    res = read(db_fd, (*db)->iv_dek_blob_enc_mac, MAC_SIZE);
+    if (res == -1 || res != MAC_SIZE) {
+        err = ERR_LOAD_DB_READ_CRED;
+        goto error;
+    }
+
+    (*db)->iv_dek_blob_enc_iv = malloc(IV_SIZE);
+    if ((*db)->iv_dek_blob_enc_iv == NULL) {
+        err = ERR_LOAD_DB_MEM_ALLOC;
+        goto error;
+    }
+
+    res = read(db_fd, (*db)->iv_dek_blob_enc_iv, IV_SIZE);
+    if (res == -1 || res != IV_SIZE) {
+        err = ERR_LOAD_DB_READ_CRED;
+        goto error;
+    }
+
+    (*db)->mac_dek_blob = malloc(MAC_SIZE);
+    if ((*db)->mac_dek_blob == NULL) {
+        err = ERR_LOAD_DB_MEM_ALLOC;
+        goto error;
+    }
+
+    res = read(db_fd, (*db)->mac_dek_blob, MAC_SIZE);
+    if (res == -1 || res != MAC_SIZE) {
+        err = ERR_LOAD_DB_READ_CRED;
+        goto error;
+    }
+
+
+    (*db)->mac_dek_blob_enc_mac = malloc(MAC_SIZE);
+    if ((*db)->mac_dek_blob_enc_mac == NULL) {
+        err = ERR_LOAD_DB_MEM_ALLOC;
+        goto error;
+    }
+
+    res = read(db_fd, (*db)->mac_dek_blob_enc_mac, MAC_SIZE);
+    if (res == -1 || res != MAC_SIZE) {
+        err = ERR_LOAD_DB_READ_CRED;
+        goto error;
+    }
+
+    (*db)->mac_dek_blob_enc_iv = malloc(IV_SIZE);
+    if ((*db)->mac_dek_blob_enc_iv == NULL) {
+        err = ERR_LOAD_DB_MEM_ALLOC;
+        goto error;
+    }
+
+    res = read(db_fd, (*db)->mac_dek_blob_enc_iv, IV_SIZE);
+    if (res == -1 || res != IV_SIZE) {
+        err = ERR_LOAD_DB_READ_CRED;
+        goto error;
+    }
+
+    (*db)->kek_hash = malloc(SHA256_DGST_SIZE);
+    if ((*db)->kek_hash == NULL) {
+        err = ERR_LOAD_DB_MEM_ALLOC;
+        goto error;
+    }
+
+    res = read(db_fd, (*db)->kek_hash, SHA256_DGST_SIZE);
+    if (res == -1 || res != SHA256_DGST_SIZE) {
+        err = ERR_LOAD_DB_READ_CRED;
+        goto error;
+    }
+
+    (*db)->kek_salt = malloc(SALT_SIZE);
+    if ((*db)->kek_salt == NULL) {
+        err = ERR_LOAD_DB_MEM_ALLOC;
+        goto error;
+    }
+
+    res = read(db_fd, (*db)->kek_salt, SALT_SIZE);
+    if (res == -1 || res != SALT_SIZE) {
+        err = ERR_LOAD_DB_READ_CRED;
+        goto error;
+    }
+
+    (*db)->login_hash = malloc(SHA256_DGST_SIZE);
+    if ((*db)->login_hash == NULL) {
+        err = ERR_LOAD_DB_MEM_ALLOC;
+        goto error;
+    }
+
+    res = read(db_fd, (*db)->login_hash, SHA256_DGST_SIZE);
+    if (res == -1 || res != SHA256_DGST_SIZE) {
+        err = ERR_LOAD_DB_READ_CRED;
+        goto error;
+    }
+
+    (*db)->login_salt = malloc(SALT_SIZE);
+    if ((*db)->login_salt == NULL) {
+        err = ERR_LOAD_DB_MEM_ALLOC;
+        goto error;
+    }
+
+    res = read(db_fd, (*db)->login_salt, SALT_SIZE);
+    if (res == -1 || res != SALT_SIZE) {
+        err = ERR_LOAD_DB_READ_CRED;
+        goto error;
+    }
+
+    if (db_fd != -1) {
+        close(db_fd);
+        db_fd = -1;
+    }
+
+    return STORAGE_OK;
 
 error:
     if (*db != NULL) {
@@ -163,7 +429,9 @@ error:
     }
 
     erase_buffer(&db_file_path, db_file_path_len);
+    /* TODO: ERASE ALLOC'D CRED BUFFERS */
 
+    return err;
 }
 
 /* TO BE DELETED */

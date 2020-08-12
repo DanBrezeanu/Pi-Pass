@@ -114,5 +114,10 @@
 #define ERR_LOAD_DB_MEM_LEAK           0x4011
 #define ERR_LOAD_DB_OPEN_FILE          0x4012
 #define ERR_LOAD_DB_READ_FIELD         0x4013
+#define ERR_LOAD_DB_MEM_ALLOC          0x4014
+#define ERR_LOAD_DB_READ_CRED          0x4015
+#define ERR_DB_APPEND_CRED_INV_CRED    0x4016
+#define ERR_ZERO_CRED_INV_PARAMS       0x4017
+#define ERR_ZERO_CREDH_INV_PARAMS      0x4018
 
 #endif

@@ -49,4 +49,7 @@ DB_ERROR populate_encrypted_field(struct Database *db, struct Credential *cr, st
 
 DB_ERROR recalculate_header_len(struct CredentialHeader *crh);
 
+DB_ERROR zero_credential(struct Credential *cr);
+DB_ERROR zero_credential_header(struct CredentialHeader *crh);
+
 #endif

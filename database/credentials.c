@@ -126,3 +126,23 @@ DB_ERROR recalculate_header_len(struct CredentialHeader *crh) {
 
     return DB_OK;
 }
+
+DB_ERROR zero_credential(struct Credential *cr) {
+    if (cr == NULL)
+        return ERR_ZERO_CRED_INV_PARAMS;
+
+    cr->name = cr->username = cr->username_mac = cr->username_iv = cr->passw = 
+    cr->passw_mac = cr->passw_iv = cr->url = cr->additional = NULL;
+
+    return DB_OK;
+}
+
+DB_ERROR zero_credential_header(struct CredentialHeader *crh) {
+    if (crh == NULL)
+        return ERR_ZERO_CREDH_INV_PARAMS;
+
+    crh->cred_len = crh->name_len = crh->username_len = crh->passw_len =
+    crh->url_len = crh->additional_len = 0;
+
+    return DB_OK;
+}

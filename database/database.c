@@ -146,7 +146,9 @@ DB_ERROR append_db_credential(struct Database *db, struct Credential *cr, struct
     if (db == NULL || cr == NULL || crh == NULL)
         return ERR_DB_APPEND_CRED_INV_PARAMS;
 
-    if (cr->)
+    if (cr->username == NULL || !crh->username_len || cr->passw == NULL || !crh->passw_len ||
+      cr->username_iv == NULL || cr->username_mac == NULL || cr->passw_iv == NULL || cr->passw_mac == NULL)
+        return ERR_DB_APPEND_CRED_INV_CRED;   
 
     DB_ERROR err = DB_OK;
 
@@ -154,7 +156,8 @@ DB_ERROR append_db_credential(struct Database *db, struct Credential *cr, struct
     _tmp_cr = realloc(db->cred, db->cred_len + 1);
     if (_tmp_cr == NULL)
         return ERR_DB_MEM_ALLOC;
-
+    
+   
     db->cred = _tmp_cr;
 
     struct CredentialHeader *_tmp_crh = NULL;
@@ -162,43 +165,70 @@ DB_ERROR append_db_credential(struct Database *db, struct Credential *cr, struct
     if (_tmp_crh == NULL)
         return ERR_DB_MEM_ALLOC;
 
+    
     db->cred_headers = _tmp_crh;
 
-    struct Credential new_cr = db->cred[db->cred_len];
-    struct CredentialHeader new_crh = db->cred_headers[db->cred_len];
+    struct Credential *new_cr = &(db->cred[db->cred_len]);
+    struct CredentialHeader *new_crh = &(db->cred_headers[db->cred_len]);
     db->cred_len++;
 
-    err = populate_plaintext_field(&new_cr, &new_crh, cr->name, crh->name_len, NAME);
-    if (err != DB_OK)
-        goto error;
+    zero_credential(new_cr);
+    zero_credential_header(new_crh);
 
-    err = populate_plaintext_field(&new_cr, &new_crh, cr->url, crh->url_len, URL);
-    if (err != DB_OK)
-        goto error;
-   
-    err = populate_plaintext_field(&new_cr, &new_crh, cr->additional, crh->additional_len, ADDITIONAL);
-    if (err != DB_OK)
-        goto error;
+    if (crh->name_len > 0) {
+        err = populate_plaintext_field(new_cr, new_crh, cr->name, crh->name_len, NAME);
+        if (err != DB_OK)
+            goto error;
+    }
 
-    new_cr.username = malloc(crh->username_len);
-    new_cr.username_iv = malloc(IV_SIZE);
-    new_cr.username_mac = malloc(MAC_SIZE);
-    new_cr.passw = malloc(crh->passw_len);
-    new_cr.passw_iv = malloc(IV_SIZE);
-    new_cr.passw_mac = malloc(MAC_SIZE);
+    if (crh->url_len > 0) {
+        err = populate_plaintext_field(new_cr, new_crh, cr->url, crh->url_len, URL);
+        if (err != DB_OK)
+            goto error;
+    }
+    
+    if (crh->additional_len > 0) {
+        err = populate_plaintext_field(new_cr, new_crh, cr->additional, crh->additional_len, ADDITIONAL);
+        if (err != DB_OK)
+            goto error;
+    }
 
-    if (new_cr.username == NULL || new_cr.username_iv == NULL || new_cr.username_mac == NULL ||
-      new_cr.passw == NULL || new_cr.passw_iv == NULL || new_cr.passw_mac == NULL) {
+    new_cr->username = malloc(crh->username_len);
+    new_cr->username_iv = malloc(IV_SIZE);
+    new_cr->username_mac = malloc(MAC_SIZE);
+    new_cr->passw = malloc(crh->passw_len);
+    new_cr->passw_iv = malloc(IV_SIZE);
+    new_cr->passw_mac = malloc(MAC_SIZE);
+
+    if (new_cr->username == NULL || new_cr->username_iv == NULL || new_cr->username_mac == NULL ||
+      new_cr->passw == NULL || new_cr->passw_iv == NULL || new_cr->passw_mac == NULL) {
         
         err = ERR_DB_MEM_ALLOC;
         goto error;
     }
 
-    memcpy()
+    memcpy(new_cr->username, cr->username, crh->username_len);
+    memcpy(new_cr->username_iv, cr->username_iv, IV_SIZE);
+    memcpy(new_cr->username_mac, cr->username_mac, MAC_SIZE);
+    new_crh->username_len = crh->username_len; 
+    
+    memcpy(new_cr->passw, cr->passw, crh->passw_len);
+    memcpy(new_cr->passw_iv, cr->passw_iv, IV_SIZE);
+    memcpy(new_cr->passw_mac, cr->passw_mac, MAC_SIZE);
+    new_crh->passw_len = crh->passw_len;
+    
 
     return DB_OK;
 
 error:
+    erase_buffer(&new_cr->username, crh->username_len);
+    erase_buffer(&new_cr->passw, crh->passw_len);
+    erase_buffer(&new_cr->username_iv, IV_SIZE);
+    erase_buffer(&new_cr->passw_iv, IV_SIZE);
+    erase_buffer(&new_cr->username_mac, MAC_SIZE);
+    erase_buffer(&new_cr->passw_mac, MAC_SIZE);
+
+    db->cred_len--;
 
     return err;
 }

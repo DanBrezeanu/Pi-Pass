@@ -39,5 +39,6 @@ DB_ERROR update_db_DEK(struct Database *db, uint8_t *dek_blob, uint8_t *iv_dek_b
 DB_ERROR update_db_login(struct Database *db, uint8_t *login_hash, uint8_t *login_salt);
 DB_ERROR update_db_KEK(struct Database *db, uint8_t *kek_hash, uint8_t *kek_salt);
 DB_ERROR raw_database(struct Database *db, uint8_t **raw_db, int32_t *raw_db_size);
+DB_ERROR append_db_credential(struct Database *db, struct Credential *cr, struct CredentialHeader *crh);
 
 #endif

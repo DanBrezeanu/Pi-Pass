@@ -6,63 +6,19 @@
 STORAGE_ERR verify_master_password(uint8_t *user, uint8_t *key) {
     STORAGE_ERR err;
 
-    uint8_t *user_passw_file = NULL;
-    uint8_t *user_salt_file = NULL;
-
-    uint32_t user_passw_file_len = 0;
-    uint32_t user_salt_file_len = 0;
-
-    int32_t passw_fd = -1;
-    int32_t salt_fd = -1;
-
-    uint8_t *salt = malloc(SALT_SIZE);
+    struct Database *db = NULL;
 
     err = verify_user_directory(user);
     if (err != STORAGE_OK) {
         goto error;
     }
 
-    err = user_file_path(user, LOGIN_HASH_FILE, &user_passw_file, &user_passw_file_len);
+    err = load_database(&db, user);
     if (err != STORAGE_OK) {
         goto error;
     }
 
-    passw_fd = open(user_passw_file, O_RDONLY);
-    if (passw_fd == -1) {
-        err = ERR_OPEN_PASSW_FILE;
-        goto error;
-    }
-
-    erase_buffer(&user_passw_file, user_passw_file_len);
-
-    err = user_file_path(user, LOGIN_SALT_FILE, &user_salt_file, &user_salt_file_len);
-    if (err != STORAGE_OK) {
-        goto error;
-    }
-
-    salt_fd = open(user_salt_file, O_RDONLY);
-    if (salt_fd == -1) {     
-        err = ERR_OPEN_SALT_FILE;
-        goto error;
-    }
-    
-    erase_buffer(&user_salt_file, user_salt_file_len);
-    
-    if (salt == NULL) {
-        err = ERR_STORAGE_MEM_ALLOC;
-        goto error;
-    }
-
-    int32_t res = read(salt_fd, salt, SALT_SIZE);
-    if (res != SALT_SIZE) {
-        err = ERR_READ_SALT_FILE;
-        goto error;
-    }
-
-    close(salt_fd);
-    salt_fd = -1;
-
-    err = verify_sha256_fd(key, MASTER_PASS_SIZE, salt, SALT_SIZE, passw_fd);
+    err = verify_sha256(key, MASTER_PASS_SIZE, db->login_salt, SALT_SIZE, db->login_hash);
     if (err != CRYPTO_OK) {
         goto error;
     }
@@ -70,17 +26,7 @@ STORAGE_ERR verify_master_password(uint8_t *user, uint8_t *key) {
     err = STORAGE_OK;
 
 error:
-    erase_buffer(&key, MASTER_PASS_SIZE);
-    erase_buffer(&user_passw_file, user_passw_file_len);
-    erase_buffer(&user_salt_file, user_salt_file_len);
-    erase_buffer(&salt, SALT_SIZE);
-
-    if (salt_fd != -1)
-        close(salt_fd);
-    
-    if (passw_fd != -1)
-        close(passw_fd);
-
+    // zero_buffer(key, MASTER_PASS_SIZE);
     return err;
 } 
 

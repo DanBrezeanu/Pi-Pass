@@ -5,6 +5,7 @@
 #include <storage.h>
 #include <database.h>
 #include <credentials.h>
+#include <authentication.h>
 
 STORAGE_ERR register_new_user(uint8_t *user_data, int32_t user_data_len, uint8_t *master_pass) {
     if (user_data == NULL || master_pass == NULL || user_data_len == 0) 
@@ -85,7 +86,7 @@ STORAGE_ERR register_new_user(uint8_t *user_data, int32_t user_data_len, uint8_t
     if (err != CRYPTO_OK)
         goto error;
 
-    zero_buffer(master_pass, MASTER_PASS_SIZE);
+    // zero_buffer(master_pass, MASTER_PASS_SIZE);
 
     err = update_db_login(db, login_hash, login_salt);
     if (err != DB_OK)
@@ -115,11 +116,38 @@ error:
 }
 
 #include <stdio.h>
+#include <actions.h>
 
-int main() {
+int main(int argc, char **argv) {
+    STORAGE_ERR err = -1;
 
-    STORAGE_ERR err = register_new_user("test", strlen("test"), "1234");
+    if (argc == 1) {
+        err = register_new_user("test", strlen("test"), "1234");
+    } else if (argc == 2) {
+        uint8_t *user_hash = NULL;
+        err = generate_user_hash("test", 4, &user_hash);
+        if (err != STORAGE_OK)
+            goto error;
+
+        err = verify_master_password(user_hash, "1234");
+    } else {
+        struct Database *db = NULL;
+
+        uint8_t *user_hash = NULL;
+        err = generate_user_hash("test", 4, &user_hash);
+        if (err != STORAGE_OK)
+            goto error;
+
+        err = load_database(&db, user_hash);
+        if (err != STORAGE_OK)
+            goto error;
+
+        err = register_new_credential(db, user_hash, "1234", "Google", 7, "testus", 7, "parola", 7, "https://google.com", strlen("https://google.com") + 1, NULL, 0);
+        if (err != STORAGE_OK)
+            goto error;
+
+    }
+error:
     printf("0x%.4X\n", err);
-
     return 0;
 }
