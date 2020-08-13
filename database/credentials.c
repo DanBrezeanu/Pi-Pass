@@ -124,6 +124,12 @@ DB_ERROR recalculate_header_len(struct CredentialHeader *crh) {
     crh->cred_len = crh->name_len + crh->username_len + crh->passw_len +
         crh->url_len + crh->additional_len;
 
+    if (crh->username_len > 0)
+        crh->cred_len += IV_SIZE + MAC_SIZE;
+
+    if (crh->passw_len > 0)
+        crh->cred_len += IV_SIZE + MAC_SIZE;
+
     return DB_OK;
 }
 

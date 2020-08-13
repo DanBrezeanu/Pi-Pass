@@ -153,7 +153,7 @@ DB_ERROR append_db_credential(struct Database *db, struct Credential *cr, struct
     DB_ERROR err = DB_OK;
 
     struct Credential *_tmp_cr = NULL;
-    _tmp_cr = realloc(db->cred, db->cred_len + 1);
+    _tmp_cr = realloc(db->cred, (db->cred_len + 1) * sizeof(struct Credential));
     if (_tmp_cr == NULL)
         return ERR_DB_MEM_ALLOC;
     
@@ -161,7 +161,7 @@ DB_ERROR append_db_credential(struct Database *db, struct Credential *cr, struct
     db->cred = _tmp_cr;
 
     struct CredentialHeader *_tmp_crh = NULL;
-    _tmp_crh = realloc(db->cred_headers, db->cred_len + 1);
+    _tmp_crh = realloc(db->cred_headers, (db->cred_len + 1) * sizeof(struct CredentialHeader));
     if (_tmp_crh == NULL)
         return ERR_DB_MEM_ALLOC;
 
@@ -217,6 +217,7 @@ DB_ERROR append_db_credential(struct Database *db, struct Credential *cr, struct
     memcpy(new_cr->passw_mac, cr->passw_mac, MAC_SIZE);
     new_crh->passw_len = crh->passw_len;
     
+    db->db_len += crh->cred_len + CREDENTIAL_HEADER_SIZE;
 
     return DB_OK;
 

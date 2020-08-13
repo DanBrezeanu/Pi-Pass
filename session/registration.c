@@ -130,7 +130,7 @@ int main(int argc, char **argv) {
             goto error;
 
         err = verify_master_password(user_hash, "1234");
-    } else {
+    } else if (argc == 3){
         struct Database *db = NULL;
 
         uint8_t *user_hash = NULL;
@@ -142,9 +142,47 @@ int main(int argc, char **argv) {
         if (err != STORAGE_OK)
             goto error;
 
-        err = register_new_credential(db, user_hash, "1234", "Google", 7, "testus", 7, "parola", 7, "https://google.com", strlen("https://google.com") + 1, NULL, 0);
+        uint8_t *pass = malloc(5); 
+        uint8_t *name = malloc(7); 
+        uint8_t *username = malloc(7); 
+        uint8_t *passw = malloc(7); 
+        uint8_t *url = malloc(19); 
+
+        strcpy(pass, "1234");
+        strcpy(name, "Google");
+        strcpy(username, "GUsername");
+        strcpy(passw, "GPassw");
+        strcpy(url, "https://google.com");
+
+        err = register_new_credential(db, user_hash, pass, name, 7, username, 9, passw, 16, url, 19, NULL, 0);
         if (err != STORAGE_OK)
             goto error;
+
+    } else if (argc == 4) {
+        struct Database *db = NULL;
+
+        uint8_t *user_hash = NULL;
+        err = generate_user_hash("test", 4, &user_hash);
+        if (err != STORAGE_OK)
+            goto error;
+
+        err = load_database(&db, user_hash);
+        if (err != STORAGE_OK)
+            goto error;
+
+        struct PlainTextCredential *cr = NULL;
+        struct CredentialHeader *crh = NULL;
+
+        uint8_t *pass = malloc(5);
+        strcpy(pass, "1234");
+        uint8_t *name = malloc(7); 
+        strcpy(name, "Google");
+
+        err = get_credential_by_name(db, user_hash, pass, name, 7, &cr, &crh);
+        if (err != STORAGE_OK)
+            goto error;
+
+        printf("%s\n%s\n%s\n%s\n%s\n", cr->name, cr->username, cr->passw, cr->url, cr->additional);
 
     }
 error:

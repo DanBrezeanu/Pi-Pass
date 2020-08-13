@@ -350,6 +350,10 @@ CRYPTO_ERR encrypt_credential_field(struct Database *db, uint8_t *data, int32_t 
         err = ERR_ENC_CRED_MEM_ALLOC;
         goto error;
     }
+    
+    err = create_salt(IV_SIZE, *iv);
+    if (err != CRYPTO_OK)
+        goto error;
 
     *mac = malloc(MAC_SIZE);
     if (*mac == NULL) {
@@ -384,7 +388,7 @@ CRYPTO_ERR decrypt_credential_field(struct Database *db, uint8_t **data, int32_t
     if (db == NULL || cipher == NULL || iv == NULL || mac == NULL || !cipher_len || master_pass == NULL)
         return ERR_DEC_CRED_INV_PARAMS;
 
-    if (*data == NULL || !data_len)
+    if (*data != NULL)
         return ERR_DEC_CRED_MEM_LEAK;
 
     if (db->dek_blob == NULL || db->iv_dek_blob == NULL || db->mac_dek_blob == NULL ||

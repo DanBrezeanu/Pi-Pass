@@ -91,6 +91,10 @@
 #define ERR_STORE_HASH_INV_PARAMS      0x2014
 #define ERR_DUMP_DB_INV_PARAMS         0x2015
 #define ERR_REG_NEW_CRED_INV_PARAMS    0x2016
+#define ERR_GET_CRED_INV_PARAMS        0x2017
+#define ERR_GET_CRED_NOT_FOUND         0x2018
+#define ERR_GET_CRED_MEM_ALLOC         0x2019
+#define ERR_GET_CRED_MEM_LEAK          0x201A
 
 
 /* Database Error Codes */
@@ -119,5 +123,6 @@
 #define ERR_DB_APPEND_CRED_INV_CRED    0x4016
 #define ERR_ZERO_CRED_INV_PARAMS       0x4017
 #define ERR_ZERO_CREDH_INV_PARAMS      0x4018
+
 
 #endif

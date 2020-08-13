@@ -39,6 +39,14 @@ enum CredentialEncryptedField {
     PASSW    = 1
 };
 
+struct PlainTextCredential {
+    uint8_t *name;
+    uint8_t *username;
+    uint8_t *passw;
+    uint8_t *url;
+    uint8_t *additional;
+} __attribute__((packed, aligned(1)));
+
 DB_ERROR new_credential(struct Credential **cr, struct CredentialHeader **crh);
 
 DB_ERROR populate_plaintext_field(struct Credential *cr, struct CredentialHeader *crh, uint8_t *data,
