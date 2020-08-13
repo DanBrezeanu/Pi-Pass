@@ -1,4 +1,5 @@
 #include <storage_utils.h>
+#include <crypto.h>
 
 STORAGE_ERR user_directory(uint8_t *user, uint8_t **user_dir, uint32_t *user_dir_len) {
     if (user == NULL)
@@ -72,3 +73,32 @@ void append_to_str(uint8_t *str, int32_t *cursor, uint8_t *substr, int32_t subst
         *cursor += substr_len;
     } 
 }
+
+STORAGE_ERR alloc_and_read_field(int32_t fd, uint8_t **field, int16_t field_len) {
+    if (fd == -1 || fcntl(fd, F_GETFL) == -1 || !field_len)
+        return ERR_ALLOC_RD_CRED_INV_PARAMS;
+
+    if (*field != NULL)
+        return ERR_ALLOC_RD_CRED_MEM_LEAK;
+
+    STORAGE_ERR err = STORAGE_OK;
+
+    *field = malloc(field_len);
+    if (*field == NULL) {
+        err = ERR_LOAD_DB_MEM_ALLOC;
+        goto error;
+    }
+
+    int32_t res = read(fd, *field, field_len);
+    if (res == -1 || res != field_len) {
+        err = ERR_LOAD_DB_READ_CRED;
+        goto error;
+    }
+
+    return STORAGE_OK;
+
+error:
+    erase_buffer(field, field_len);
+
+    return err;
+} 

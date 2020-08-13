@@ -171,17 +171,9 @@ STORAGE_ERR load_database(struct Database **db, uint8_t *user_hash) {
         }
 
         if ((*db)->cred_headers[i].name_len > 0) {
-            (*db)->cred[i].name = malloc((*db)->cred_headers[i].name_len);
-            if ((*db)->cred[i].name == NULL) {
-                err = ERR_LOAD_DB_MEM_ALLOC;
+            err = alloc_and_read_field(db_fd, &((*db)->cred[i].name), (*db)->cred_headers[i].name_len);
+            if (err != STORAGE_OK)
                 goto error;
-            }
-
-            res = read(db_fd, (*db)->cred[i].name, (*db)->cred_headers[i].name_len);
-            if (res == -1 || res != (*db)->cred_headers[i].name_len) {
-                err = ERR_LOAD_DB_READ_CRED;
-                goto error;
-            }
         }
 
         if ((*db)->cred_headers[i].username_len <= 0) {
@@ -189,44 +181,19 @@ STORAGE_ERR load_database(struct Database **db, uint8_t *user_hash) {
             goto error;
         }
 
-        (*db)->cred[i].username = malloc((*db)->cred_headers[i].username_len);
-        if ((*db)->cred[i].username == NULL) {
-            err = ERR_LOAD_DB_MEM_ALLOC;
+        err = alloc_and_read_field(db_fd, &((*db)->cred[i].username), (*db)->cred_headers[i].username_len);
+        if (err != STORAGE_OK)
             goto error;
-        }
 
-        res = read(db_fd, (*db)->cred[i].username, (*db)->cred_headers[i].username_len);
-        if (res == -1 || res != (*db)->cred_headers[i].username_len) {
-            err = ERR_LOAD_DB_READ_CRED;
+
+        err = alloc_and_read_field(db_fd, &((*db)->cred[i].username_mac), MAC_SIZE);
+        if (err != STORAGE_OK)
             goto error;
-        }
 
 
-        (*db)->cred[i].username_mac = malloc(MAC_SIZE);
-        if ((*db)->cred[i].username_mac == NULL) {
-            err = ERR_LOAD_DB_MEM_ALLOC;
+        err = alloc_and_read_field(db_fd, &((*db)->cred[i].username_iv), IV_SIZE);
+        if (err != STORAGE_OK)
             goto error;
-        }
-
-        res = read(db_fd, (*db)->cred[i].username_mac, MAC_SIZE);
-        if (res == -1 || res != MAC_SIZE) {
-            err = ERR_LOAD_DB_READ_CRED;
-            goto error;
-        }
-
-         
-        (*db)->cred[i].username_iv = malloc(IV_SIZE);
-        if ((*db)->cred[i].username_iv == NULL) {
-            err = ERR_LOAD_DB_MEM_ALLOC;
-            goto error;
-        }
-
-        res = read(db_fd, (*db)->cred[i].username_iv, IV_SIZE);
-        if (res == -1 || res != IV_SIZE) {
-            err = ERR_LOAD_DB_READ_CRED;
-            goto error;
-        }
-
 
 
         if ((*db)->cred_headers[i].passw_len <= 0) {
@@ -234,70 +201,30 @@ STORAGE_ERR load_database(struct Database **db, uint8_t *user_hash) {
             goto error;
         }
     
-        (*db)->cred[i].passw = malloc((*db)->cred_headers[i].passw_len);
-        if ((*db)->cred[i].passw == NULL) {
-            err = ERR_LOAD_DB_MEM_ALLOC;
+        err = alloc_and_read_field(db_fd, &((*db)->cred[i].passw), (*db)->cred_headers[i].passw_len);
+        if (err != STORAGE_OK)
             goto error;
-        }
 
-        res = read(db_fd, (*db)->cred[i].passw, (*db)->cred_headers[i].passw_len);
-        if (res == -1 || res != (*db)->cred_headers[i].passw_len) {
-            err = ERR_LOAD_DB_READ_CRED;
+        err = alloc_and_read_field(db_fd, &((*db)->cred[i].passw_mac), MAC_SIZE);
+        if (err != STORAGE_OK)
             goto error;
-        }
 
-        (*db)->cred[i].passw_mac = malloc(MAC_SIZE);
-        if ((*db)->cred[i].passw_mac == NULL) {
-            err = ERR_LOAD_DB_MEM_ALLOC;
+
+        err = alloc_and_read_field(db_fd, &((*db)->cred[i].passw_iv), IV_SIZE);
+        if (err != STORAGE_OK)
             goto error;
-        }
 
-        res = read(db_fd, (*db)->cred[i].passw_mac, MAC_SIZE);
-        if (res == -1 || res != MAC_SIZE) {
-            err = ERR_LOAD_DB_READ_CRED;
-            goto error;
-        }
-
-
-        (*db)->cred[i].passw_iv = malloc(IV_SIZE);
-        if ((*db)->cred[i].passw_iv == NULL) {
-            err = ERR_LOAD_DB_MEM_ALLOC;
-            goto error;
-        }
-
-
-        res = read(db_fd, (*db)->cred[i].passw_iv, IV_SIZE);
-        if (res == -1 || res != IV_SIZE) {
-            err = ERR_LOAD_DB_READ_CRED;
-            goto error;
-        }
         
         if ((*db)->cred_headers[i].url_len > 0) {
-            (*db)->cred[i].url = malloc((*db)->cred_headers[i].url_len);
-            if ((*db)->cred[i].url == NULL) {
-                err = ERR_LOAD_DB_MEM_ALLOC;
+            err = alloc_and_read_field(db_fd, &((*db)->cred[i].url), (*db)->cred_headers[i].url_len);
+            if (err != STORAGE_OK)
                 goto error;
-            }
-
-            res = read(db_fd, (*db)->cred[i].url, (*db)->cred_headers[i].url_len);
-            if (res == -1 || res != (*db)->cred_headers[i].url_len) {
-                err = ERR_LOAD_DB_READ_CRED;
-                goto error;
-            }
         }
         
         if ((*db)->cred_headers[i].additional_len > 0) {
-            (*db)->cred[i].additional = malloc((*db)->cred_headers[i].additional_len);
-            if ((*db)->cred[i].additional == NULL) {
-                err = ERR_LOAD_DB_MEM_ALLOC;
+                err = alloc_and_read_field(db_fd, &((*db)->cred[i].additional), (*db)->cred_headers[i].additional_len);
+            if (err != STORAGE_OK)
                 goto error;
-            }
-
-            res = read(db_fd, (*db)->cred[i].additional, (*db)->cred_headers[i].additional_len);
-            if (res == -1 || res != (*db)->cred_headers[i].additional_len) {
-                err = ERR_LOAD_DB_READ_CRED;
-                goto error;
-            }
         }
     }
 
@@ -308,166 +235,58 @@ skip_reading_creds:
         goto error;
     }
 
-    (*db)->dek_blob = malloc(AES256_KEY_SIZE);
-    if ((*db)->dek_blob == NULL) {
-        err = ERR_LOAD_DB_MEM_ALLOC;
+    
+    err = alloc_and_read_field(db_fd, &((*db)->dek_blob), AES256_KEY_SIZE);
+    if (err != STORAGE_OK)
         goto error;
-    }
 
-    res = read(db_fd, (*db)->dek_blob, AES256_KEY_SIZE);
-    if (res == -1 || res != AES256_KEY_SIZE) {
-        err = ERR_LOAD_DB_READ_CRED;
+    err = alloc_and_read_field(db_fd, &((*db)->dek_blob_enc_mac), MAC_SIZE);
+    if (err != STORAGE_OK)
         goto error;
-    }
 
-
-    (*db)->dek_blob_enc_mac = malloc(MAC_SIZE);
-    if ((*db)->dek_blob_enc_mac == NULL) {
-        err = ERR_LOAD_DB_MEM_ALLOC;
+    err = alloc_and_read_field(db_fd, &((*db)->dek_blob_enc_iv), IV_SIZE);
+    if (err != STORAGE_OK)
         goto error;
-    }
 
-    res = read(db_fd, (*db)->dek_blob_enc_mac, MAC_SIZE);
-    if (res == -1 || res != MAC_SIZE) {
-        err = ERR_LOAD_DB_READ_CRED;
+    err = alloc_and_read_field(db_fd, &((*db)->iv_dek_blob), IV_SIZE);
+    if (err != STORAGE_OK)
         goto error;
-    }
 
-
-    (*db)->dek_blob_enc_iv = malloc(IV_SIZE);
-    if ((*db)->dek_blob_enc_iv == NULL) {
-        err = ERR_LOAD_DB_MEM_ALLOC;
+    err = alloc_and_read_field(db_fd, &((*db)->iv_dek_blob_enc_mac), MAC_SIZE);
+    if (err != STORAGE_OK)
         goto error;
-    }
-
-    res = read(db_fd, (*db)->dek_blob_enc_iv, IV_SIZE);
-    if (res == -1 || res != IV_SIZE) {
-        err = ERR_LOAD_DB_READ_CRED;
+        
+    err = alloc_and_read_field(db_fd, &((*db)->iv_dek_blob_enc_iv), IV_SIZE);
+    if (err != STORAGE_OK)
         goto error;
-    }
-
-
-    (*db)->iv_dek_blob = malloc(IV_SIZE);
-    if ((*db)->iv_dek_blob == NULL) {
-        err = ERR_LOAD_DB_MEM_ALLOC;
+        
+    err = alloc_and_read_field(db_fd, &((*db)->mac_dek_blob), MAC_SIZE);
+    if (err != STORAGE_OK)
         goto error;
-    }
-
-    res = read(db_fd, (*db)->iv_dek_blob, IV_SIZE);
-    if (res == -1 || res != IV_SIZE) {
-        err = ERR_LOAD_DB_READ_CRED;
+        
+    err = alloc_and_read_field(db_fd, &((*db)->mac_dek_blob_enc_mac), MAC_SIZE);
+    if (err != STORAGE_OK)
         goto error;
-    }
-
-
-    (*db)->iv_dek_blob_enc_mac = malloc(MAC_SIZE);
-    if ((*db)->iv_dek_blob_enc_mac == NULL) {
-        err = ERR_LOAD_DB_MEM_ALLOC;
+        
+    err = alloc_and_read_field(db_fd, &((*db)->mac_dek_blob_enc_iv), IV_SIZE);
+    if (err != STORAGE_OK)
         goto error;
-    }
-
-    res = read(db_fd, (*db)->iv_dek_blob_enc_mac, MAC_SIZE);
-    if (res == -1 || res != MAC_SIZE) {
-        err = ERR_LOAD_DB_READ_CRED;
+        
+    err = alloc_and_read_field(db_fd, &((*db)->kek_hash), SHA256_DGST_SIZE);
+    if (err != STORAGE_OK)
         goto error;
-    }
-
-    (*db)->iv_dek_blob_enc_iv = malloc(IV_SIZE);
-    if ((*db)->iv_dek_blob_enc_iv == NULL) {
-        err = ERR_LOAD_DB_MEM_ALLOC;
+        
+    err = alloc_and_read_field(db_fd, &((*db)->kek_salt), SALT_SIZE);
+    if (err != STORAGE_OK)
         goto error;
-    }
-
-    res = read(db_fd, (*db)->iv_dek_blob_enc_iv, IV_SIZE);
-    if (res == -1 || res != IV_SIZE) {
-        err = ERR_LOAD_DB_READ_CRED;
+        
+    err = alloc_and_read_field(db_fd, &((*db)->login_hash), SHA256_DGST_SIZE);
+    if (err != STORAGE_OK)
         goto error;
-    }
-
-    (*db)->mac_dek_blob = malloc(MAC_SIZE);
-    if ((*db)->mac_dek_blob == NULL) {
-        err = ERR_LOAD_DB_MEM_ALLOC;
+        
+    err = alloc_and_read_field(db_fd, &((*db)->login_salt), SALT_SIZE);
+    if (err != STORAGE_OK)
         goto error;
-    }
-
-    res = read(db_fd, (*db)->mac_dek_blob, MAC_SIZE);
-    if (res == -1 || res != MAC_SIZE) {
-        err = ERR_LOAD_DB_READ_CRED;
-        goto error;
-    }
-
-
-    (*db)->mac_dek_blob_enc_mac = malloc(MAC_SIZE);
-    if ((*db)->mac_dek_blob_enc_mac == NULL) {
-        err = ERR_LOAD_DB_MEM_ALLOC;
-        goto error;
-    }
-
-    res = read(db_fd, (*db)->mac_dek_blob_enc_mac, MAC_SIZE);
-    if (res == -1 || res != MAC_SIZE) {
-        err = ERR_LOAD_DB_READ_CRED;
-        goto error;
-    }
-
-    (*db)->mac_dek_blob_enc_iv = malloc(IV_SIZE);
-    if ((*db)->mac_dek_blob_enc_iv == NULL) {
-        err = ERR_LOAD_DB_MEM_ALLOC;
-        goto error;
-    }
-
-    res = read(db_fd, (*db)->mac_dek_blob_enc_iv, IV_SIZE);
-    if (res == -1 || res != IV_SIZE) {
-        err = ERR_LOAD_DB_READ_CRED;
-        goto error;
-    }
-
-    (*db)->kek_hash = malloc(SHA256_DGST_SIZE);
-    if ((*db)->kek_hash == NULL) {
-        err = ERR_LOAD_DB_MEM_ALLOC;
-        goto error;
-    }
-
-    res = read(db_fd, (*db)->kek_hash, SHA256_DGST_SIZE);
-    if (res == -1 || res != SHA256_DGST_SIZE) {
-        err = ERR_LOAD_DB_READ_CRED;
-        goto error;
-    }
-
-    (*db)->kek_salt = malloc(SALT_SIZE);
-    if ((*db)->kek_salt == NULL) {
-        err = ERR_LOAD_DB_MEM_ALLOC;
-        goto error;
-    }
-
-    res = read(db_fd, (*db)->kek_salt, SALT_SIZE);
-    if (res == -1 || res != SALT_SIZE) {
-        err = ERR_LOAD_DB_READ_CRED;
-        goto error;
-    }
-
-    (*db)->login_hash = malloc(SHA256_DGST_SIZE);
-    if ((*db)->login_hash == NULL) {
-        err = ERR_LOAD_DB_MEM_ALLOC;
-        goto error;
-    }
-
-    res = read(db_fd, (*db)->login_hash, SHA256_DGST_SIZE);
-    if (res == -1 || res != SHA256_DGST_SIZE) {
-        err = ERR_LOAD_DB_READ_CRED;
-        goto error;
-    }
-
-    (*db)->login_salt = malloc(SALT_SIZE);
-    if ((*db)->login_salt == NULL) {
-        err = ERR_LOAD_DB_MEM_ALLOC;
-        goto error;
-    }
-
-    res = read(db_fd, (*db)->login_salt, SALT_SIZE);
-    if (res == -1 || res != SALT_SIZE) {
-        err = ERR_LOAD_DB_READ_CRED;
-        goto error;
-    }
 
     if (db_fd != -1) {
         close(db_fd);
