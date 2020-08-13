@@ -96,7 +96,8 @@
 #define ERR_GET_CRED_MEM_ALLOC         0x2019
 #define ERR_GET_CRED_MEM_LEAK          0x201A
 #define ERR_ALLOC_RD_CRED_INV_PARAMS   0x201B     
-#define ERR_ALLOC_RD_CRED_MEM_LEAK     0x201C     
+#define ERR_ALLOC_RD_CRED_MEM_LEAK     0x201C   
+#define ERR_STORG_READ_CRED_INV_PARAMS 0x201D
 
 
 /* Database Error Codes */

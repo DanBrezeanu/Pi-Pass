@@ -12,7 +12,7 @@ RM=rm -rf
 all: $(OBJS)
 
 $(OBJ_DIR)/%.o: %.c
-	@echo "CC $^" 
+	@echo "   CC $(realpath $^)" 
 	@$(CC) $(CFLAGS) $(INCLUDE) $< -c -o $@
 
 clean:

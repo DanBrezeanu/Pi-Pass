@@ -3,7 +3,7 @@ OBJ_DIR=obj
 CUR_DIR=$(notdir $(shell pwd))
 SRCS=$(wildcard *.c)
 OBJS=$(patsubst %.c, $(OBJ_DIR)/%.o,$(SRCS))
-CFLAGS=-std=gnu99 -g
+CFLAGS=-std=gnu99 -g -Wno-address-of-packed-member
 INCLUDE=-Iinclude/ $(shell find ../ -name 'include' -type d -exec sh -c 'echo -I{}' \;)
 RM=rm -rf
 
@@ -12,7 +12,7 @@ RM=rm -rf
 all: $(OBJS)
 
 $(OBJ_DIR)/%.o: %.c
-	@echo "CC $^" 
+	@echo "   CC $(realpath $^)" 
 	@$(CC) $(CFLAGS) $(INCLUDE) $< -c -o $@
 
 clean:

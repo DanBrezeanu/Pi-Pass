@@ -3,20 +3,19 @@ LDFLAGS=-Llib/
 LDLIBS=-lssl -lcrypto -lfastpbkdf2
 MKDIR=mkdir -p
 EXEC=pipass
-OBJS=$(shell find ./ -name '*.o')
 
 .PHONY: all
 
 all:
 	@$(MKDIR) crypto/obj session/obj database/obj storage/obj usb/obj
+	$(eval OBJS=$(shell find ./ -name 'obj' -type d | xargs -I {} echo {}/\*.o))
 	@$(MAKE) -s -C crypto
 	@$(MAKE) -s -C database
 	@$(MAKE) -s -C storage
 	@$(MAKE) -s -C usb
 	@$(MAKE) -s -C session
-	$(eval OBJS=$(shell find ./ -name '*.o'))
 	@$(CC) $(OBJS) $(LDFLAGS) -o $(EXEC) $(LDLIBS)
-	@echo "LD $(EXEC)"
+	@echo "   LD $(realpath $(EXEC))"
 
 clean:
 	@+$(MAKE) clean -s -C crypto

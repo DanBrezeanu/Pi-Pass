@@ -3,6 +3,160 @@
 #include <sha256.h>
 #include <credentials.h>
 
+STORAGE_ERR read_credentials(int32_t db_fd, struct Credential *cr, struct CredentialHeader *crh) {
+    if (cr == NULL || crh == NULL)
+        return ERR_STORG_READ_CRED_INV_PARAMS;
+
+    STORAGE_ERR err = STORAGE_OK;
+
+    if (crh->name_len > 0) {
+        err = alloc_and_read_field(db_fd, &(cr->name), crh->name_len);
+        if (err != STORAGE_OK)
+            goto error;
+    }
+
+    if (crh->username_len <= 0) {
+        err = ERR_LOAD_DB_READ_CRED;
+        goto error;
+    }
+
+    err = alloc_and_read_field(db_fd, &(cr->username), crh->username_len);
+    if (err != STORAGE_OK)
+        goto error;
+
+
+    err = alloc_and_read_field(db_fd, &(cr->username_mac), MAC_SIZE);
+    if (err != STORAGE_OK)
+        goto error;
+
+
+    err = alloc_and_read_field(db_fd, &(cr->username_iv), IV_SIZE);
+    if (err != STORAGE_OK)
+        goto error;
+
+
+    if (crh->passw_len <= 0) {
+        err = ERR_LOAD_DB_READ_CRED;
+        goto error;
+    }
+
+    err = alloc_and_read_field(db_fd, &(cr->passw), crh->passw_len);
+    if (err != STORAGE_OK)
+        goto error;
+
+    err = alloc_and_read_field(db_fd, &(cr->passw_mac), MAC_SIZE);
+    if (err != STORAGE_OK)
+        goto error;
+
+
+    err = alloc_and_read_field(db_fd, &(cr->passw_iv), IV_SIZE);
+    if (err != STORAGE_OK)
+        goto error;
+
+    
+    if (crh->url_len > 0) {
+        err = alloc_and_read_field(db_fd, &(cr->url), crh->url_len);
+        if (err != STORAGE_OK)
+            goto error;
+    }
+    
+    if (crh->additional_len > 0) {
+            err = alloc_and_read_field(db_fd, &(cr->additional), crh->additional_len);
+        if (err != STORAGE_OK)
+            goto error;
+    }
+
+    return STORAGE_OK;
+
+error:
+    erase_buffer(&(cr->name), crh->name_len);
+    erase_buffer(&(cr->username), crh->username_len);
+    erase_buffer(&(cr->username_mac), MAC_SIZE);
+    erase_buffer(&(cr->username_iv), IV_SIZE);
+    erase_buffer(&(cr->passw), crh->passw_len);
+    erase_buffer(&(cr->passw_mac), MAC_SIZE);
+    erase_buffer(&(cr->passw_iv), IV_SIZE);
+    erase_buffer(&(cr->url), crh->url_len);
+    erase_buffer(&(cr->additional), crh->additional_len);
+
+    return err;
+}
+
+STORAGE_ERR read_db_buffers(int32_t db_fd, struct Database *db) {
+    STORAGE_ERR err = STORAGE_OK;
+
+    err = alloc_and_read_field(db_fd, &(db->dek_blob), AES256_KEY_SIZE);
+    if (err != STORAGE_OK)
+        goto error;
+
+    err = alloc_and_read_field(db_fd, &(db->dek_blob_enc_mac), MAC_SIZE);
+    if (err != STORAGE_OK)
+        goto error;
+
+    err = alloc_and_read_field(db_fd, &(db->dek_blob_enc_iv), IV_SIZE);
+    if (err != STORAGE_OK)
+        goto error;
+
+    err = alloc_and_read_field(db_fd, &(db->iv_dek_blob), IV_SIZE);
+    if (err != STORAGE_OK)
+        goto error;
+
+    err = alloc_and_read_field(db_fd, &(db->iv_dek_blob_enc_mac), MAC_SIZE);
+    if (err != STORAGE_OK)
+        goto error;
+        
+    err = alloc_and_read_field(db_fd, &(db->iv_dek_blob_enc_iv), IV_SIZE);
+    if (err != STORAGE_OK)
+        goto error;
+        
+    err = alloc_and_read_field(db_fd, &(db->mac_dek_blob), MAC_SIZE);
+    if (err != STORAGE_OK)
+        goto error;
+        
+    err = alloc_and_read_field(db_fd, &(db->mac_dek_blob_enc_mac), MAC_SIZE);
+    if (err != STORAGE_OK)
+        goto error;
+        
+    err = alloc_and_read_field(db_fd, &(db->mac_dek_blob_enc_iv), IV_SIZE);
+    if (err != STORAGE_OK)
+        goto error;
+        
+    err = alloc_and_read_field(db_fd, &(db->kek_hash), SHA256_DGST_SIZE);
+    if (err != STORAGE_OK)
+        goto error;
+        
+    err = alloc_and_read_field(db_fd, &(db->kek_salt), SALT_SIZE);
+    if (err != STORAGE_OK)
+        goto error;
+        
+    err = alloc_and_read_field(db_fd, &(db->login_hash), SHA256_DGST_SIZE);
+    if (err != STORAGE_OK)
+        goto error;
+        
+    err = alloc_and_read_field(db_fd, &(db->login_salt), SALT_SIZE);
+    if (err != STORAGE_OK)
+        goto error;
+
+    return STORAGE_OK;
+
+error:
+    erase_buffer(&(db->dek_blob), AES256_KEY_SIZE);
+    erase_buffer(&(db->dek_blob_enc_mac), MAC_SIZE);
+    erase_buffer(&(db->dek_blob_enc_iv), IV_SIZE);
+    erase_buffer(&(db->iv_dek_blob), IV_SIZE);
+    erase_buffer(&(db->iv_dek_blob_enc_mac), MAC_SIZE);
+    erase_buffer(&(db->iv_dek_blob_enc_iv), IV_SIZE);
+    erase_buffer(&(db->mac_dek_blob), MAC_SIZE);
+    erase_buffer(&(db->mac_dek_blob_enc_mac), MAC_SIZE);
+    erase_buffer(&(db->mac_dek_blob_enc_iv), IV_SIZE);
+    erase_buffer(&(db->kek_hash), SHA256_DGST_SIZE);
+    erase_buffer(&(db->kek_salt), SALT_SIZE);
+    erase_buffer(&(db->login_hash), SHA256_DGST_SIZE);
+    erase_buffer(&(db->login_salt), SALT_SIZE);
+
+    return err;
+}
+
 STORAGE_ERR create_user_directory(uint8_t *user_hash) {
     if (user_hash == NULL)
         return ERR_CREATE_USER_DIR_INV_PARAMS;
@@ -170,62 +324,9 @@ STORAGE_ERR load_database(struct Database **db, uint8_t *user_hash) {
             goto error;
         }
 
-        if ((*db)->cred_headers[i].name_len > 0) {
-            err = alloc_and_read_field(db_fd, &((*db)->cred[i].name), (*db)->cred_headers[i].name_len);
-            if (err != STORAGE_OK)
-                goto error;
-        }
-
-        if ((*db)->cred_headers[i].username_len <= 0) {
-            err = ERR_LOAD_DB_READ_CRED;
-            goto error;
-        }
-
-        err = alloc_and_read_field(db_fd, &((*db)->cred[i].username), (*db)->cred_headers[i].username_len);
+        err = read_credentials(db_fd, &((*db)->cred[i]), &((*db)->cred_headers[i]));
         if (err != STORAGE_OK)
             goto error;
-
-
-        err = alloc_and_read_field(db_fd, &((*db)->cred[i].username_mac), MAC_SIZE);
-        if (err != STORAGE_OK)
-            goto error;
-
-
-        err = alloc_and_read_field(db_fd, &((*db)->cred[i].username_iv), IV_SIZE);
-        if (err != STORAGE_OK)
-            goto error;
-
-
-        if ((*db)->cred_headers[i].passw_len <= 0) {
-            err = ERR_LOAD_DB_READ_CRED;
-            goto error;
-        }
-    
-        err = alloc_and_read_field(db_fd, &((*db)->cred[i].passw), (*db)->cred_headers[i].passw_len);
-        if (err != STORAGE_OK)
-            goto error;
-
-        err = alloc_and_read_field(db_fd, &((*db)->cred[i].passw_mac), MAC_SIZE);
-        if (err != STORAGE_OK)
-            goto error;
-
-
-        err = alloc_and_read_field(db_fd, &((*db)->cred[i].passw_iv), IV_SIZE);
-        if (err != STORAGE_OK)
-            goto error;
-
-        
-        if ((*db)->cred_headers[i].url_len > 0) {
-            err = alloc_and_read_field(db_fd, &((*db)->cred[i].url), (*db)->cred_headers[i].url_len);
-            if (err != STORAGE_OK)
-                goto error;
-        }
-        
-        if ((*db)->cred_headers[i].additional_len > 0) {
-                err = alloc_and_read_field(db_fd, &((*db)->cred[i].additional), (*db)->cred_headers[i].additional_len);
-            if (err != STORAGE_OK)
-                goto error;
-        }
     }
 
 skip_reading_creds:
@@ -235,56 +336,7 @@ skip_reading_creds:
         goto error;
     }
 
-    
-    err = alloc_and_read_field(db_fd, &((*db)->dek_blob), AES256_KEY_SIZE);
-    if (err != STORAGE_OK)
-        goto error;
-
-    err = alloc_and_read_field(db_fd, &((*db)->dek_blob_enc_mac), MAC_SIZE);
-    if (err != STORAGE_OK)
-        goto error;
-
-    err = alloc_and_read_field(db_fd, &((*db)->dek_blob_enc_iv), IV_SIZE);
-    if (err != STORAGE_OK)
-        goto error;
-
-    err = alloc_and_read_field(db_fd, &((*db)->iv_dek_blob), IV_SIZE);
-    if (err != STORAGE_OK)
-        goto error;
-
-    err = alloc_and_read_field(db_fd, &((*db)->iv_dek_blob_enc_mac), MAC_SIZE);
-    if (err != STORAGE_OK)
-        goto error;
-        
-    err = alloc_and_read_field(db_fd, &((*db)->iv_dek_blob_enc_iv), IV_SIZE);
-    if (err != STORAGE_OK)
-        goto error;
-        
-    err = alloc_and_read_field(db_fd, &((*db)->mac_dek_blob), MAC_SIZE);
-    if (err != STORAGE_OK)
-        goto error;
-        
-    err = alloc_and_read_field(db_fd, &((*db)->mac_dek_blob_enc_mac), MAC_SIZE);
-    if (err != STORAGE_OK)
-        goto error;
-        
-    err = alloc_and_read_field(db_fd, &((*db)->mac_dek_blob_enc_iv), IV_SIZE);
-    if (err != STORAGE_OK)
-        goto error;
-        
-    err = alloc_and_read_field(db_fd, &((*db)->kek_hash), SHA256_DGST_SIZE);
-    if (err != STORAGE_OK)
-        goto error;
-        
-    err = alloc_and_read_field(db_fd, &((*db)->kek_salt), SALT_SIZE);
-    if (err != STORAGE_OK)
-        goto error;
-        
-    err = alloc_and_read_field(db_fd, &((*db)->login_hash), SHA256_DGST_SIZE);
-    if (err != STORAGE_OK)
-        goto error;
-        
-    err = alloc_and_read_field(db_fd, &((*db)->login_salt), SALT_SIZE);
+    err = read_db_buffers(db_fd, *db);
     if (err != STORAGE_OK)
         goto error;
 
@@ -308,7 +360,6 @@ error:
     }
 
     erase_buffer(&db_file_path, db_file_path_len);
-    /* TODO: ERASE ALLOC'D CRED BUFFERS */
 
     return err;
 }
