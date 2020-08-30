@@ -152,3 +152,21 @@ DB_ERROR zero_credential_header(struct CredentialHeader *crh) {
 
     return DB_OK;
 }
+
+void free_credential(struct Credential *cr, struct CredentialHeader *crh) {
+    if (cr != NULL) {
+        if (cr->name != NULL) erase_buffer(&(cr->name), crh->name_len);
+        if (cr->username != NULL) erase_buffer(&(cr->username), crh->username_len);
+        if (cr->username_mac != NULL) erase_buffer(&(cr->username_mac), MAC_SIZE);
+        if (cr->username_iv != NULL) erase_buffer(&(cr->username_iv), IV_SIZE);
+        if (cr->passw != NULL) erase_buffer(&(cr->passw), crh->passw_len);
+        if (cr->passw_mac != NULL) erase_buffer(&(cr->passw_mac), MAC_SIZE);
+        if (cr->passw_iv != NULL) erase_buffer(&(cr->passw_iv), IV_SIZE);
+        if (cr->url != NULL) erase_buffer(&(cr->url), crh->url_len);
+        if (cr->additional != NULL) erase_buffer(&(cr->additional), crh->additional_len);
+    }
+
+    if (crh != NULL) {
+        zero_credential_header(crh);
+    }
+}

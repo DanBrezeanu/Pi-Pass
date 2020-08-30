@@ -308,3 +308,32 @@ DB_ERROR raw_database(struct Database *db, uint8_t **raw_db, int32_t *raw_db_siz
     
     return DB_OK;
 }
+
+void free_database(struct Database *db) {
+    if (db == NULL)
+        return;
+
+    if (db->dek_blob != NULL) erase_buffer(&(db->dek_blob), AES256_KEY_SIZE);
+    if (db->dek_blob_enc_mac != NULL) erase_buffer(&(db->dek_blob_enc_mac), MAC_SIZE);
+    if (db->dek_blob_enc_iv != NULL) erase_buffer(&(db->dek_blob_enc_iv), IV_SIZE);
+    if (db->iv_dek_blob != NULL) erase_buffer(&(db->iv_dek_blob), IV_SIZE);
+    if (db->iv_dek_blob_enc_mac != NULL) erase_buffer(&(db->iv_dek_blob_enc_mac), MAC_SIZE);
+    if (db->iv_dek_blob_enc_iv != NULL) erase_buffer(&(db->iv_dek_blob_enc_iv), IV_SIZE);
+    if (db->mac_dek_blob != NULL) erase_buffer(&(db->mac_dek_blob), MAC_SIZE);
+    if (db->mac_dek_blob_enc_mac != NULL) erase_buffer(&(db->mac_dek_blob_enc_mac), MAC_SIZE);
+    if (db->mac_dek_blob_enc_iv != NULL) erase_buffer(&(db->mac_dek_blob_enc_iv), IV_SIZE);
+    if (db->kek_hash != NULL) erase_buffer(&(db->kek_hash), SHA256_DGST_SIZE);
+    if (db->kek_salt != NULL) erase_buffer(&(db->kek_salt), SALT_SIZE);
+    if (db->login_hash != NULL) erase_buffer(&(db->login_hash), SHA256_DGST_SIZE);
+    if (db->login_salt != NULL) erase_buffer(&(db->login_salt), SALT_SIZE);
+
+    for (int i = 0; i < db->cred_len; ++i)
+        free_credential(&(db->cred[i]), &(db->cred_headers[i]));
+
+    free(db->cred);
+    free(db->cred_headers);
+
+    db->cred_len = db->db_len = db->version = 0;
+
+    free(db);
+}

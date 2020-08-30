@@ -3,6 +3,8 @@
 #include <database.h>
 #include <credentials.h>
 #include <crypto.h>
+#include <storage.h>
+#include <authentication.h>
 
 STORAGE_ERR register_new_credential(struct Database *db, uint8_t *user_hash, uint8_t *master_pass, uint8_t *name, int32_t name_len,
  uint8_t *username, int32_t username_len, uint8_t *passw, int32_t passw_len, uint8_t *url, int32_t url_len,
@@ -12,12 +14,19 @@ STORAGE_ERR register_new_credential(struct Database *db, uint8_t *user_hash, uin
       user_hash == NULL || !username_len || !passw_len)
         return ERR_REG_NEW_CRED_INV_PARAMS;
 
-    /* TODO: check hash and pass */
-
     struct Credential *cr = NULL; 
     struct CredentialHeader *crh = NULL; 
+    STORAGE_ERR err = STORAGE_OK;
 
-    DB_ERROR err = new_credential(&cr, &crh);
+    err = verify_user_directory(user_hash);
+    if (err != STORAGE_OK)
+        return err;
+
+    err = verify_master_password(user_hash, master_pass);
+    if (err != STORAGE_OK)
+        return err;
+
+    err = new_credential(&cr, &crh);
     if (err != DB_OK)
         goto error;
     
@@ -79,11 +88,17 @@ STORAGE_ERR get_credential_by_name(struct Database *db, uint8_t *user_hash, uint
     if (*ptcr != NULL || *ptcrh != NULL)
         return ERR_GET_CRED_MEM_LEAK;
 
-    /* TODO: check hash and pass */
-
     struct Credential *cr = NULL; 
     struct CredentialHeader *crh = NULL;
     STORAGE_ERR err = CRYPTO_OK;
+
+    err = verify_user_directory(user_hash);
+    if (err != STORAGE_OK)
+        return err;
+
+    err = verify_master_password(user_hash, master_pass);
+    if (err != STORAGE_OK)
+        return err;
 
     for (int i = 0; i < db->cred_len; ++i) {
         if (db->cred_headers[i].name_len == name_len && 
@@ -103,7 +118,6 @@ STORAGE_ERR get_credential_by_name(struct Database *db, uint8_t *user_hash, uint
     *ptcr = calloc(1, sizeof(struct PlainTextCredential));
     *ptcrh = calloc(1, sizeof(struct CredentialHeader));
 
-  
     err = decrypt_credential_field(db, &((*ptcr)->username), &((*ptcrh)->username_len), 
       master_pass, cr->username, cr->username_iv, cr->username_mac, crh->username_len);
     if (err != CRYPTO_OK)

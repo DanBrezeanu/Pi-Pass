@@ -2,6 +2,7 @@
 #include <authentication.h>
 #include <storage.h>
 #include <sha256.h>
+#include <crypto.h>
 
 STORAGE_ERR verify_master_password(uint8_t *user, uint8_t *key) {
     STORAGE_ERR err;
@@ -26,22 +27,26 @@ STORAGE_ERR verify_master_password(uint8_t *user, uint8_t *key) {
     err = STORAGE_OK;
 
 error:
-    // zero_buffer(key, MASTER_PASS_SIZE);
+    free_database(db);
     return err;
-} 
+}
 
-// #include <stdio.h>
+STORAGE_ERR verify_user_exists(uint8_t *user, int user_len) {
+    uint8_t *user_hash = NULL;
+    STORAGE_ERR err = STORAGE_OK;
+    
+    err = sanity_check_buffer(user, user_len);
+    if (err != CRYPTO_OK)
+        return err;
 
-// int main() {
-//     uint8_t *user = malloc(SHA256_HEX_SIZE);
-//     uint8_t *key = malloc(MASTER_PASS_SIZE);
+    err = generate_user_hash(user, user_len, &user_hash);
+    if (err != STORAGE_OK)
+        goto error;
 
-//     memcpy(user, "55402817f85b8423f989bc5ed92476a4b4967c302201e9540e9bb55579f00e4b", SHA256_HEX_SIZE);
-//     memcpy(key, "1234", MASTER_PASS_SIZE);
+    err = verify_user_directory(user_hash);
 
-//     STORAGE_ERR err = verify_master_password(user, key);
+error:
+    erase_buffer(&user_hash, SHA256_HEX_SIZE);
 
-//     printf("0x%.4X\n", err);
-
-//     return 0;
-// }
+    return err;
+}

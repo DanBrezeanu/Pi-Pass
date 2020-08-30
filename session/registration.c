@@ -86,7 +86,7 @@ STORAGE_ERR register_new_user(uint8_t *user_data, int32_t user_data_len, uint8_t
     if (err != CRYPTO_OK)
         goto error;
 
-    // zero_buffer(master_pass, MASTER_PASS_SIZE);
+    zero_buffer(master_pass, MASTER_PASS_SIZE); 
 
     err = update_db_login(db, login_hash, login_salt);
     if (err != DB_OK)
@@ -95,6 +95,9 @@ STORAGE_ERR register_new_user(uint8_t *user_data, int32_t user_data_len, uint8_t
     err = dump_database(db, user_hash);
     if (err != DB_OK)
         goto error;
+
+    free_database(db);
+    db = NULL;
 
     err = STORAGE_OK;
 
@@ -122,14 +125,20 @@ int main(int argc, char **argv) {
     STORAGE_ERR err = -1;
 
     if (argc == 1) {
-        err = register_new_user("test", strlen("test"), "1234");
+        char pass[] = "1234";
+        err = register_new_user("test", strlen("test"), pass);
     } else if (argc == 2) {
         uint8_t *user_hash = NULL;
         err = generate_user_hash("test", 4, &user_hash);
         if (err != STORAGE_OK)
             goto error;
 
-        err = verify_master_password(user_hash, "1234");
+        char pass[] = "1234";
+
+        err = verify_master_password(user_hash, pass);
+
+        free(user_hash);
+
     } else if (argc == 3){
         struct Database *db = NULL;
 
@@ -144,19 +153,23 @@ int main(int argc, char **argv) {
 
         uint8_t *pass = malloc(5); 
         uint8_t *name = malloc(7); 
-        uint8_t *username = malloc(7); 
+        uint8_t *username = malloc(10); 
         uint8_t *passw = malloc(7); 
         uint8_t *url = malloc(19); 
 
         strcpy(pass, "1234");
-        strcpy(name, "Google");
+        strcpy(name, "Amazon");
         strcpy(username, "GUsername");
         strcpy(passw, "GPassw");
-        strcpy(url, "https://google.com");
+        strcpy(url, "https://amazon.com");
 
-        err = register_new_credential(db, user_hash, pass, name, 7, username, 9, passw, 16, url, 19, NULL, 0);
+        err = register_new_credential(db, user_hash, pass, name, 7, username, 9, passw, 6, url, 19, NULL, 0);
         if (err != STORAGE_OK)
             goto error;
+
+        free(pass); free(name); free(username); free(passw); free(url);
+        free(user_hash);
+        free_database(db);
 
     } else if (argc == 4) {
         struct Database *db = NULL;
@@ -176,7 +189,7 @@ int main(int argc, char **argv) {
         uint8_t *pass = malloc(5);
         strcpy(pass, "1234");
         uint8_t *name = malloc(7); 
-        strcpy(name, "Google");
+        strcpy(name, "Amazon");
 
         err = get_credential_by_name(db, user_hash, pass, name, 7, &cr, &crh);
         if (err != STORAGE_OK)
@@ -184,6 +197,13 @@ int main(int argc, char **argv) {
 
         printf("%s\n%s\n%s\n%s\n%s\n", cr->name, cr->username, cr->passw, cr->url, cr->additional);
 
+        free(pass);
+        free(name);
+        free(cr->name); free(cr->username); free(cr->passw); free(cr->url); free(cr->additional);
+        free(cr);
+        free(crh);
+        free(user_hash);
+        free_database(db);
     }
 error:
     printf("0x%.4X\n", err);

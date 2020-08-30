@@ -59,5 +59,6 @@ DB_ERROR recalculate_header_len(struct CredentialHeader *crh);
 
 DB_ERROR zero_credential(struct Credential *cr);
 DB_ERROR zero_credential_header(struct CredentialHeader *crh);
+void free_credential(struct Credential *cr, struct CredentialHeader *crh);
 
 #endif
