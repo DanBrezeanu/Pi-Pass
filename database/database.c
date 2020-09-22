@@ -337,3 +337,18 @@ void free_database(struct Database *db) {
 
     free(db);
 }
+
+DB_ERROR verify_existing_credential(struct Database *db, struct Credential *cr, struct CredentialHeader *crh) {
+    if (db == NULL || cr == NULL || crh == NULL)
+        return ERR_DB_EXIST_CRED_INV_PARAMS;
+
+    DB_ERROR err = DB_OK;
+
+    for (int i = 0; i < db->cred_len; ++i) {
+        err = credentials_equal(&(db->cred[i]), &(db->cred_headers[i]), cr, crh);
+        if (err == DB_OK)
+            return ERR_CRED_ALREADY_EXISTS;
+    }
+
+    return DB_OK;
+}

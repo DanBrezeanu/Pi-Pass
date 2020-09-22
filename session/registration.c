@@ -163,7 +163,7 @@ int main(int argc, char **argv) {
         strcpy(passw, "GPassw");
         strcpy(url, "https://amazon.com");
 
-        err = register_new_credential(db, user_hash, pass, name, 7, username, 9, passw, 6, url, 19, NULL, 0);
+        err = register_new_credential(db, user_hash, pass, name, 6, username, 9, passw, 6, url, 19, NULL, 0);
         if (err != STORAGE_OK)
             goto error;
 
@@ -185,21 +185,25 @@ int main(int argc, char **argv) {
 
         struct PlainTextCredential *cr = NULL;
         struct CredentialHeader *crh = NULL;
+        int32_t cred_count = 0;
 
         uint8_t *pass = malloc(5);
         strcpy(pass, "1234");
         uint8_t *name = malloc(7); 
         strcpy(name, "Amazon");
 
-        err = get_credential_by_name(db, user_hash, pass, name, 7, &cr, &crh);
+        //TODO: fix corrupted byte
+        err = get_credentials_by_name(db, user_hash, pass, name, 6, &cr, &crh, &cred_count);
         if (err != STORAGE_OK)
             goto error;
 
-        printf("%s\n%s\n%s\n%s\n%s\n", cr->name, cr->username, cr->passw, cr->url, cr->additional);
+        for (int i = 0; i < cred_count; ++i)
+            printf("%s\n%s\n%s\n%s\n%s\n", cr[i].name, cr[i].username, cr[i].passw, cr[i].url, cr[i].additional);
 
         free(pass);
         free(name);
-        free(cr->name); free(cr->username); free(cr->passw); free(cr->url); free(cr->additional);
+        for (int i = 0; i < cred_count; ++i)
+            free_plaintext_credential(&(cr[i]), &(crh[i]));
         free(cr);
         free(crh);
         free(user_hash);

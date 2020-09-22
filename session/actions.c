@@ -18,42 +18,15 @@ STORAGE_ERR register_new_credential(struct Database *db, uint8_t *user_hash, uin
     struct CredentialHeader *crh = NULL; 
     STORAGE_ERR err = STORAGE_OK;
 
-    err = verify_user_directory(user_hash);
-    if (err != STORAGE_OK)
-        return err;
-
-    err = verify_master_password(user_hash, master_pass);
-    if (err != STORAGE_OK)
-        return err;
-
-    err = new_credential(&cr, &crh);
-    if (err != DB_OK)
+    err = populate_credential(db, &cr, &crh, user_hash, master_pass, name, name_len, username, username_len, passw, passw_len,
+      url, url_len, additional, additional_len);
+    if (err != DB_OK) {
         goto error;
-    
-    if (name != NULL) {
-        err = populate_plaintext_field(cr, crh, name, name_len, NAME);
-        if (err != STORAGE_OK)
-            goto error;
     }
 
-    err = populate_encrypted_field(db, cr, crh, username, username_len, USERNAME, master_pass);
-    if (err != STORAGE_OK)
+    err = verify_existing_credential(db, cr, crh);
+    if (err != DB_OK) { 
         goto error;
-    
-    err = populate_encrypted_field(db, cr, crh, passw, passw_len, PASSW, master_pass);
-    if (err != STORAGE_OK)
-        goto error;
-
-    if (url != NULL) {
-        err = populate_plaintext_field(cr, crh, url, url_len, URL);
-        if (err != STORAGE_OK)
-            goto error;
-    }
-
-    if (additional != NULL) {
-        err = populate_plaintext_field(cr, crh, additional, additional_len, ADDITIONAL);
-        if (err != STORAGE_OK)
-            goto error;
     }
 
     err = append_db_credential(db, cr, crh);
@@ -65,6 +38,7 @@ STORAGE_ERR register_new_credential(struct Database *db, uint8_t *user_hash, uin
         goto error;
 
 error:
+    free_credential(cr, crh);
     if (cr != NULL) {
         memset(cr, 0, sizeof(struct Credential));
         free(cr);
@@ -80,8 +54,8 @@ error:
     return err;
 }
 
-STORAGE_ERR get_credential_by_name(struct Database *db, uint8_t *user_hash, uint8_t *master_pass, uint8_t *name, int16_t name_len, 
-  struct PlainTextCredential **ptcr, struct CredentialHeader **ptcrh) {
+STORAGE_ERR get_credentials_by_name(struct Database *db, uint8_t *user_hash, uint8_t *master_pass, uint8_t *name, int16_t name_len, 
+  struct PlainTextCredential **ptcr, struct CredentialHeader **ptcrh, int32_t *cred_count) {
     if (db == NULL || user_hash == NULL || master_pass == NULL || name == NULL || !name_len)
         return ERR_GET_CRED_INV_PARAMS;
 
@@ -100,85 +74,121 @@ STORAGE_ERR get_credential_by_name(struct Database *db, uint8_t *user_hash, uint
     if (err != STORAGE_OK)
         return err;
 
+    *cred_count = 0;
+
     for (int i = 0; i < db->cred_len; ++i) {
         if (db->cred_headers[i].name_len == name_len && 
           memcmp(db->cred[i].name, name, db->cred_headers[i].name_len) == 0) {
-        
-            cr = &(db->cred[i]);
-            crh = &(db->cred_headers[i]);
-            break;
+            
+            err = append_to_credential_array(&cr, cred_count, &(db->cred[i]));
+            if (err != DB_OK)
+                goto error;
+
+            (*cred_count)--;
+
+            err = append_to_credential_header_array(&crh, cred_count, &(db->cred_headers[i]));
+            if (err != DB_OK)
+                goto error;    
         }
     }
 
-    if (cr == NULL || crh == NULL) {
+    if (cr == NULL && crh == NULL && *cred_count == 0) {
         err = ERR_GET_CRED_NOT_FOUND;
         goto error;
-    }
-
-    *ptcr = calloc(1, sizeof(struct PlainTextCredential));
-    *ptcrh = calloc(1, sizeof(struct CredentialHeader));
-
-    err = decrypt_credential_field(db, &((*ptcr)->username), &((*ptcrh)->username_len), 
-      master_pass, cr->username, cr->username_iv, cr->username_mac, crh->username_len);
-    if (err != CRYPTO_OK)
+    } else if (cr == NULL || crh == NULL || *cred_count == 0) {
+        err = ERR_GET_CRED_DIFF_INDICES;
         goto error;
+    }
 
-    err = decrypt_credential_field(db, &((*ptcr)->passw), &((*ptcrh)->passw_len), 
-      master_pass, cr->passw, cr->passw_iv, cr->passw_mac, crh->passw_len);
-    if (err != CRYPTO_OK)
+    *ptcr = calloc(*cred_count, sizeof(struct PlainTextCredential));
+    if (*ptcr == NULL) {
+        err = ERR_STORAGE_MEM_ALLOC;
         goto error;
-
-    if (crh->name_len > 0 && cr->name != NULL) {
-        (*ptcr)->name = malloc(crh->name_len);
-        if ((*ptcr)->name == NULL) {
-            err = ERR_GET_CRED_MEM_ALLOC;
-            goto error;
-        }
-
-        memcpy((*ptcr)->name, cr->name, crh->name_len);
-        (*ptcrh)->name_len = crh->name_len;
-        (*ptcrh)->cred_len += crh->name_len;
+    }
+        
+    *ptcrh = calloc(*cred_count, sizeof(struct CredentialHeader));
+    if (*ptcr == NULL) {
+        err = ERR_STORAGE_MEM_ALLOC;
+        goto error;
     }
 
-    if (crh->url_len > 0 && cr->url != NULL) {
-        (*ptcr)->url = malloc(crh->url_len);
-        if ((*ptcr)->url == NULL) {
-            err = ERR_GET_CRED_MEM_ALLOC;
+    for (int i = 0; i < *cred_count; ++i) {
+        err = decrypt_credential_field(db, &((*ptcr)[i].username), &((*ptcrh)[i].username_len), 
+        master_pass, cr[i].username, cr[i].username_iv, cr[i].username_mac, crh[i].username_len);
+        if (err != CRYPTO_OK)
             goto error;
+
+        err = decrypt_credential_field(db, &((*ptcr)[i].passw), &((*ptcrh)[i].passw_len), 
+        master_pass, cr[i].passw, cr[i].passw_iv, cr[i].passw_mac, crh[i].passw_len);
+        if (err != CRYPTO_OK)
+            goto error;
+
+        if (crh[i].name_len > 0 && cr[i].name != NULL) {
+            (*ptcr)[i].name = malloc(crh[i].name_len);
+            if ((*ptcr)->name == NULL) {
+                err = ERR_GET_CRED_MEM_ALLOC;
+                goto error;
+            }
+
+            memcpy((*ptcr)[i].name, cr[i].name, crh[i].name_len);
+            (*ptcrh)[i].name_len = crh[i].name_len;
+            (*ptcrh)[i].cred_len += crh[i].name_len;
         }
 
-        memcpy((*ptcr)->url, cr->url, crh->url_len);
-        (*ptcrh)->url_len = crh->url_len;
-        (*ptcrh)->cred_len += crh->url_len;
-    }
+        if (crh[i].url_len > 0 && cr[i].url != NULL) {
+            (*ptcr)[i].url = malloc(crh[i].url_len);
+            if ((*ptcr)[i].url == NULL) {
+                err = ERR_GET_CRED_MEM_ALLOC;
+                goto error;
+            }
 
-    if (crh->additional_len > 0 && cr->additional != NULL) {
-        (*ptcr)->additional = malloc(crh->additional_len);
-        if ((*ptcr)->additional == NULL) {
-            err = ERR_GET_CRED_MEM_ALLOC;
-            goto error;
+            memcpy((*ptcr)[i].url, cr[i].url, crh[i].url_len);
+            (*ptcrh)[i].url_len = crh[i].url_len;
+            (*ptcrh)[i].cred_len += crh[i].url_len;
         }
 
-        memcpy((*ptcr)->additional, cr->additional, crh->additional_len);
-        (*ptcrh)->additional_len = crh->additional_len;
-        (*ptcrh)->cred_len += crh->additional_len;
+        if (crh[i].additional_len > 0 && cr[i].additional != NULL) {
+            (*ptcr)[i].additional = malloc(crh[i].additional_len);
+            if ((*ptcr)[i].additional == NULL) {
+                err = ERR_GET_CRED_MEM_ALLOC;
+                goto error;
+            }
+
+            memcpy((*ptcr)[i].additional, cr[i].additional, crh[i].additional_len);
+            (*ptcrh)[i].additional_len = crh[i].additional_len;
+            (*ptcrh)[i].cred_len += crh[i].additional_len;
+        }
     }
 
-    return STORAGE_OK;
-    
+    err = STORAGE_OK;
+    goto free_cr_and_crh;
 
 error:
-    if (*ptcr != NULL ) {
-        erase_buffer(&((*ptcr)->name), crh->name_len);
-        erase_buffer(&((*ptcr)->passw), crh->passw_len);
-        erase_buffer(&((*ptcr)->username), crh->username_len);
-        erase_buffer(&((*ptcr)->url), crh->url_len);
-        erase_buffer(&((*ptcr)->additional), crh->additional_len);
+    if (*ptcr != NULL) {
+        for (int i = 0; i < *cred_count; ++i) {
+            free_plaintext_credential(&((*ptcr)[i]), &((*ptcrh)[i]));
+        }
+
         free(*ptcr);
+        *ptcr = NULL;
     }
 
     if (*ptcrh != NULL) {
         free(*ptcrh);
+    }
+
+free_cr_and_crh: // TODO: zero buffers
+    if (cr != NULL) {
+        for (int i = 0; i < *cred_count; ++i)
+            zero_credential(&(cr[i]));
+        free(cr);
+    }
+
+    if (crh != NULL) {
+        for (int i = 0; i < *cred_count; ++i)
+            zero_credential_header(&(crh[i]));
+
+        free(crh);
     }
 
     return err;

@@ -45,6 +45,7 @@ usb_packet create_usb_packet(KEY key) {
     return pack;
 }
 
+
 USB_ERR send_string(int fd, BYTE *str) {
     for (int32_t i = 0; i < strlen(str); ++i) {
         KEY _key = key_from_byte(str[i]);
