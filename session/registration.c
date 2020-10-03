@@ -151,11 +151,11 @@ int main(int argc, char **argv) {
         if (err != STORAGE_OK)
             goto error;
 
-        uint8_t *pass = malloc(5); 
-        uint8_t *name = malloc(7); 
-        uint8_t *username = malloc(10); 
-        uint8_t *passw = malloc(7); 
-        uint8_t *url = malloc(19); 
+        uint8_t *pass = calloc(5, 1); 
+        uint8_t *name = calloc(7, 1); 
+        uint8_t *username = calloc(10, 1); 
+        uint8_t *passw = calloc(7, 1); 
+        uint8_t *url = calloc(19, 1); 
 
         strcpy(pass, "1234");
         strcpy(name, "Amazon");
@@ -163,7 +163,7 @@ int main(int argc, char **argv) {
         strcpy(passw, "GPassw");
         strcpy(url, "https://amazon.com");
 
-        err = register_new_credential(db, user_hash, pass, name, 6, username, 9, passw, 6, url, 19, NULL, 0);
+        err = register_new_credential(db, user_hash, pass, name, 6, username, 9, passw, 6, url, 18, NULL, 0);
         if (err != STORAGE_OK)
             goto error;
 
@@ -197,9 +197,10 @@ int main(int argc, char **argv) {
         if (err != STORAGE_OK)
             goto error;
 
-        for (int i = 0; i < cred_count; ++i)
+        for (int i = 0; i < cred_count; ++i) {
             printf("%s\n%s\n%s\n%s\n%s\n", cr[i].name, cr[i].username, cr[i].passw, cr[i].url, cr[i].additional);
-
+            printf("%d %d %d %d %d\n", crh[i].name_len, crh[i].username_len, crh[i].passw_len, crh[i].url_len, crh[i].additional_len);
+        }
         free(pass);
         free(name);
         for (int i = 0; i < cred_count; ++i)

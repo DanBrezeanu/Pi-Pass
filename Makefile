@@ -1,4 +1,4 @@
-CC=gcc
+CC=$(CROSS_COMPILE)gcc
 LDFLAGS=-Llib/
 LDLIBS=-lssl -lcrypto -lfastpbkdf2
 MKDIR=mkdir -p

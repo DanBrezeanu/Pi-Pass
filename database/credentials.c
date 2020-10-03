@@ -52,7 +52,9 @@ DB_ERROR populate_plaintext_field(struct Credential *cr, struct CredentialHeader
     if (*field_buffer == NULL)
         return ERR_DB_MEM_ALLOC;
 
-    memcpy(*field_buffer, data, data_len + 1);
+    memcpy(*field_buffer, data, data_len);
+    (*field_buffer)[data_len] = 0;
+
     *field_len = data_len;
 
     err = recalculate_header_len(crh);
@@ -309,6 +311,7 @@ DB_ERROR append_to_credential_array(struct Credential **cr, int32_t *cr_len, str
         if (_tmp_cr == NULL)
             return ERR_DB_MEM_ALLOC;
 
+        // TODO: memcopy buffers
         *cr = _tmp_cr;
     }
 

@@ -123,38 +123,41 @@ STORAGE_ERR get_credentials_by_name(struct Database *db, uint8_t *user_hash, uin
         if (err != CRYPTO_OK)
             goto error;
 
+        (*ptcr)[i].username[crh[i].username_len] = 0;
+        (*ptcr)[i].passw[crh[i].passw_len] = 0;
+
         if (crh[i].name_len > 0 && cr[i].name != NULL) {
-            (*ptcr)[i].name = malloc(crh[i].name_len);
+            (*ptcr)[i].name = malloc(crh[i].name_len + 1);
             if ((*ptcr)->name == NULL) {
                 err = ERR_GET_CRED_MEM_ALLOC;
                 goto error;
             }
 
-            memcpy((*ptcr)[i].name, cr[i].name, crh[i].name_len);
+            memcpy((*ptcr)[i].name, cr[i].name, crh[i].name_len + 1);
             (*ptcrh)[i].name_len = crh[i].name_len;
             (*ptcrh)[i].cred_len += crh[i].name_len;
         }
 
         if (crh[i].url_len > 0 && cr[i].url != NULL) {
-            (*ptcr)[i].url = malloc(crh[i].url_len);
+            (*ptcr)[i].url = malloc(crh[i].url_len + 1);
             if ((*ptcr)[i].url == NULL) {
                 err = ERR_GET_CRED_MEM_ALLOC;
                 goto error;
             }
 
-            memcpy((*ptcr)[i].url, cr[i].url, crh[i].url_len);
+            memcpy((*ptcr)[i].url, cr[i].url, crh[i].url_len + 1);
             (*ptcrh)[i].url_len = crh[i].url_len;
             (*ptcrh)[i].cred_len += crh[i].url_len;
         }
 
         if (crh[i].additional_len > 0 && cr[i].additional != NULL) {
-            (*ptcr)[i].additional = malloc(crh[i].additional_len);
+            (*ptcr)[i].additional = malloc(crh[i].additional_len + 1);
             if ((*ptcr)[i].additional == NULL) {
                 err = ERR_GET_CRED_MEM_ALLOC;
                 goto error;
             }
 
-            memcpy((*ptcr)[i].additional, cr[i].additional, crh[i].additional_len);
+            memcpy((*ptcr)[i].additional, cr[i].additional, crh[i].additional_len + 1);
             (*ptcrh)[i].additional_len = crh[i].additional_len;
             (*ptcrh)[i].cred_len += crh[i].additional_len;
         }

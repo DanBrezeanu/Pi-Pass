@@ -1,4 +1,4 @@
-CC=gcc
+CC=$(CROSS_COMPILE)gcc
 OBJ_DIR=obj
 CUR_DIR=$(notdir $(shell pwd))
 SRCS=$(wildcard *.c)
