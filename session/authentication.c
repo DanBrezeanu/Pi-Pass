@@ -4,8 +4,8 @@
 #include <sha256.h>
 #include <crypto.h>
 
-STORAGE_ERR verify_master_password(uint8_t *user, uint8_t *key) {
-    STORAGE_ERR err;
+PIPASS_ERR verify_master_password(uint8_t *user, uint8_t *key) {
+    PIPASS_ERR err;
 
     struct Database *db = NULL;
 
@@ -31,9 +31,9 @@ error:
     return err;
 }
 
-STORAGE_ERR verify_user_exists(uint8_t *user, int user_len) {
+PIPASS_ERR verify_user_exists(uint8_t *user, int user_len) {
     uint8_t *user_hash = NULL;
-    STORAGE_ERR err = STORAGE_OK;
+    PIPASS_ERR err = STORAGE_OK;
     
     err = sanity_check_buffer(user, user_len);
     if (err != CRYPTO_OK)

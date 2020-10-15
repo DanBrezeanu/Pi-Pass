@@ -1,6 +1,6 @@
 #include <aes256.h>
 
-CRYPTO_ERR generate_aes256_key(uint8_t *key) {
+PIPASS_ERR generate_aes256_key(uint8_t *key) {
     int32_t err = RAND_bytes(key, AES256_KEY_SIZE);
     if (err == -1) {
         return ERR_RAND_NOT_SUPPORTED;
@@ -14,7 +14,7 @@ CRYPTO_ERR generate_aes256_key(uint8_t *key) {
     return CRYPTO_OK;
 }
 
-CRYPTO_ERR create_PBKDF2_key(uint8_t *input, int32_t input_len, uint8_t *salt, int32_t salt_len, uint8_t *pbkdf2_key) {
+PIPASS_ERR create_PBKDF2_key(uint8_t *input, int32_t input_len, uint8_t *salt, int32_t salt_len, uint8_t *pbkdf2_key) {
     if (input == NULL || salt == NULL || pbkdf2_key == NULL || !input_len || !salt_len)
         return ERR_AES_PBKDF_INV_PARAMS;
 
@@ -23,11 +23,11 @@ CRYPTO_ERR create_PBKDF2_key(uint8_t *input, int32_t input_len, uint8_t *salt, i
     return CRYPTO_OK;
 }
 
-CRYPTO_ERR encrypt_aes256(uint8_t *plaintext, int32_t plaintext_len, uint8_t *aad, int32_t aad_len, uint8_t *key,
+PIPASS_ERR encrypt_aes256(uint8_t *plaintext, int32_t plaintext_len, uint8_t *aad, int32_t aad_len, uint8_t *key,
     uint8_t *iv, uint8_t *mac, uint8_t *ciphertext, int32_t *ciphertext_len) {
 
     EVP_CIPHER_CTX *ctx = NULL;
-    CRYPTO_ERR err = CRYPTO_OK;
+    PIPASS_ERR err = CRYPTO_OK;
     int32_t res;
     int32_t length;
 
@@ -97,11 +97,11 @@ error:
     return err;
 }
 
-CRYPTO_ERR decrypt_aes256(uint8_t *ciphertext, int32_t ciphertext_len, uint8_t *aad, int32_t aad_len, uint8_t *mac,
+PIPASS_ERR decrypt_aes256(uint8_t *ciphertext, int32_t ciphertext_len, uint8_t *aad, int32_t aad_len, uint8_t *mac,
     uint8_t *key, uint8_t *iv, uint8_t *plaintext, int32_t *plaintext_len) {
     
     EVP_CIPHER_CTX *ctx = NULL;
-    CRYPTO_ERR err = CRYPTO_OK;
+    PIPASS_ERR err = CRYPTO_OK;
     int32_t res;
     int32_t length;
 

@@ -1,7 +1,7 @@
 #include <storage_utils.h>
 #include <crypto.h>
 
-STORAGE_ERR user_directory(uint8_t *user, uint8_t **user_dir, uint32_t *user_dir_len) {
+PIPASS_ERR user_directory(uint8_t *user, uint8_t **user_dir, uint32_t *user_dir_len) {
     if (user == NULL)
         return ERR_NO_USER_PROVIDED;
 
@@ -24,7 +24,7 @@ STORAGE_ERR user_directory(uint8_t *user, uint8_t **user_dir, uint32_t *user_dir
     return STORAGE_OK;
 }
 
-STORAGE_ERR user_file_path(uint8_t *user, uint8_t *file, uint8_t **user_file_path, uint32_t *user_file_path_len) {
+PIPASS_ERR user_file_path(uint8_t *user, uint8_t *file, uint8_t **user_file_path, uint32_t *user_file_path_len) {
     if (user == NULL)
         return ERR_NO_USER_PROVIDED;
 
@@ -34,7 +34,7 @@ STORAGE_ERR user_file_path(uint8_t *user, uint8_t *file, uint8_t **user_file_pat
     if (*user_file_path != NULL)
         return ERR_MEM_LEAK;
     
-    STORAGE_ERR err;
+    PIPASS_ERR err;
     err = user_directory(user, user_file_path, user_file_path_len);
     if (err != STORAGE_OK)
         return err;
@@ -74,14 +74,14 @@ void append_to_str(uint8_t *str, int32_t *cursor, uint8_t *substr, int32_t subst
     } 
 }
 
-STORAGE_ERR alloc_and_read_field(int32_t fd, uint8_t **field, int16_t field_len) {
+PIPASS_ERR alloc_and_read_field(int32_t fd, uint8_t **field, int16_t field_len) {
     if (fd == -1 || fcntl(fd, F_GETFL) == -1 || !field_len)
         return ERR_ALLOC_RD_CRED_INV_PARAMS;
 
     if (*field != NULL)
         return ERR_ALLOC_RD_CRED_MEM_LEAK;
 
-    STORAGE_ERR err = STORAGE_OK;
+    PIPASS_ERR err = STORAGE_OK;
 
     *field = malloc(field_len);
     if (*field == NULL) {

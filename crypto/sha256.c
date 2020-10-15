@@ -1,6 +1,6 @@
 #include <sha256.h>
 
-CRYPTO_ERR hash_sha256(uint8_t *input, size_t input_len, uint8_t *salt, uint32_t salt_len, uint8_t *digest) {
+PIPASS_ERR hash_sha256(uint8_t *input, size_t input_len, uint8_t *salt, uint32_t salt_len, uint8_t *digest) {
     int32_t res;
     SHA256_CTX ctx;
 
@@ -28,11 +28,11 @@ CRYPTO_ERR hash_sha256(uint8_t *input, size_t input_len, uint8_t *salt, uint32_t
     return CRYPTO_OK;
 }
 
-CRYPTO_ERR verify_sha256(uint8_t *input, size_t input_len, uint8_t *salt, uint32_t salt_len, uint8_t *digest) {
+PIPASS_ERR verify_sha256(uint8_t *input, size_t input_len, uint8_t *salt, uint32_t salt_len, uint8_t *digest) {
     uint8_t *dgst = malloc(SHA256_DGST_SIZE);
     uint8_t *stored_dgst = malloc(SHA256_DGST_SIZE);
     
-    CRYPTO_ERR err = hash_sha256(input, input_len, salt, salt_len, dgst);
+    PIPASS_ERR err = hash_sha256(input, input_len, salt, salt_len, dgst);
     if (err != CRYPTO_OK)
         goto error;
 
@@ -50,11 +50,11 @@ error:
     return err;
 }
 
-CRYPTO_ERR verify_sha256_fd(uint8_t *input, size_t input_len, uint8_t *salt, uint32_t salt_len, int32_t fd_dgst) {
+PIPASS_ERR verify_sha256_fd(uint8_t *input, size_t input_len, uint8_t *salt, uint32_t salt_len, int32_t fd_dgst) {
     uint8_t *dgst = malloc(SHA256_DGST_SIZE);
     uint8_t *stored_dgst = malloc(SHA256_DGST_SIZE);
     
-    CRYPTO_ERR err = hash_sha256(input, input_len, salt, salt_len, dgst);
+    PIPASS_ERR err = hash_sha256(input, input_len, salt, salt_len, dgst);
     if (err != CRYPTO_OK)
         goto error;
 

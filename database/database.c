@@ -5,7 +5,7 @@
 #include <sha256.h>
 
 
-DB_ERROR create_new_db(struct Database **db) {
+PIPASS_ERR create_new_db(struct Database **db) {
     if (*db != NULL)
         return ERR_DB_MEM_LEAK;
 
@@ -19,7 +19,7 @@ DB_ERROR create_new_db(struct Database **db) {
     return DB_OK;
 }
 
-DB_ERROR update_db_DEK(struct Database *db, uint8_t *dek_blob, uint8_t *iv_dek_blob, uint8_t *mac_dek_blob, uint8_t *master_pass) {
+PIPASS_ERR update_db_DEK(struct Database *db, uint8_t *dek_blob, uint8_t *iv_dek_blob, uint8_t *mac_dek_blob, uint8_t *master_pass) {
     if (db == NULL || dek_blob == NULL || iv_dek_blob == NULL || mac_dek_blob == NULL || master_pass == NULL)   
         return ERR_DB_UPDATE_DEK_INV_PARAMS;
 
@@ -35,7 +35,7 @@ DB_ERROR update_db_DEK(struct Database *db, uint8_t *dek_blob, uint8_t *iv_dek_b
     if (kek == NULL)
         return ERR_DB_MEM_ALLOC;
 
-    CRYPTO_ERR err = create_PBKDF2_key(master_pass, MASTER_PASS_SIZE, db->kek_salt, SALT_SIZE, kek);
+    PIPASS_ERR err = create_PBKDF2_key(master_pass, MASTER_PASS_SIZE, db->kek_salt, SALT_SIZE, kek);
     if (err != CRYPTO_OK)
         goto error;
 
@@ -76,14 +76,14 @@ error:
     return err;
 }
 
-DB_ERROR update_db_login(struct Database *db, uint8_t *login_hash, uint8_t *login_salt) {
+PIPASS_ERR update_db_login(struct Database *db, uint8_t *login_hash, uint8_t *login_salt) {
     if (db == NULL || login_hash == NULL || login_salt == NULL)
         return ERR_DB_UPDATE_LOGIN_INV_PARAMS;
     
     if (db->login_salt != NULL || db->login_hash != NULL)   
         return ERR_DB_MEM_LEAK;
 
-    DB_ERROR err = DB_OK;
+    PIPASS_ERR err = DB_OK;
 
     db->login_hash = malloc(SHA256_DGST_SIZE);
     if (db->login_hash == NULL)
@@ -109,14 +109,14 @@ error:
     return err;
 }
 
-DB_ERROR update_db_KEK(struct Database *db, uint8_t *kek_hash, uint8_t *kek_salt) {
+PIPASS_ERR update_db_KEK(struct Database *db, uint8_t *kek_hash, uint8_t *kek_salt) {
     if (db == NULL || kek_hash == NULL || kek_salt == NULL)
         return ERR_DB_UPDATE_KEK_INV_PARAMS;
     
     if (db->kek_salt != NULL || db->kek_hash != NULL)   
         return ERR_DB_MEM_LEAK;
 
-    DB_ERROR err = DB_OK;
+    PIPASS_ERR err = DB_OK;
 
     db->kek_hash = malloc(SHA256_DGST_SIZE);
     if (db->kek_hash == NULL)
@@ -142,7 +142,7 @@ error:
     return err;
 }
 
-DB_ERROR append_db_credential(struct Database *db, struct Credential *cr, struct CredentialHeader *crh) {
+PIPASS_ERR append_db_credential(struct Database *db, struct Credential *cr, struct CredentialHeader *crh) {
     if (db == NULL || cr == NULL || crh == NULL)
         return ERR_DB_APPEND_CRED_INV_PARAMS;
 
@@ -150,7 +150,7 @@ DB_ERROR append_db_credential(struct Database *db, struct Credential *cr, struct
       cr->username_iv == NULL || cr->username_mac == NULL || cr->passw_iv == NULL || cr->passw_mac == NULL)
         return ERR_DB_APPEND_CRED_INV_CRED;   
 
-    DB_ERROR err = DB_OK;
+    PIPASS_ERR err = DB_OK;
 
     struct Credential *_tmp_cr = NULL;
     _tmp_cr = realloc(db->cred, (db->cred_len + 1) * sizeof(struct Credential));
@@ -234,7 +234,7 @@ error:
     return err;
 }
 
-DB_ERROR raw_database(struct Database *db, uint8_t **raw_db, int32_t *raw_db_size) {
+PIPASS_ERR raw_database(struct Database *db, uint8_t **raw_db, int32_t *raw_db_size) {
     if (db == NULL) 
         return ERR_RAW_DB_INV_PARAMS;
 
@@ -338,11 +338,11 @@ void free_database(struct Database *db) {
     free(db);
 }
 
-DB_ERROR verify_existing_credential(struct Database *db, struct Credential *cr, struct CredentialHeader *crh) {
+PIPASS_ERR verify_existing_credential(struct Database *db, struct Credential *cr, struct CredentialHeader *crh) {
     if (db == NULL || cr == NULL || crh == NULL)
         return ERR_DB_EXIST_CRED_INV_PARAMS;
 
-    DB_ERROR err = DB_OK;
+    PIPASS_ERR err = DB_OK;
 
     for (int i = 0; i < db->cred_len; ++i) {
         err = credentials_equal(&(db->cred[i]), &(db->cred_headers[i]), cr, crh);

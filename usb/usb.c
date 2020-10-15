@@ -11,7 +11,7 @@
 #include <errors.h>
 #include <usb_utils.h>
 
-USB_ERR send_packet(int fd, usb_packet packet) {
+PIPASS_ERR send_packet(int fd, usb_packet packet) {
     if (fd == -1) {
         return ERR_SEND_DEVICE_NOT_OPEN;
     }
@@ -46,7 +46,7 @@ usb_packet create_usb_packet(KEY key) {
 }
 
 
-USB_ERR send_string(int fd, BYTE *str) {
+PIPASS_ERR send_string(int fd, BYTE *str) {
     for (int32_t i = 0; i < strlen(str); ++i) {
         KEY _key = key_from_byte(str[i]);
         if (_key == ERR_KEY_NOT_DEFINED)
@@ -56,7 +56,7 @@ USB_ERR send_string(int fd, BYTE *str) {
         if (packet == NULL)
             return ERR_ALLOC_MEM;
 
-        USB_ERR res = send_packet(fd, packet);
+        PIPASS_ERR res = send_packet(fd, packet);
         if (res != USB_OK)
             return res;
 
@@ -84,7 +84,7 @@ USB_ERR send_string(int fd, BYTE *str) {
 //         return 1;
 //     }
 
-//     USB_ERR res = send_string(fd, "Test string");
+//     PIPASS_ERR res = send_string(fd, "Test string");
 
 //     return res;
 // }

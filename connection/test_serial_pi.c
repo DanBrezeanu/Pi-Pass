@@ -1,206 +1,112 @@
-// Uses Windows API serial port functions to send and receive data from a
-// Jrk G2.
-// NOTE: The Jrk's input mode must be "Serial / I2C / USB".
-// NOTE: The Jrk's serial mode must be set to "USB dual port" if you are
-//   connecting to it directly via USB.
-// NODE: The Jrk's serial mode must be set to "UART" if you are connecting to
-//   it via is TX and RX lines.
-// NOTE: You need to change the 'const char * device' line below to
-//   specify the correct serial port.
- 
-#include <windows.h>
+#define S_TTY    "/dev/ttyGS0"
+
+#include <errno.h>
+#include <fcntl.h>
 #include <stdio.h>
-#include <stdint.h>
- 
-void print_error(const char * context)
+#include <stdlib.h>
+#include <string.h>
+#include <termios.h>
+#include <unistd.h>
+
+int set_interface_attribs(int fd, int speed)
 {
-  DWORD error_code = GetLastError();
-  char buffer[256];
-  DWORD size = FormatMessageA(
-    FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_MAX_WIDTH_MASK,
-    NULL, error_code, MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US),
-    buffer, sizeof(buffer), NULL);
-  if (size == 0) { buffer[0] = 0; }
-  fprintf(stderr, "%s: %s\n", context, buffer);
+    struct termios tty;
+
+    if (tcgetattr(fd, &tty) < 0) {
+        printf("Error from tcgetattr: %s\n", strerror(errno));
+        return -1;
+    }
+
+    cfsetospeed(&tty, (speed_t)speed);
+    cfsetispeed(&tty, (speed_t)speed);
+
+    tty.c_cflag |= (CLOCAL | CREAD);    /* ignore modem controls */
+    tty.c_cflag &= ~CSIZE;
+    tty.c_cflag |= CS8;         /* 8-bit characters */
+    tty.c_cflag &= ~PARENB;     /* no parity bit */
+    tty.c_cflag &= ~CSTOPB;     /* only need 1 stop bit */
+    tty.c_cflag &= ~CRTSCTS;    /* no hardware flowcontrol */
+
+    /* setup for non-canonical mode */
+    tty.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
+    tty.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
+    tty.c_oflag &= ~OPOST;
+
+    /* fetch bytes as they become available */
+    tty.c_cc[VMIN] = 1;
+    tty.c_cc[VTIME] = 1;
+
+    if (tcsetattr(fd, TCSANOW, &tty) != 0) {
+        printf("Error from tcsetattr: %s\n", strerror(errno));
+        return -1;
+    }
+    return 0;
 }
- 
-// Opens the specified serial port, configures its timeouts, and sets its
-// baud rate.  Returns a handle on success, or INVALID_HANDLE_VALUE on failure.
-HANDLE open_serial_port(const char * device, uint32_t baud_rate)
+
+void set_mincount(int fd, int mcount)
 {
-  HANDLE port = CreateFileA(device, GENERIC_READ | GENERIC_WRITE, 0, NULL,
-    OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-  if (port == INVALID_HANDLE_VALUE)
-  {
-    print_error(device);
-    return INVALID_HANDLE_VALUE;
-  }
- 
-  // Flush away any bytes previously read or written.
-  BOOL success = FlushFileBuffers(port);
-  if (!success)
-  {
-    print_error("Failed to flush serial port");
-    CloseHandle(port);
-    return INVALID_HANDLE_VALUE;
-  }
- 
-  // Configure read and write operations to time out after 100 ms.
-  COMMTIMEOUTS timeouts = { 0 };
-  timeouts.ReadIntervalTimeout = 0;
-  timeouts.ReadTotalTimeoutConstant = 100;
-  timeouts.ReadTotalTimeoutMultiplier = 0;
-  timeouts.WriteTotalTimeoutConstant = 100;
-  timeouts.WriteTotalTimeoutMultiplier = 0;
- 
-  success = SetCommTimeouts(port, &timeouts);
-  if (!success)
-  {
-    print_error("Failed to set serial timeouts");
-    CloseHandle(port);
-    return INVALID_HANDLE_VALUE;
-  }
- 
-  DCB state;
-  state.DCBlength = sizeof(DCB);
-  success = GetCommState(port, &state);
-  if (!success)
-  {
-    print_error("Failed to get serial settings");
-    CloseHandle(port);
-    return INVALID_HANDLE_VALUE;
-  }
- 
-  state.BaudRate = baud_rate;
- 
-  success = SetCommState(port, &state);
-  if (!success)
-  {
-    print_error("Failed to set serial settings");
-    CloseHandle(port);
-    return INVALID_HANDLE_VALUE;
-  }
- 
-  return port;
+    struct termios tty;
+
+    if (tcgetattr(fd, &tty) < 0) {
+        printf("Error tcgetattr: %s\n", strerror(errno));
+        return;
+    }
+
+    tty.c_cc[VMIN] = mcount ? 1 : 0;
+    tty.c_cc[VTIME] = 5;        /* half second timer */
+
+    if (tcsetattr(fd, TCSANOW, &tty) < 0)
+        printf("Error tcsetattr: %s\n", strerror(errno));
 }
- 
-// Writes bytes to the serial port, returning 0 on success and -1 on failure.
-int write_port(HANDLE port, uint8_t * buffer, size_t size)
-{
-  DWORD written;
-  BOOL success = WriteFile(port, buffer, size, &written, NULL);
-  if (!success)
-  {
-    print_error("Failed to write to port");
-    return -1;
-  }
-  if (written != size)
-  {
-    print_error("Failed to write all bytes to port");
-    return -1;
-  }
-  return 0;
-}
- 
-// Reads bytes from the serial port.
-// Returns after all the desired bytes have been read, or if there is a
-// timeout or other error.
-// Returns the number of bytes successfully read into the buffer, or -1 if
-// there was an error reading.
-SSIZE_T read_port(HANDLE port, uint8_t * buffer, size_t size)
-{
-  DWORD received;
-  BOOL success = ReadFile(port, buffer, size, &received, NULL);
-  if (!success)
-  {
-    print_error("Failed to read from port");
-    return -1;
-  }
-  return received;
-}
- 
-// Sets the target, returning 0 on success and -1 on failure.
-//
-// For more information about what this command does, see the "Set Target"
-// command in the "Command reference" section of the Jrk G2 user's guide.
-int jrk_set_target(HANDLE port, uint16_t target)
-{
-  if (target > 4095) { target = 4095; }
-  uint8_t command[2];
-  command[0] = 0xC0 + (target & 0x1F);
-  command[1] = (target >> 5) & 0x7F;
-  return write_port(port, command, sizeof(command));
-}
- 
-// Gets one or more variables from the Jrk (without clearing them).
-// Returns 0 for success, -1 for failure.
-int jrk_get_variable(HANDLE port, uint8_t offset, uint8_t * buffer,
-  uint8_t length)
-{
-  uint8_t command[] = { 0xE5, offset, length };
-  int result = write_port(port, command, sizeof(command));
-  if (result) { return -1; }
-  SSIZE_T received = read_port(port, buffer, length);
-  if (received < 0) { return -1; }
-  if (received != length)
-  {
-    fprintf(stderr, "read timeout: expected %u bytes, got %ld\n",
-      length, received);
-    return -1;
-  }
-  return 0;
-}
- 
-// Gets the Target variable from the jrk or returns -1 on failure.
-int jrk_get_target(HANDLE port)
-{
-  uint8_t buffer[2];
-  int result = jrk_get_variable(port, 0x02, buffer, sizeof(buffer));
-  if (result) { return -1; }
-  return buffer[0] + 256 * buffer[1];
-}
- 
-// Gets the Feedback variable from the jrk or returns -1 on failure.
-int jrk_get_feedback(HANDLE port)
-{
-  // 0x04 is the offset of the feedback variable in the "Variable reference"
-  // section of the Jrk user's guide.  The variable is two bytes long.
-  uint8_t buffer[2];
-  int result = jrk_get_variable(port, 0x04, buffer, sizeof(buffer));
-  if (result) { return -1; }
-  return buffer[0] + 256 * buffer[1];
-}
- 
+
+
 int main()
 {
-  // Choose the serial port name.  If the Jrk is connected directly via USB,
-  // you can run "jrk2cmd --cmd-port" to get the right name to use here.
-  // COM ports higher than COM9 need the \\.\ prefix, which is written as
-  // "\\\\.\\" in C because we need to escape the backslashes.
-  const char * device = "\\\\.\\COM6";
- 
-  // Choose the baud rate (bits per second).  This does not matter if you are
-  // connecting to the Jrk over USB.  If you are connecting via the TX and RX
-  // lines, this should match the baud rate in the Jrk's serial settings.
-  uint32_t baud_rate = 9600;
- 
-  HANDLE port = open_serial_port(device, baud_rate);
-  if (port == INVALID_HANDLE_VALUE) { return 1; }
- 
-  int feedback = jrk_get_feedback(port);
-  if (feedback < 0) { return 1; }
- 
-  printf("Feedback is %d.\n", feedback);
- 
-  int target = jrk_get_target(port);
-  if (target < 0) { return 1; }
-  printf("Target is %d.\n", target);
- 
-  int new_target = (target < 2048) ? 2248 : 1848;
-  printf("Setting target to %d.\n", new_target);
-  int result = jrk_set_target(port, new_target);
-  if (result) { return 1; }
- 
-  CloseHandle(port);
-  return 0;
-}
+    char *portname = TERMINAL;
+    int fd;
+    int wlen;
+    char *xstr = "Hello!\n";
+    int xlen = strlen(xstr);
+
+    fd = open(portname, O_RDWR | O_NOCTTY | O_SYNC);
+    if (fd < 0) {
+        printf("Error opening %s: %s\n", portname, strerror(errno));
+        return -1;
+    }
+    /*baudrate 115200, 8 bits, no parity, 1 stop bit */
+    set_interface_attribs(fd, B9600);
+    //set_mincount(fd, 0);                /* set to pure timed read */
+
+    /* simple output */
+    // wlen = write(fd, xstr, xlen);
+    // if (wlen != xlen) {
+    //     printf("Error from write: %d, %d\n", wlen, errno);
+    // }
+    // tcdrain(fd);    /* delay for output */
+
+
+    /* simple noncanonical input */
+    do {
+        unsigned char buf[80];
+        int rdlen;
+
+        rdlen = read(fd, buf, sizeof(buf) - 1);
+        if (rdlen > 0) {
+#ifdef DISPLAY_STRING
+            buf[rdlen] = 0;
+            printf("Read %d: \"%s\"\n", rdlen, buf);
+#else /* display hex */
+            unsigned char   *p;
+            printf("Read %d:", rdlen);
+            for (p = buf; rdlen-- > 0; p++)
+                printf(" 0x%x", *p);
+            printf("\n");
+#endif
+        } else if (rdlen < 0) {
+            printf("Error from read: %d: %s\n", rdlen, strerror(errno));
+        } else {  /* rdlen == 0 */
+            printf("Timeout from read\n");
+        }
+        /* repeat read to get full message */
+    } while (1);
+}%

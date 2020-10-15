@@ -47,29 +47,29 @@ struct PlainTextCredential {
     uint8_t *additional;
 } __attribute__((packed, aligned(1)));
 
-DB_ERROR new_credential(struct Credential **cr, struct CredentialHeader **crh);
+PIPASS_ERR new_credential(struct Credential **cr, struct CredentialHeader **crh);
 
-DB_ERROR populate_plaintext_field(struct Credential *cr, struct CredentialHeader *crh, uint8_t *data,
+PIPASS_ERR populate_plaintext_field(struct Credential *cr, struct CredentialHeader *crh, uint8_t *data,
   int32_t data_len, enum CredentialField field);
 
-DB_ERROR populate_encrypted_field(struct Database *db, struct Credential *cr, struct CredentialHeader *crh, uint8_t *data,
+PIPASS_ERR populate_encrypted_field(struct Database *db, struct Credential *cr, struct CredentialHeader *crh, uint8_t *data,
   int32_t data_len, enum CredentialEncryptedField field, uint8_t *master_pass);
 
-DB_ERROR populate_credential(struct Database *db, struct Credential **cr, struct CredentialHeader **crh, uint8_t *user_hash,
+PIPASS_ERR populate_credential(struct Database *db, struct Credential **cr, struct CredentialHeader **crh, uint8_t *user_hash,
  uint8_t *master_pass, uint8_t *name, int32_t name_len, uint8_t *username, int32_t username_len, uint8_t *passw,
  int32_t passw_len, uint8_t *url, int32_t url_len, uint8_t *additional, int32_t additional_len);
 
-DB_ERROR recalculate_header_len(struct CredentialHeader *crh);
+PIPASS_ERR recalculate_header_len(struct CredentialHeader *crh);
 
-DB_ERROR credentials_equal(struct Credential *cr1, struct CredentialHeader *crh1,
+PIPASS_ERR credentials_equal(struct Credential *cr1, struct CredentialHeader *crh1,
   struct Credential *cr2, struct CredentialHeader *crh2);
-DB_ERROR fields_equal(uint8_t *field1, uint8_t *field2, int32_t field_len);
+PIPASS_ERR fields_equal(uint8_t *field1, uint8_t *field2, int32_t field_len);
 
-DB_ERROR zero_credential(struct Credential *cr);
-DB_ERROR zero_credential_header(struct CredentialHeader *crh);
+PIPASS_ERR zero_credential(struct Credential *cr);
+PIPASS_ERR zero_credential_header(struct CredentialHeader *crh);
 void free_credential(struct Credential *cr, struct CredentialHeader *crh);
 void free_plaintext_credential(struct PlainTextCredential *cr, struct CredentialHeader *crh);
-DB_ERROR append_to_credential_array(struct Credential **cr, int32_t *cr_len, struct Credential *to_add);
-DB_ERROR append_to_credential_header_array(struct CredentialHeader **crh, int32_t *crh_len, struct CredentialHeader *to_add);
+PIPASS_ERR append_to_credential_array(struct Credential **cr, int32_t *cr_len, struct Credential *to_add);
+PIPASS_ERR append_to_credential_header_array(struct CredentialHeader **crh, int32_t *crh_len, struct CredentialHeader *to_add);
 
 #endif

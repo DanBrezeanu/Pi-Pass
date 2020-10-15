@@ -7,7 +7,7 @@
 #include <credentials.h>
 #include <authentication.h>
 
-STORAGE_ERR register_new_user(uint8_t *user_data, int32_t user_data_len, uint8_t *master_pass) {
+PIPASS_ERR register_new_user(uint8_t *user_data, int32_t user_data_len, uint8_t *master_pass) {
     if (user_data == NULL || master_pass == NULL || user_data_len == 0) 
         return ERR_REGISTER_USER_INV_PARAMS;
 
@@ -23,7 +23,7 @@ STORAGE_ERR register_new_user(uint8_t *user_data, int32_t user_data_len, uint8_t
     uint8_t *login_salt    = NULL;
     struct Database *db    = NULL;
 
-    STORAGE_ERR err = generate_user_hash(user_data, user_data_len, &user_hash);
+    PIPASS_ERR err = generate_user_hash(user_data, user_data_len, &user_hash);
     if (err != STORAGE_OK)
         goto error;
     
@@ -122,7 +122,7 @@ error:
 #include <actions.h>
 
 int main(int argc, char **argv) {
-    STORAGE_ERR err = -1;
+    PIPASS_ERR err = -1;
 
     if (argc == 1) {
         char pass[] = "1234";

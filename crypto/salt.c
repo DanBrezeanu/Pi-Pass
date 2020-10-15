@@ -1,7 +1,7 @@
 #include <salt.h>
 #include <crypto_utils.h>
 
-CRYPTO_ERR create_salt(int32_t size, uint8_t *salt) {
+PIPASS_ERR create_salt(int32_t size, uint8_t *salt) {
     int32_t err = RAND_bytes(salt, size);
     if (err == -1) {
         return ERR_RAND_NOT_SUPPORTED;

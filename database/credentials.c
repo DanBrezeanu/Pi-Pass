@@ -3,7 +3,7 @@
 #include <storage.h>
 #include <authentication.h>
 
-DB_ERROR new_credential(struct Credential **cr, struct CredentialHeader **crh) {
+PIPASS_ERR new_credential(struct Credential **cr, struct CredentialHeader **crh) {
     if (*cr != NULL || *crh != NULL)
         return ERR_MEM_LEAK;
 
@@ -13,7 +13,7 @@ DB_ERROR new_credential(struct Credential **cr, struct CredentialHeader **crh) {
     return DB_OK;
 }
 
-DB_ERROR populate_plaintext_field(struct Credential *cr, struct CredentialHeader *crh, uint8_t *data,
+PIPASS_ERR populate_plaintext_field(struct Credential *cr, struct CredentialHeader *crh, uint8_t *data,
   int32_t data_len, enum CredentialField field) {
     if (cr == NULL || crh == NULL || data == NULL || !data_len) 
         return ERR_POPULATE_FIELD_INV_PARAMS;
@@ -21,7 +21,7 @@ DB_ERROR populate_plaintext_field(struct Credential *cr, struct CredentialHeader
     if (data_len > CREDENTIALS_FIELD_LIMIT)
         return ERR_FIELD_LIMIT_EXCEEDED;
 
-    DB_ERROR err = sanity_check_buffer(data, data_len);
+    PIPASS_ERR err = sanity_check_buffer(data, data_len);
     if (err != CRYPTO_OK)
         return err;
 
@@ -66,7 +66,7 @@ DB_ERROR populate_plaintext_field(struct Credential *cr, struct CredentialHeader
     return DB_OK;
 }
 
-DB_ERROR populate_encrypted_field(struct Database *db, struct Credential *cr, struct CredentialHeader *crh, uint8_t *data,
+PIPASS_ERR populate_encrypted_field(struct Database *db, struct Credential *cr, struct CredentialHeader *crh, uint8_t *data,
   int32_t data_len, enum CredentialEncryptedField field, uint8_t *master_pass) {
 
     if (db == NULL || cr == NULL || crh == NULL || !data_len || master_pass == NULL)
@@ -75,7 +75,7 @@ DB_ERROR populate_encrypted_field(struct Database *db, struct Credential *cr, st
     if (data_len > CREDENTIALS_FIELD_LIMIT)
         return ERR_FIELD_LIMIT_EXCEEDED;
 
-    DB_ERROR err = sanity_check_buffer(data, data_len);
+    PIPASS_ERR err = sanity_check_buffer(data, data_len);
     if (err != CRYPTO_OK)
         return err;
 
@@ -121,7 +121,7 @@ error:
 
 }
 
-DB_ERROR populate_credential(struct Database *db, struct Credential **cr, struct CredentialHeader **crh, uint8_t *user_hash,
+PIPASS_ERR populate_credential(struct Database *db, struct Credential **cr, struct CredentialHeader **crh, uint8_t *user_hash,
  uint8_t *master_pass, uint8_t *name, int32_t name_len, uint8_t *username, int32_t username_len, uint8_t *passw,
  int32_t passw_len, uint8_t *url, int32_t url_len, uint8_t *additional, int32_t additional_len) {
 
@@ -132,7 +132,7 @@ DB_ERROR populate_credential(struct Database *db, struct Credential **cr, struct
     if (*cr != NULL || *crh != NULL)
         return ERR_POPULATE_CRED_MEM_LEAK;
 
-    STORAGE_ERR err = STORAGE_OK;
+    PIPASS_ERR err = STORAGE_OK;
 
     err = verify_user_directory(user_hash);
     if (err != STORAGE_OK)
@@ -192,7 +192,7 @@ error:
 
  }
 
-DB_ERROR recalculate_header_len(struct CredentialHeader *crh) {
+PIPASS_ERR recalculate_header_len(struct CredentialHeader *crh) {
     if (crh == NULL)
         return ERR_RECALC_HEADER_INV_PARAMS;
 
@@ -208,7 +208,7 @@ DB_ERROR recalculate_header_len(struct CredentialHeader *crh) {
     return DB_OK;
 }
 
-DB_ERROR zero_credential(struct Credential *cr) {
+PIPASS_ERR zero_credential(struct Credential *cr) {
     if (cr == NULL)
         return ERR_ZERO_CRED_INV_PARAMS;
 
@@ -218,7 +218,7 @@ DB_ERROR zero_credential(struct Credential *cr) {
     return DB_OK;
 }
 
-DB_ERROR zero_credential_header(struct CredentialHeader *crh) {
+PIPASS_ERR zero_credential_header(struct CredentialHeader *crh) {
     if (crh == NULL)
         return ERR_ZERO_CREDH_INV_PARAMS;
 
@@ -260,7 +260,7 @@ void free_plaintext_credential(struct PlainTextCredential *cr, struct Credential
     }
 }
 
-DB_ERROR credentials_equal(struct Credential *cr1, struct CredentialHeader *crh1,
+PIPASS_ERR credentials_equal(struct Credential *cr1, struct CredentialHeader *crh1,
   struct Credential *cr2, struct CredentialHeader *crh2) {
 
     if (cr1 == NULL || crh1 == NULL || cr2 == NULL || crh2 == NULL)
@@ -281,7 +281,7 @@ DB_ERROR credentials_equal(struct Credential *cr1, struct CredentialHeader *crh1
     return ERR_CREDENTIALS_DIFFER;
 }
 
-DB_ERROR fields_equal(uint8_t *field1, uint8_t *field2, int32_t field_len) {
+PIPASS_ERR fields_equal(uint8_t *field1, uint8_t *field2, int32_t field_len) {
     if (field1 == NULL && field2 == NULL && field_len == 0)
         return DB_OK;
     
@@ -293,7 +293,7 @@ DB_ERROR fields_equal(uint8_t *field1, uint8_t *field2, int32_t field_len) {
            : (ERR_FIELDS_DIFFER); 
 }
 
-DB_ERROR append_to_credential_array(struct Credential **cr, int32_t *cr_len, struct Credential *to_add) {
+PIPASS_ERR append_to_credential_array(struct Credential **cr, int32_t *cr_len, struct Credential *to_add) {
     if (to_add == NULL)
         return ERR_APPND_CRED_ARR_INV_PARAMS;
 
@@ -321,7 +321,7 @@ DB_ERROR append_to_credential_array(struct Credential **cr, int32_t *cr_len, str
     return DB_OK;
 }
 
-DB_ERROR append_to_credential_header_array(struct CredentialHeader **crh, int32_t *crh_len, struct CredentialHeader *to_add) {
+PIPASS_ERR append_to_credential_header_array(struct CredentialHeader **crh, int32_t *crh_len, struct CredentialHeader *to_add) {
     if (to_add == NULL)
         return ERR_APPND_CREDH_ARR_INV_PARAMS;
 

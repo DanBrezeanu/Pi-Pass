@@ -3,10 +3,10 @@
 
 #include <python_utils.h>
 
-DISPLAY_ERROR import_module(uint8_t *module_name, PyObject **module);
-DISPLAY_ERROR get_function(PyObject *base, uint8_t *func_name, PyObject **func);
-DISPLAY_ERROR get_attr(PyObject *base, uint8_t *attr_name, PyObject **attr);
-DISPLAY_ERROR call_function(PyObject *func, PyObject *args, PyObject **ret);
-DISPLAY_ERROR get_and_call_function(PyObject *base, uint8_t *func_name, PyObject **ret, int num, ...);
+PIPASS_ERR import_module(uint8_t *module_name, PyObject **module);
+PIPASS_ERR get_function(PyObject *base, uint8_t *func_name, PyObject **func);
+PIPASS_ERR get_attr(PyObject *base, uint8_t *attr_name, PyObject **attr);
+PIPASS_ERR call_function(PyObject *func, PyObject *args, PyObject **ret);
+PIPASS_ERR get_and_call_function(PyObject *base, uint8_t *func_name, PyObject **ret, int num, ...);
 
 #endif

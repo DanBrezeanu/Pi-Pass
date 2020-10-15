@@ -5,7 +5,7 @@
 #include <stdlib.h>
 
 #ifndef PIPASS_VERSION
-#define PIPASS_VERSION 0x0001
+    #define PIPASS_VERSION 0x0001
 #endif
 
 #define PACKET_SIZE 8
@@ -24,11 +24,7 @@
 
 typedef uint8_t * usb_packet;
 typedef uint8_t   BYTE;
-typedef uint32_t  USB_ERR;
-typedef uint32_t  CRYPTO_ERR;
-typedef uint32_t  STORAGE_ERR;
-typedef uint32_t  DB_ERROR;
-typedef uint32_t  DISPLAY_ERROR;
+typedef uint32_t  PIPASS_ERR;
 typedef uint16_t  KEY;
 
 

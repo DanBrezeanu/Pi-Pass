@@ -13,6 +13,6 @@
 #include <crypto_utils.h>
 #include <storage_utils.h>
 
-STORAGE_ERR verify_master_password(uint8_t *user, uint8_t *key);
+PIPASS_ERR verify_master_password(uint8_t *user, uint8_t *key);
 
 #endif

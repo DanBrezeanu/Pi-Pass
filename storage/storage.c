@@ -3,11 +3,11 @@
 #include <sha256.h>
 #include <credentials.h>
 
-STORAGE_ERR read_credentials(int32_t db_fd, struct Credential *cr, struct CredentialHeader *crh) {
+PIPASS_ERR read_credentials(int32_t db_fd, struct Credential *cr, struct CredentialHeader *crh) {
     if (cr == NULL || crh == NULL)
         return ERR_STORG_READ_CRED_INV_PARAMS;
 
-    STORAGE_ERR err = STORAGE_OK;
+    PIPASS_ERR err = STORAGE_OK;
 
     if (crh->name_len > 0) {
         err = alloc_and_read_field(db_fd, &(cr->name), crh->name_len);
@@ -82,8 +82,8 @@ error:
     return err;
 }
 
-STORAGE_ERR read_db_buffers(int32_t db_fd, struct Database *db) {
-    STORAGE_ERR err = STORAGE_OK;
+PIPASS_ERR read_db_buffers(int32_t db_fd, struct Database *db) {
+    PIPASS_ERR err = STORAGE_OK;
 
     err = alloc_and_read_field(db_fd, &(db->dek_blob), AES256_KEY_SIZE);
     if (err != STORAGE_OK)
@@ -157,7 +157,7 @@ error:
     return err;
 }
 
-STORAGE_ERR create_user_directory(uint8_t *user_hash) {
+PIPASS_ERR create_user_directory(uint8_t *user_hash) {
     if (user_hash == NULL)
         return ERR_CREATE_USER_DIR_INV_PARAMS;
     
@@ -165,7 +165,7 @@ STORAGE_ERR create_user_directory(uint8_t *user_hash) {
     int32_t user_dir_len = 0;
     struct stat st = {0};
 
-    STORAGE_ERR err = user_directory(user_hash, &user_dir, &user_dir_len);
+    PIPASS_ERR err = user_directory(user_hash, &user_dir, &user_dir_len);
     if (err != STORAGE_OK)
         goto error;
 
@@ -188,7 +188,7 @@ error:
     return err;
 }
 
-STORAGE_ERR verify_user_directory(uint8_t *user_hash) {
+PIPASS_ERR verify_user_directory(uint8_t *user_hash) {
     if (user_hash == NULL)
         return ERR_VERIFY_DIR_INV_PARAMS;
 
@@ -196,7 +196,7 @@ STORAGE_ERR verify_user_directory(uint8_t *user_hash) {
     int32_t user_dir_len = 0;
     uint8_t *user_dir = NULL;
 
-    STORAGE_ERR err = user_directory(user_hash, &user_dir, &user_dir_len);
+    PIPASS_ERR err = user_directory(user_hash, &user_dir, &user_dir_len);
     if (err != STORAGE_OK)
         goto error;
 
@@ -210,11 +210,11 @@ error:
     return err;
 }
 
-STORAGE_ERR dump_database(struct Database *db, uint8_t *user_hash) {
+PIPASS_ERR dump_database(struct Database *db, uint8_t *user_hash) {
     if (db == NULL || user_hash == NULL)
         return ERR_DUMP_DB_INV_PARAMS;
 
-    STORAGE_ERR err = verify_user_directory(user_hash);
+    PIPASS_ERR err = verify_user_directory(user_hash);
     if (err != STORAGE_OK)
         return err;
 
@@ -260,14 +260,14 @@ error:
     return err;
 }
 
-STORAGE_ERR load_database(struct Database **db, uint8_t *user_hash) {
+PIPASS_ERR load_database(struct Database **db, uint8_t *user_hash) {
     if (user_hash == NULL)
         return ERR_LOAD_DB_INV_PARAMS;
 
     if (*db != NULL)
         return ERR_LOAD_DB_MEM_LEAK;
 
-    STORAGE_ERR err = verify_user_directory(user_hash);
+    PIPASS_ERR err = verify_user_directory(user_hash);
     if (err != STORAGE_OK)
         return err;
 

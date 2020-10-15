@@ -1,10 +1,10 @@
 #include <display.h>
 
-DISPLAY_ERROR init_device(PyObject **device) {
+PIPASS_ERR init_device(PyObject **device) {
     PyObject *device_module = NULL, *serial_module = NULL;
     PyObject *serial = NULL;
 
-    DISPLAY_ERROR err = DISPLAY_OK;
+    PIPASS_ERR err = DISPLAY_OK;
 
     err = import_module("luma.oled.device", &device_module);
     if (err != DISPLAY_OK)
@@ -31,14 +31,14 @@ error:
     return err;
 }
 
-DISPLAY_ERROR display_text(PyObject *device, int32_t x, int32_t y, uint8_t *text) {
+PIPASS_ERR display_text(PyObject *device, int32_t x, int32_t y, uint8_t *text) {
     if (device == NULL || text == NULL)
         return ERR_DISPLAY_TEXT_INV_PARAMS;
 
     PyObject *render_module = NULL, *canv = NULL, *draw = NULL, *_ = NULL;
     PyObject *canv_device = NULL, *canv_image = NULL;
 
-    DISPLAY_ERROR err = DISPLAY_OK;
+    PIPASS_ERR err = DISPLAY_OK;
 
     err = import_module("luma.core.render", &render_module);
     if (err != DISPLAY_OK)

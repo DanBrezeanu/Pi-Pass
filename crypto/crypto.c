@@ -4,8 +4,8 @@
 #include <credentials.h>
 #include <sha256.h>
 
-CRYPTO_ERR generate_KEK(uint8_t *passw, int32_t passw_len, uint8_t **salt, uint8_t **KEK) {
-    CRYPTO_ERR err = CRYPTO_OK; 
+PIPASS_ERR generate_KEK(uint8_t *passw, int32_t passw_len, uint8_t **salt, uint8_t **KEK) {
+    PIPASS_ERR err = CRYPTO_OK; 
     
     if (passw == NULL || passw_len == 0)
         return ERR_CRYPTO_KEK_INV_PARAMS;
@@ -36,10 +36,10 @@ error:
     return err;
 }
 
-CRYPTO_ERR generate_DEK_blob(uint8_t *DEK, uint8_t *KEK, uint8_t* aad, int32_t aad_len,
+PIPASS_ERR generate_DEK_blob(uint8_t *DEK, uint8_t *KEK, uint8_t* aad, int32_t aad_len,
     uint8_t **iv, uint8_t **mac, uint8_t **DEK_blob) {
 
-    CRYPTO_ERR err = CRYPTO_OK;
+    PIPASS_ERR err = CRYPTO_OK;
 
     if (DEK == NULL || KEK == NULL)
         return ERR_CRYPTO_DEK_BLOB_INV_PARAMS;
@@ -84,7 +84,7 @@ error:
     return err;
 }
 
-CRYPTO_ERR generate_user_hash(uint8_t *user_data, int32_t user_data_len, uint8_t **user_hash) {
+PIPASS_ERR generate_user_hash(uint8_t *user_data, int32_t user_data_len, uint8_t **user_hash) {
     uint8_t *user_hash_raw = NULL;
     
     if (user_data == NULL || user_data_len == 0) 
@@ -97,7 +97,7 @@ CRYPTO_ERR generate_user_hash(uint8_t *user_data, int32_t user_data_len, uint8_t
     if (user_hash_raw == NULL)
         return ERR_STORAGE_MEM_ALLOC;
 
-    CRYPTO_ERR err = hash_sha256(user_data, user_data_len, NULL, 0, user_hash_raw);
+    PIPASS_ERR err = hash_sha256(user_data, user_data_len, NULL, 0, user_hash_raw);
     if (err != CRYPTO_OK) {
         goto error;
     }
@@ -120,7 +120,7 @@ error:
     return err;
 }
 
-CRYPTO_ERR generate_login_hash(uint8_t *passw, uint8_t **login_hash, uint8_t **login_salt) {
+PIPASS_ERR generate_login_hash(uint8_t *passw, uint8_t **login_hash, uint8_t **login_salt) {
     if (passw == NULL)
         return ERR_CRYPTO_GEN_HASH_INV_PARAMS;
     
@@ -131,7 +131,7 @@ CRYPTO_ERR generate_login_hash(uint8_t *passw, uint8_t **login_hash, uint8_t **l
     if (*login_salt == NULL)
         return ERR_CRYPTO_MEM_ALLOC;
 
-    CRYPTO_ERR err = create_salt(SALT_SIZE, *login_salt);
+    PIPASS_ERR err = create_salt(SALT_SIZE, *login_salt);
     if (err != CRYPTO_OK)
         goto error;
 
@@ -152,11 +152,11 @@ error:
     return err;
 }
 
-CRYPTO_ERR encrypt_db_field(struct Database *db, uint8_t *kek, uint8_t *data, enum DatabaseEncryptedField field) {
+PIPASS_ERR encrypt_db_field(struct Database *db, uint8_t *kek, uint8_t *data, enum DatabaseEncryptedField field) {
     if (db == NULL || kek == NULL || data == NULL)
         return ERR_ENC_DB_FIELD_INV_PARAMS;
 
-    CRYPTO_ERR err = CRYPTO_OK;
+    PIPASS_ERR err = CRYPTO_OK;
     uint8_t **cipher = NULL, **mac = NULL, **iv = NULL;
     uint32_t data_len = 0;
 
@@ -219,14 +219,14 @@ error:
     return err;
 }
 
-CRYPTO_ERR decrypt_db_field(struct Database *db, uint8_t *kek, uint8_t **data, enum DatabaseEncryptedField field) {
+PIPASS_ERR decrypt_db_field(struct Database *db, uint8_t *kek, uint8_t **data, enum DatabaseEncryptedField field) {
     if (db == NULL || kek == NULL)
         return ERR_DEC_DB_FIELD_INV_PARAMS;
 
     if (*data != NULL)
         return ERR_DEC_DB_FIELD_MEM_LEAK;
 
-    CRYPTO_ERR err = CRYPTO_OK;
+    PIPASS_ERR err = CRYPTO_OK;
     uint8_t *cipher = NULL, *mac = NULL, *iv = NULL;
     uint32_t cipher_len = 0;
 
@@ -275,7 +275,7 @@ error:
     return err;
 }
 
-CRYPTO_ERR encrypt_credential_field(struct Database *db, uint8_t *data, int32_t data_len, uint8_t *master_pass,
+PIPASS_ERR encrypt_credential_field(struct Database *db, uint8_t *data, int32_t data_len, uint8_t *master_pass,
   uint8_t **cipher, uint8_t **iv, uint8_t **mac, int16_t *cipher_len) {
     
     if (db == NULL || data == NULL || !data_len || master_pass == NULL || cipher_len == NULL)
@@ -292,7 +292,7 @@ CRYPTO_ERR encrypt_credential_field(struct Database *db, uint8_t *data, int32_t 
     if (db->kek_hash == NULL || db->kek_salt == NULL)
         return ERR_ENC_CRED_MISSING_KEK;
 
-    CRYPTO_ERR err = CRYPTO_OK;
+    PIPASS_ERR err = CRYPTO_OK;
     uint8_t *dek_blob = NULL, *iv_dek_blob = NULL, *mac_dek_blob = NULL;
     uint8_t *dek = NULL;
     
@@ -382,7 +382,7 @@ error:
     return err;
 }
 
-CRYPTO_ERR decrypt_credential_field(struct Database *db, uint8_t **data, int32_t *data_len, uint8_t *master_pass,
+PIPASS_ERR decrypt_credential_field(struct Database *db, uint8_t **data, int32_t *data_len, uint8_t *master_pass,
   uint8_t *cipher, uint8_t *iv, uint8_t *mac, int16_t cipher_len) {
     
     if (db == NULL || cipher == NULL || iv == NULL || mac == NULL || !cipher_len || master_pass == NULL)
@@ -399,7 +399,7 @@ CRYPTO_ERR decrypt_credential_field(struct Database *db, uint8_t **data, int32_t
     if (db->kek_hash == NULL || db->kek_salt == NULL)
         return ERR_DEC_CRED_MISSING_KEK;
 
-    CRYPTO_ERR err = CRYPTO_OK;
+    PIPASS_ERR err = CRYPTO_OK;
     uint8_t *dek_blob = NULL, *iv_dek_blob = NULL, *mac_dek_blob = NULL;
     uint8_t *dek = NULL;
     

@@ -11,6 +11,6 @@
 #include <defines.h>
 #include <openssl/rand.h>
 
-CRYPTO_ERR create_salt(int32_t size, uint8_t *salt);
+PIPASS_ERR create_salt(int32_t size, uint8_t *salt);
 
 #endif

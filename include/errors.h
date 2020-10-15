@@ -151,4 +151,7 @@
 #define ERR_DISPLAY_CALL_FUNCTION      0x500A
 #define ERR_DISPLAY_TEXT_INV_PARAMS    0x500B
 
+/* Connection Error Codes */
+#define CONN_OK                        0x0000
+
 #endif

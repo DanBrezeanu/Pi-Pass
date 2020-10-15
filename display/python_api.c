@@ -1,14 +1,14 @@
 #include <python_utils.h>
 #include <python_api.h>
 
-DISPLAY_ERROR import_module(uint8_t *module_name, PyObject **module) {
+PIPASS_ERR import_module(uint8_t *module_name, PyObject **module) {
     if (module_name == NULL)
         return ERR_DISPLAY_IMPORT_INV_PARAMS;
 
     if (*module != NULL)
         return ERR_DISPLAY_MEM_LEAK;
     
-    DISPLAY_ERROR err = DISPLAY_OK;
+    PIPASS_ERR err = DISPLAY_OK;
 
     PyObject *py_module_name = PyUnicode_DecodeFSDefault(module_name);
     if (py_module_name == NULL) {
@@ -31,7 +31,7 @@ error:
 }
 
 
-DISPLAY_ERROR get_function(PyObject *base, uint8_t *func_name, PyObject **func) {
+PIPASS_ERR get_function(PyObject *base, uint8_t *func_name, PyObject **func) {
     if (base == NULL || func_name == NULL)
         return ERR_DISPLAY_GETF_INV_PARAMS;
 
@@ -42,7 +42,7 @@ DISPLAY_ERROR get_function(PyObject *base, uint8_t *func_name, PyObject **func) 
     if (*func == NULL)
         return ERR_DISPLAY_GET_FUNC;
 
-    DISPLAY_ERROR err = DISPLAY_OK;
+    PIPASS_ERR err = DISPLAY_OK;
 
     if (!PyCallable_Check(*func)) {
         err = ERR_DISPLAY_NOT_A_FUNC;
@@ -57,10 +57,10 @@ error:
     return err;
 }
 
-DISPLAY_ERROR get_and_call_function(PyObject *base, uint8_t *func_name, PyObject **ret, int num, ...) {
+PIPASS_ERR get_and_call_function(PyObject *base, uint8_t *func_name, PyObject **ret, int num, ...) {
     PyObject *func = NULL;
     PyObject *py_args = NULL;
-    DISPLAY_ERROR err = DISPLAY_OK;
+    PIPASS_ERR err = DISPLAY_OK;
 
     err = get_function(base, func_name, &func);
     if (err != DISPLAY_OK)
@@ -84,7 +84,7 @@ error:
     return err;
 }
 
-DISPLAY_ERROR get_attr(PyObject *base, uint8_t *attr_name, PyObject **attr) {
+PIPASS_ERR get_attr(PyObject *base, uint8_t *attr_name, PyObject **attr) {
     if (base == NULL || attr_name == NULL)
         return ERR_DISPLAY_GETATTR_INV_PARAMS;
 
@@ -98,7 +98,7 @@ DISPLAY_ERROR get_attr(PyObject *base, uint8_t *attr_name, PyObject **attr) {
     return DISPLAY_OK;
 }
 
-DISPLAY_ERROR call_function(PyObject *func, PyObject *args, PyObject **ret) {
+PIPASS_ERR call_function(PyObject *func, PyObject *args, PyObject **ret) {
     if (func == NULL)
         return ERR_DISPLAY_CALLF_INV_PARAMS;
 
