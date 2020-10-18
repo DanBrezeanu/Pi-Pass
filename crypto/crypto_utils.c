@@ -41,3 +41,108 @@ PIPASS_ERR sanity_check_buffer(uint8_t *buf, uint8_t buf_len) {
             ? (ERR_BUF_SANITY_CHECK_FAIL)
             : (CRYPTO_OK));
 }
+
+PIPASS_ERR cpu_id(uint8_t **hw_id) {
+    const uint32_t MAX_SIZE = 32000;
+
+    if (*hw_id != NULL)
+        return ERR_CRYPTO_MEM_LEAK;
+
+    PIPASS_ERR err = PIPASS_OK;
+    uint8_t *buf = NULL;
+
+    int32_t fd = open("/proc/cpuinfo", O_RDONLY);
+    if (fd == -1)
+        return ERR_RETRIEVE_CPU_ID;
+
+    buf = malloc(MAX_SIZE + 1);
+    int32_t size = read(fd, buf, MAX_SIZE);
+    if (size == -1) {
+        err = ERR_RETRIEVE_CPU_ID;
+        goto error;
+    }
+    buf[size] = 0;
+
+    uint8_t *serial_line = strstr(buf, "Serial");
+    if (serial_line == NULL) {
+        err = ERR_RETRIEVE_CPU_ID;
+        goto error;
+    }
+
+    serial_line += strlen("Serial");
+
+    while (strchr("0123456789abcdef", *serial_line) == NULL && serial_line < buf + size)
+        serial_line++;
+
+    if (serial_line == buf + size) {
+        err = ERR_RETRIEVE_CPU_ID;
+        goto error;
+    }
+       
+    *hw_id = malloc(CPU_ID_SIZE);
+    if (*hw_id == NULL) {
+        err = ERR_CRYPTO_MEM_ALLOC;
+        goto error;
+    }
+
+    memcpy(*hw_id, serial_line, CPU_ID_SIZE);
+
+    for (int32_t i = 0; i < CPU_ID_SIZE; ++i)
+        if (strchr("0123456789abcdef", (*hw_id)[i]) == NULL) {
+            err = ERR_RETRIEVE_CPU_ID;
+            goto error;
+        }
+
+    free(buf);
+    close(fd);
+
+    return PIPASS_OK;
+
+error:
+    if (buf != NULL)
+        free(buf);
+
+    if (*hw_id != NULL)
+        free(*hw_id);
+
+    if (fd != -1)
+        close(fd);
+
+    return err;
+}
+
+PIPASS_ERR concat_passw_pepper(uint8_t *passw, uint8_t **passw_pepper) {
+    if (passw == NULL)
+        return ERR_CONCAT_PEPPER_INV_PARAMS;
+
+    if (*passw_pepper != NULL)
+        return ERR_CRYPTO_MEM_LEAK;
+
+    PIPASS_ERR err;
+    uint8_t *pepper = NULL;
+
+    err = cpu_id(&pepper);
+    if (err != PIPASS_OK)
+        return err;
+
+    *passw_pepper = malloc(MASTER_PASS_SIZE_WITH_PEPPER);
+    if (*passw_pepper == NULL) {
+        err = ERR_CRYPTO_MEM_ALLOC;
+        goto error;
+    }
+
+    memcpy(*passw_pepper, passw, MASTER_PASS_SIZE);
+    memcpy(*passw_pepper + MASTER_PASS_SIZE, pepper, PEPPER_SIZE);
+
+    erase_buffer(&pepper, PEPPER_SIZE);
+
+    return PIPASS_OK;
+
+error:
+    erase_buffer(&pepper, PEPPER_SIZE);
+    erase_buffer(passw_pepper, PEPPER_SIZE);
+    
+    return err;
+}
+
+

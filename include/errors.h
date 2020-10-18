@@ -1,6 +1,8 @@
 #ifndef __ERRORS_H__
 #define __ERRORS_H__
 
+#define PIPASS_OK                      0x0000
+
 /* USB Error Codes */
 #define USB_OK                         0x0000
 #define ERR_SEND_DEVICE_NOT_OPEN       0x0002
@@ -65,7 +67,26 @@
 #define ERR_CRYPTO_MEM_LEAK            0x1033
 #define ERR_DEC_CRED_MEM_LEAK          0x1034
 #define ERR_DEC_CRED_MEM_ALLOC         0x1035
-
+#define ERR_ALLOC_DATAHASH_INV_PARAMS  0x1036
+#define ERR_ALLOC_DATAHASH_MEM_ALLOC   0x1037
+#define ERR_ALLOC_DATABLOB_INV_PARAMS  0x1038
+#define ERR_ALLOC_DATABLOB_MEM_ALLOC   0x1039
+#define ERR_MCPY_CRED_BLOB_INV_PARAMS  0x103A
+#define ERR_OTK_NOT_INITIALIZED        0x103B
+#define ERR_ENC_DEK_OTK_INV_PARAMS     0x103C
+#define ERR_DEK_BLOB_ALREADY_INIT      0x103D
+#define ERR_DEC_DEK_OTK_MEM_LEAK       0x103E
+#define ERR_DEK_BLOB_NOT_INIT          0x103F
+#define ERR_DEC_DEK_OTK_MEM_ALLOC      0x1040
+#define ERR_ENC_DB_DEK_MEM_ALLOC       0x1041
+#define ERR_RETRIEVE_CPU_ID            0x1042
+#define ERR_CONCAT_PEPPER_INV_PARAMS   0x1043
+#define ERR_VERIFY_PWD_INV_PARAMS      0x1044
+#define ERR_DB_HEADER_NOT_LOADED       0x1045
+#define ERR_DATABLOB_MEMCPY_INV_PARAMS 0x1046
+#define ERR_DATAHASH_MEMCPY_INV_PARAMS 0x1047
+#define ERR_CRYPTO_GEN_KEY_INV_PARAMS  0x1048
+#define ERR_OTK_ALREADY_INIT           0x1049
 
 /* Storage Error Codes */
 #define STORAGE_OK                     0x0000
@@ -99,6 +120,8 @@
 #define ERR_ALLOC_RD_CRED_MEM_LEAK     0x201C   
 #define ERR_STORG_READ_CRED_INV_PARAMS 0x201D
 #define ERR_GET_CRED_DIFF_INDICES      0x201E
+#define ERR_AUTH_INV_PARAMS            0x201F
+#define ERR_AUTH_MEM_ALLOC             0x2020
 
 
 /* Database Error Codes */
@@ -136,6 +159,13 @@
 #define ERR_POPULATE_CRED_MEM_LEAK     0x4025
 #define ERR_APPND_CRED_ARR_INV_PARAMS  0x4026
 #define ERR_APPND_CREDH_ARR_INV_PARAMS 0x4027
+#define ERR_DB_NOT_INITIALIZED         0x4028
+#define ERR_DB_ALREADY_INIT            0x4029
+#define ERR_NOT_LOGGED_IN              0x402A
+#define ERR_DB_MISSING_PASSW_HASH      0x402B
+#define ERR_GET_MASTER_PWD_INV_PARAMS  0x402C
+#define ERR_DB_MISSING_DEK             0x402D
+#define ERR_MCPY_CRED_INV_PARAMS       0x402E
 
 /* Display Error Codes */
 #define DISPLAY_OK                     0x0000
@@ -152,6 +182,19 @@
 #define ERR_DISPLAY_TEXT_INV_PARAMS    0x500B
 
 /* Connection Error Codes */
-#define CONN_OK                        0x0000
+#define CONN_OK                        0x6000
+#define ERR_SERIAL_MEM_LEAK            0x6001
+#define ERR_SERIAL_MEM_ALLOC           0x6002
+#define ERR_SERIAL_OPEN_CONN           0x6003
+#define ERR_SERIAL_WR_INV_PARAMS       0x6004
+#define ERR_SERIAL_RD_INV_PARAMS       0x6004
+#define ERR_SERIAL_WR_FAIL             0x6005
+#define ERR_SERIAL_RD_FAIL             0x6006
+#define ERR_SERIAL_RD_FAIL_BYTES       0x6007
+#define ERR_CONN_MEM_LEAK              0x6008
+#define ERR_CONN_MEM_ALLOC             0x6009
+#define ERR_EXEC_CMD_INV_PARAMS        0x600A
+#define ERR_RECV_CMD_INV_PARAMS        0x600B
+
 
 #endif

@@ -1,4 +1,4 @@
-#define S_TTY    "/dev/ttyGS0"
+#define TERMINAL    "/dev/ttyGS0"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -53,7 +53,7 @@ void set_mincount(int fd, int mcount)
     }
 
     tty.c_cc[VMIN] = mcount ? 1 : 0;
-    tty.c_cc[VTIME] = 5;        /* half second timer */
+    tty.c_cc[VTIME] = 2;        /* half second timer */
 
     if (tcsetattr(fd, TCSANOW, &tty) < 0)
         printf("Error tcsetattr: %s\n", strerror(errno));
@@ -75,7 +75,7 @@ int main()
     }
     /*baudrate 115200, 8 bits, no parity, 1 stop bit */
     set_interface_attribs(fd, B9600);
-    //set_mincount(fd, 0);                /* set to pure timed read */
+    set_mincount(fd, 0);                /* set to pure timed read */
 
     /* simple output */
     // wlen = write(fd, xstr, xlen);
@@ -91,6 +91,7 @@ int main()
         int rdlen;
 
         rdlen = read(fd, buf, sizeof(buf) - 1);
+        printf("out");
         if (rdlen > 0) {
 #ifdef DISPLAY_STRING
             buf[rdlen] = 0;
@@ -109,4 +110,4 @@ int main()
         }
         /* repeat read to get full message */
     } while (1);
-}%
+}

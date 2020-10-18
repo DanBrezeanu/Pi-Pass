@@ -23,7 +23,9 @@ PIPASS_ERR register_new_user(uint8_t *user_data, int32_t user_data_len, uint8_t 
     uint8_t *login_salt    = NULL;
     struct Database *db    = NULL;
 
-    PIPASS_ERR err = generate_user_hash(user_data, user_data_len, &user_hash);
+    PIPASS_ERR err = PIPASS_OK;
+   
+    err = generate_user_hash(user_data, user_data_len, &user_hash);
     if (err != STORAGE_OK)
         goto error;
     

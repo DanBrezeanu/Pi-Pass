@@ -20,17 +20,7 @@ PIPASS_ERR read_credentials(int32_t db_fd, struct Credential *cr, struct Credent
         goto error;
     }
 
-    err = alloc_and_read_field(db_fd, &(cr->username), crh->username_len);
-    if (err != STORAGE_OK)
-        goto error;
-
-
-    err = alloc_and_read_field(db_fd, &(cr->username_mac), MAC_SIZE);
-    if (err != STORAGE_OK)
-        goto error;
-
-
-    err = alloc_and_read_field(db_fd, &(cr->username_iv), IV_SIZE);
+    err = alloc_and_read_datablob(db_fd, &(cr->username), crh->username_len);
     if (err != STORAGE_OK)
         goto error;
 
@@ -39,20 +29,9 @@ PIPASS_ERR read_credentials(int32_t db_fd, struct Credential *cr, struct Credent
         err = ERR_LOAD_DB_READ_CRED;
         goto error;
     }
-
-    err = alloc_and_read_field(db_fd, &(cr->passw), crh->passw_len);
+    err = alloc_and_read_datablob(db_fd, &(cr->password), crh->passw_len);
     if (err != STORAGE_OK)
         goto error;
-
-    err = alloc_and_read_field(db_fd, &(cr->passw_mac), MAC_SIZE);
-    if (err != STORAGE_OK)
-        goto error;
-
-
-    err = alloc_and_read_field(db_fd, &(cr->passw_iv), IV_SIZE);
-    if (err != STORAGE_OK)
-        goto error;
-
     
     if (crh->url_len > 0) {
         err = alloc_and_read_field(db_fd, &(cr->url), crh->url_len);
@@ -70,12 +49,12 @@ PIPASS_ERR read_credentials(int32_t db_fd, struct Credential *cr, struct Credent
 
 error:
     erase_buffer(&(cr->name), crh->name_len);
-    erase_buffer(&(cr->username), crh->username_len);
-    erase_buffer(&(cr->username_mac), MAC_SIZE);
-    erase_buffer(&(cr->username_iv), IV_SIZE);
-    erase_buffer(&(cr->passw), crh->passw_len);
-    erase_buffer(&(cr->passw_mac), MAC_SIZE);
-    erase_buffer(&(cr->passw_iv), IV_SIZE);
+    erase_buffer(&(cr->username.ciphertext), crh->username_len);
+    erase_buffer(&(cr->username.mac), MAC_SIZE);
+    erase_buffer(&(cr->username.iv), IV_SIZE);
+    erase_buffer(&(cr->password.ciphertext), crh->passw_len);
+    erase_buffer(&(cr->password.mac), MAC_SIZE);
+    erase_buffer(&(cr->password.iv), IV_SIZE);
     erase_buffer(&(cr->url), crh->url_len);
     erase_buffer(&(cr->additional), crh->additional_len);
 
@@ -85,74 +64,28 @@ error:
 PIPASS_ERR read_db_buffers(int32_t db_fd, struct Database *db) {
     PIPASS_ERR err = STORAGE_OK;
 
-    err = alloc_and_read_field(db_fd, &(db->dek_blob), AES256_KEY_SIZE);
+    err = alloc_and_read_datablob(db_fd, &(db->dek), AES256_KEY_SIZE);
+    if (err != STORAGE_OK)
+        goto error;
+        
+    err = alloc_and_read_datahash(db_fd, &(db->kek));
     if (err != STORAGE_OK)
         goto error;
 
-    err = alloc_and_read_field(db_fd, &(db->dek_blob_enc_mac), MAC_SIZE);
-    if (err != STORAGE_OK)
-        goto error;
-
-    err = alloc_and_read_field(db_fd, &(db->dek_blob_enc_iv), IV_SIZE);
-    if (err != STORAGE_OK)
-        goto error;
-
-    err = alloc_and_read_field(db_fd, &(db->iv_dek_blob), IV_SIZE);
-    if (err != STORAGE_OK)
-        goto error;
-
-    err = alloc_and_read_field(db_fd, &(db->iv_dek_blob_enc_mac), MAC_SIZE);
-    if (err != STORAGE_OK)
-        goto error;
-        
-    err = alloc_and_read_field(db_fd, &(db->iv_dek_blob_enc_iv), IV_SIZE);
-    if (err != STORAGE_OK)
-        goto error;
-        
-    err = alloc_and_read_field(db_fd, &(db->mac_dek_blob), MAC_SIZE);
-    if (err != STORAGE_OK)
-        goto error;
-        
-    err = alloc_and_read_field(db_fd, &(db->mac_dek_blob_enc_mac), MAC_SIZE);
-    if (err != STORAGE_OK)
-        goto error;
-        
-    err = alloc_and_read_field(db_fd, &(db->mac_dek_blob_enc_iv), IV_SIZE);
-    if (err != STORAGE_OK)
-        goto error;
-        
-    err = alloc_and_read_field(db_fd, &(db->kek_hash), SHA256_DGST_SIZE);
-    if (err != STORAGE_OK)
-        goto error;
-        
-    err = alloc_and_read_field(db_fd, &(db->kek_salt), SALT_SIZE);
-    if (err != STORAGE_OK)
-        goto error;
-        
-    err = alloc_and_read_field(db_fd, &(db->login_hash), SHA256_DGST_SIZE);
-    if (err != STORAGE_OK)
-        goto error;
-        
-    err = alloc_and_read_field(db_fd, &(db->login_salt), SALT_SIZE);
+    err = alloc_and_read_datahash(db_fd, &(db->login));
     if (err != STORAGE_OK)
         goto error;
 
     return STORAGE_OK;
 
 error:
-    erase_buffer(&(db->dek_blob), AES256_KEY_SIZE);
-    erase_buffer(&(db->dek_blob_enc_mac), MAC_SIZE);
-    erase_buffer(&(db->dek_blob_enc_iv), IV_SIZE);
-    erase_buffer(&(db->iv_dek_blob), IV_SIZE);
-    erase_buffer(&(db->iv_dek_blob_enc_mac), MAC_SIZE);
-    erase_buffer(&(db->iv_dek_blob_enc_iv), IV_SIZE);
-    erase_buffer(&(db->mac_dek_blob), MAC_SIZE);
-    erase_buffer(&(db->mac_dek_blob_enc_mac), MAC_SIZE);
-    erase_buffer(&(db->mac_dek_blob_enc_iv), IV_SIZE);
-    erase_buffer(&(db->kek_hash), SHA256_DGST_SIZE);
-    erase_buffer(&(db->kek_salt), SALT_SIZE);
-    erase_buffer(&(db->login_hash), SHA256_DGST_SIZE);
-    erase_buffer(&(db->login_salt), SALT_SIZE);
+    erase_buffer(&(db->dek.ciphertext), AES256_KEY_SIZE);
+    erase_buffer(&(db->dek.iv), IV_SIZE);
+    erase_buffer(&(db->dek.mac), MAC_SIZE);
+    erase_buffer(&(db->kek.hash), SHA256_DGST_SIZE);
+    erase_buffer(&(db->kek.salt), SALT_SIZE);
+    erase_buffer(&(db->login.hash), SHA256_DGST_SIZE);
+    erase_buffer(&(db->login.salt), SALT_SIZE);
 
     return err;
 }
@@ -236,7 +169,7 @@ PIPASS_ERR dump_database(struct Database *db, uint8_t *user_hash) {
 
     erase_buffer(&file_path, file_path_len);
 
-    err = raw_database(db, &raw_db, &raw_db_size);
+    err = db_raw(db, &raw_db, &raw_db_size);
     if (err != DB_OK)
         goto error;
 

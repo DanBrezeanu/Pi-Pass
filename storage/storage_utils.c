@@ -102,3 +102,69 @@ error:
 
     return err;
 } 
+
+PIPASS_ERR alloc_and_read_datablob(int32_t fd, struct DataBlob *blob, int16_t ciphertext_len) {
+    if (fd == -1 || fcntl(fd, F_GETFL) == -1 || !ciphertext_len || blob == NULL)
+        return ERR_ALLOC_RD_CRED_INV_PARAMS;
+
+    PIPASS_ERR err = STORAGE_OK;
+
+    err = alloc_datablob(blob, ciphertext_len);
+    if (err != PIPASS_OK)
+        return err;
+
+    int32_t res = read(fd, blob->ciphertext, ciphertext_len);
+    if (res == -1 || res != ciphertext_len) {
+        err = ERR_LOAD_DB_READ_CRED;
+        goto error;
+    }
+
+    res = read(fd, blob->iv, IV_SIZE);
+    if (res == -1 || res != IV_SIZE) {
+        err = ERR_LOAD_DB_READ_CRED;
+        goto error;
+    }
+
+    res = read(fd, blob->mac, MAC_SIZE);
+    if (res == -1 || res != MAC_SIZE) {
+        err = ERR_LOAD_DB_READ_CRED;
+        goto error;
+    }
+
+    return STORAGE_OK;
+
+error:
+    erase_buffer(&blob->ciphertext, ciphertext_len);
+    erase_buffer(&blob->iv, IV_SIZE);
+    erase_buffer(&blob->mac, MAC_SIZE);
+
+    return err;
+}
+
+PIPASS_ERR alloc_and_read_datahash(int32_t fd, struct DataHash *hash) {
+    if (fd == -1 || fcntl(fd, F_GETFL) == -1 || hash == NULL)
+        return ERR_ALLOC_RD_CRED_INV_PARAMS;
+
+    PIPASS_ERR err = STORAGE_OK;
+
+    err = alloc_datahash(hash);
+    if (err != STORAGE_OK)
+        goto error;
+
+    int32_t res = read(fd, hash->hash, SHA256_DGST_SIZE);
+    if (res == -1 || res != SHA256_DGST_SIZE) {
+        err = ERR_LOAD_DB_READ_CRED;
+        goto error;
+    }
+
+    int32_t res = read(fd, hash->salt, SALT_SIZE);
+    if (res == -1 || res != SALT_SIZE) {
+        err = ERR_LOAD_DB_READ_CRED;
+        goto error;
+    }
+
+    return STORAGE_OK;
+
+error:
+    return err;
+} 

@@ -3,161 +3,177 @@
 #include <crypto.h>
 #include <aes256.h>
 #include <sha256.h>
+#include <datablob.h>
+#include <datahash.h>
 
+static struct Database *db;
+static struct DatabaseHeader *db_header;
 
-PIPASS_ERR create_new_db(struct Database **db) {
-    if (*db != NULL)
-        return ERR_DB_MEM_LEAK;
+PIPASS_ERR db_create_new(uint8_t *master_passw) {
+    if (db != NULL || FL_DB_INITIALIZED)
+        return ERR_DB_ALREADY_INIT;
 
-    *db = calloc(1, sizeof(struct Database));
-    if (*db == NULL)
+    db = calloc(1, sizeof(struct Database));
+    if (db == NULL)
         return ERR_DB_MEM_ALLOC;
 
-    (*db)->version = PIPASS_VERSION;
-    (*db)->db_len = 2 + 4 + 4;
-
-    return DB_OK;
-}
-
-PIPASS_ERR update_db_DEK(struct Database *db, uint8_t *dek_blob, uint8_t *iv_dek_blob, uint8_t *mac_dek_blob, uint8_t *master_pass) {
-    if (db == NULL || dek_blob == NULL || iv_dek_blob == NULL || mac_dek_blob == NULL || master_pass == NULL)   
-        return ERR_DB_UPDATE_DEK_INV_PARAMS;
-
-    if (db->dek_blob != NULL || db->iv_dek_blob != NULL || db->mac_dek_blob != NULL ||
-        db->dek_blob_enc_mac != NULL || db->iv_dek_blob_enc_mac != NULL || db->mac_dek_blob_enc_mac != NULL ||
-        db->dek_blob_enc_iv != NULL || db->iv_dek_blob_enc_iv != NULL || db->mac_dek_blob_enc_iv != NULL)
-        return ERR_DB_MEM_LEAK;
-
-    if (db->kek_salt == NULL || db->kek_hash == NULL)
-        return ERR_DB_MISSING_KEK;
-
-    uint8_t *kek = malloc(AES256_KEY_SIZE);
-    if (kek == NULL)
+    db_header = calloc(1, sizeof(struct DatabaseHeader));
+    if (db_header == NULL)
         return ERR_DB_MEM_ALLOC;
 
-    PIPASS_ERR err = create_PBKDF2_key(master_pass, MASTER_PASS_SIZE, db->kek_salt, SALT_SIZE, kek);
-    if (err != CRYPTO_OK)
+    db->header = db_header;
+
+    memset(&(db->dek), 0, sizeof(struct DataBlob));
+    memset(&(db->header->master_pass_hash), 0, sizeof(struct DataHash));
+
+    uint8_t *dek = NULL;
+    uint8_t *kek = NULL;
+
+    err = generate_new_master_passw_hash(master_passw, &db->header->master_pass_hash);
+    if (err != PIPASS_OK)
         goto error;
 
-    err = verify_sha256(kek, AES256_KEY_SIZE, db->kek_salt, SALT_SIZE, db->kek_hash);
-    if (err != CRYPTO_OK)
+    err = generate_KEK(master_passw, db->header->master_pass_hash.salt, &kek);
+    if (err != PIPASS_OK)
+        goto error;
+    
+    dek = malloc(AES256_KEY_SIZE);
+    if (dek == NULL) {
+        err = ERR_DB_MEM_ALLOC;
+        goto error;
+    }
+
+    err = generate_aes256_key(dek);
+    if (err != PIPASS_OK)
         goto error;
 
-    err = encrypt_db_field(db, kek, dek_blob, DEK_BLOB);
-    if (err != CRYPTO_OK)
+    err = encrypt_DEK_with_KEK(dek, kek, &db->dek);
+    if (err != PIPASS_OK)
         goto error;
 
-    err = encrypt_db_field(db, kek, iv_dek_blob, IV_DEK_BLOB);
-    if (err != CRYPTO_OK)
-        goto error;
+    db->__guard_value = DEFAULT_GUARD_VALUE;
+    db->header->version = PIPASS_VERSION;
 
-    err = encrypt_db_field(db, kek, mac_dek_blob, MAC_DEK_BLOB);
-    if (err != CRYPTO_OK)
-        goto error;
-
-    erase_buffer(&kek, AES256_KEY_SIZE);
-
-    db->db_len += AES256_KEY_SIZE + 4 * IV_SIZE + 4 * MAC_SIZE; 
+    db->header->db_len = sizeof(db->__guard_value) + sizeof(db->cred_len) +
+        AES256_KEY_SIZE + MAC_SIZE + IV_SIZE; 
 
     return DB_OK;
 
 error:
+    erase_buffer(&dek, AES256_KEY_SIZE);
     erase_buffer(&kek, AES256_KEY_SIZE);
-    erase_buffer(&(db->dek_blob), AES256_KEY_SIZE);
-    erase_buffer(&(db->dek_blob_enc_iv), IV_SIZE);
-    erase_buffer(&(db->dek_blob_enc_mac), MAC_SIZE);
-    erase_buffer(&(db->iv_dek_blob), IV_SIZE);
-    erase_buffer(&(db->iv_dek_blob_enc_iv), IV_SIZE);
-    erase_buffer(&(db->iv_dek_blob_enc_mac), MAC_SIZE);
-    erase_buffer(&(db->mac_dek_blob), MAC_SIZE);
-    erase_buffer(&(db->mac_dek_blob_enc_iv), IV_SIZE);
-    erase_buffer(&(db->mac_dek_blob_enc_mac), MAC_SIZE);
-
-    return err;
+    db_free();
 }
 
-PIPASS_ERR update_db_login(struct Database *db, uint8_t *login_hash, uint8_t *login_salt) {
-    if (db == NULL || login_hash == NULL || login_salt == NULL)
+PIPASS_ERR db_update_master_pass_hash(struct DataHash *new_master_pass_hash, 
+  uint8_t *new_master_pass, uint8_t *old_master_pass) {
+     if (db == NULL || !FL_DB_INITIALIZED)
+        return ERR_DB_NOT_INITIALIZED;
+
+    if (!FL_LOGGED_IN)
+        return ERR_NOT_LOGGED_IN;
+
+    if (db->header->master_pass_hash == NULL || datahash_has_null_fields(db->header->master_pass_hash))
+        return ERR_DB_MISSING_PASSW_HASH;
+
+    if (new_master_pass_hash == NULL || datahash_has_null_fields(*new_master_pass_hash) ||
+      new_master_pass == NULL || old_master_pass == NULL)
         return ERR_DB_UPDATE_LOGIN_INV_PARAMS;
-    
-    if (db->login_salt != NULL || db->login_hash != NULL)   
-        return ERR_DB_MEM_LEAK;
 
-    PIPASS_ERR err = DB_OK;
+    PIPASS_ERR err = PIPASS_OK;
 
-    db->login_hash = malloc(SHA256_DGST_SIZE);
-    if (db->login_hash == NULL)
-        return ERR_DB_MEM_LEAK;
+    err = verify_master_password_with_hash(new_master_pass, new_master_pass_hash);
+    if (err != PIPASS_OK)
+        return err;
 
-    db->login_salt = malloc(SALT_SIZE);
-    if (db->login_salt == NULL) {
-        err = ERR_DB_MEM_ALLOC;
+    err = verify_master_password_with_db(old_master_pass);
+    if (err != PIPASS_OK)
+        return err;
+
+    if (db->dek.ciphertext != NULL) {
+        err = reencrypt_DEK(new_master_pass, new_master_pass_hash.salt, old_master_pass,
+          db->header->master_pass_hash.salt);
+    }  
+
+    err = datahash_memcpy(&db->header->master_pass_hash, &new_master_pass_hash);
+    if (err != PIPASS_OK)
         goto error;
-    }
-
-    memcpy(db->login_hash, login_hash, SHA256_DGST_SIZE);
-    memcpy(db->login_salt, login_salt, SALT_SIZE);
-
-    db->db_len += SHA256_DGST_SIZE + SALT_SIZE;
 
     return DB_OK;
 
 error:
-    erase_buffer(&(db->login_hash), SHA256_DGST_SIZE);
-    erase_buffer(&(db->login_salt), SALT_SIZE);
-
+    
+    // TODO: complete error frees
     return err;
 }
 
-PIPASS_ERR update_db_KEK(struct Database *db, uint8_t *kek_hash, uint8_t *kek_salt) {
-    if (db == NULL || kek_hash == NULL || kek_salt == NULL)
-        return ERR_DB_UPDATE_KEK_INV_PARAMS;
+PIPASS_ERR db_update_DEK(uint8_t *dek, uint8_t *master_pass) {
+    if (db == NULL || !FL_DB_INITIALIZED)
+        return ERR_DB_NOT_INITIALIZED;
+
+    if (!FL_LOGGED_IN || OTK == NULL)
+        return ERR_NOT_LOGGED_IN;
+
+    if (dek == NULL || master_pass == NULL)   
+        return ERR_DB_UPDATE_DEK_INV_PARAMS;
     
-    if (db->kek_salt != NULL || db->kek_hash != NULL)   
-        return ERR_DB_MEM_LEAK;
+    if (datablob_has_null_fields(db->dek))
+        return ERR_DB_MISSING_DEK;
+    
+    PIPASS_ERR err;
+    uint8_t *kek = NULL;
+    struct DataBlob dek_blob;
 
-    PIPASS_ERR err = DB_OK;
+    err = verify_master_password_with_db(passw);
+    if (err != PIPASS_OK)
+        return err;
+    
+    err = generate_KEK(master_pass, db->master_pass_hash.salt, &kek);
+    if (err != PIPASS_OK)
+        return err;
 
-    db->kek_hash = malloc(SHA256_DGST_SIZE);
-    if (db->kek_hash == NULL)
-        return ERR_DB_MEM_LEAK;
-
-    db->kek_salt = malloc(SALT_SIZE);
-    if (db->kek_salt == NULL) {
-        err = ERR_DB_MEM_ALLOC;
+    err = encrypt_DEK_with_KEK(dek, kek, dek_blob);
+    if (err != PIPASS_OK)
         goto error;
-    }
 
-    memcpy(db->kek_hash, kek_hash, SHA256_DGST_SIZE);
-    memcpy(db->kek_salt, kek_salt, SALT_SIZE);
+    err = datablob_memcpy(&(db->dek), &dek_blob, AES256_KEY_SIZE);
+    if (err != PIPASS_OK)
+        goto error;
 
-    db->db_len += SHA256_DGST_SIZE + SALT_SIZE;
+    err = invalidate_OTK();
+    if (err != PIPASS_OK)
+        goto error;
 
-    return DB_OK;
+    err = PIPASS_OK;
 
 error:
-    erase_buffer(&(db->kek_hash), SHA256_DGST_SIZE);
-    erase_buffer(&(db->kek_salt), SALT_SIZE);
+    erase_buffer(&kek, AES256_KEY_SIZE);
+    free_datablob(&dek_blob, AES256_KEY_SIZE);
 
     return err;
 }
 
-PIPASS_ERR append_db_credential(struct Database *db, struct Credential *cr, struct CredentialHeader *crh) {
-    if (db == NULL || cr == NULL || crh == NULL)
+PIPASS_ERR db_append_credential(struct Credential *cr, struct CredentialHeader *crh) {
+    if (!FL_LOGGED_IN)
+        return ERR_NOT_LOGGED_IN;
+
+    if (!FL_DB_INITIALIZED || db == NULL)
+        return ERR_DB_NOT_INITIALIZED;
+
+    if (cr == NULL || crh == NULL)
         return ERR_DB_APPEND_CRED_INV_PARAMS;
 
-    if (cr->username == NULL || !crh->username_len || cr->passw == NULL || !crh->passw_len ||
-      cr->username_iv == NULL || cr->username_mac == NULL || cr->passw_iv == NULL || cr->passw_mac == NULL)
-        return ERR_DB_APPEND_CRED_INV_CRED;   
+    if (datablob_has_null_fields(cr->username) || datablob_has_null_fields(cr->password) || 
+      !crh->passw_len || !crh->username_len)
+        return ERR_DB_APPEND_CRED_INV_CRED; 
 
-    PIPASS_ERR err = DB_OK;
+    PIPASS_ERR err = PIPASS_OK;
 
     struct Credential *_tmp_cr = NULL;
     _tmp_cr = realloc(db->cred, (db->cred_len + 1) * sizeof(struct Credential));
     if (_tmp_cr == NULL)
         return ERR_DB_MEM_ALLOC;
     
-   
     db->cred = _tmp_cr;
 
     struct CredentialHeader *_tmp_crh = NULL;
@@ -165,7 +181,6 @@ PIPASS_ERR append_db_credential(struct Database *db, struct Credential *cr, stru
     if (_tmp_crh == NULL)
         return ERR_DB_MEM_ALLOC;
 
-    
     db->cred_headers = _tmp_crh;
 
     struct Credential *new_cr = &(db->cred[db->cred_len]);
@@ -193,50 +208,40 @@ PIPASS_ERR append_db_credential(struct Database *db, struct Credential *cr, stru
             goto error;
     }
 
-    new_cr->username = malloc(crh->username_len);
-    new_cr->username_iv = malloc(IV_SIZE);
-    new_cr->username_mac = malloc(MAC_SIZE);
-    new_cr->passw = malloc(crh->passw_len);
-    new_cr->passw_iv = malloc(IV_SIZE);
-    new_cr->passw_mac = malloc(MAC_SIZE);
-
-    if (new_cr->username == NULL || new_cr->username_iv == NULL || new_cr->username_mac == NULL ||
-      new_cr->passw == NULL || new_cr->passw_iv == NULL || new_cr->passw_mac == NULL) {
-        
-        err = ERR_DB_MEM_ALLOC;
+    err = alloc_datablob(&(new_cr->username), crh->username_len);
+    if (err != PIPASS_OK)
         goto error;
-    }
+    
+    err = alloc_datablob(&(new_cr->password), crh->username_len);
+    if (err != PIPASS_OK)
+        goto error;
 
-    memcpy(new_cr->username, cr->username, crh->username_len);
-    memcpy(new_cr->username_iv, cr->username_iv, IV_SIZE);
-    memcpy(new_cr->username_mac, cr->username_mac, MAC_SIZE);
+    err = memcpy_credential_blobs(new_cr, cr, crh);
+    if (err != PIPASS_OK)
+        goto error;
+
     new_crh->username_len = crh->username_len; 
-    
-    memcpy(new_cr->passw, cr->passw, crh->passw_len);
-    memcpy(new_cr->passw_iv, cr->passw_iv, IV_SIZE);
-    memcpy(new_cr->passw_mac, cr->passw_mac, MAC_SIZE);
     new_crh->passw_len = crh->passw_len;
-    
-    db->db_len += crh->cred_len + CREDENTIAL_HEADER_SIZE;
 
-    return DB_OK;
+    recalculate_header_len(new_crh);
+
+    return PIPASS_OK;
 
 error:
-    erase_buffer(&new_cr->username, crh->username_len);
-    erase_buffer(&new_cr->passw, crh->passw_len);
-    erase_buffer(&new_cr->username_iv, IV_SIZE);
-    erase_buffer(&new_cr->passw_iv, IV_SIZE);
-    erase_buffer(&new_cr->username_mac, MAC_SIZE);
-    erase_buffer(&new_cr->passw_mac, MAC_SIZE);
+    free_datablob(&(new_cr->username), crh->username_len);
+    free_datablob(&(new_cr->password), crh->passw_len);
 
     db->cred_len--;
 
     return err;
 }
 
-PIPASS_ERR raw_database(struct Database *db, uint8_t **raw_db, int32_t *raw_db_size) {
-    if (db == NULL) 
-        return ERR_RAW_DB_INV_PARAMS;
+PIPASS_ERR db_raw(uint8_t **raw_db, int32_t *raw_db_size) {
+    if (!FL_LOGGED_IN)
+        return ERR_NOT_LOGGED_IN;
+
+    if (!FL_DB_INITIALIZED || db == NULL)
+        return ERR_DB_NOT_INITIALIZED
 
     if (*raw_db != NULL)
         return ERR_RAW_DB_MEM_LEAK;
@@ -273,12 +278,12 @@ PIPASS_ERR raw_database(struct Database *db, uint8_t **raw_db, int32_t *raw_db_s
 
         
         append_to_str(*raw_db, &raw_cursor, cr->name, crh->name_len);
-        append_to_str(*raw_db, &raw_cursor, cr->username, crh->username_len);
-        append_to_str(*raw_db, &raw_cursor, cr->username_mac, MAC_SIZE);
-        append_to_str(*raw_db, &raw_cursor, cr->username_iv, IV_SIZE);
-        append_to_str(*raw_db, &raw_cursor, cr->passw, crh->passw_len);
-        append_to_str(*raw_db, &raw_cursor, cr->passw_mac, MAC_SIZE);
-        append_to_str(*raw_db, &raw_cursor, cr->passw_iv, IV_SIZE);
+        append_to_str(*raw_db, &raw_cursor, cr->username.ciphertext, crh->username_len);
+        append_to_str(*raw_db, &raw_cursor, cr->username.mac, MAC_SIZE);
+        append_to_str(*raw_db, &raw_cursor, cr->username.iv, IV_SIZE);
+        append_to_str(*raw_db, &raw_cursor, cr->password.ciphertext, crh->passw_len);
+        append_to_str(*raw_db, &raw_cursor, cr->password.mac, MAC_SIZE);
+        append_to_str(*raw_db, &raw_cursor, cr->password.iv, IV_SIZE);
         append_to_str(*raw_db, &raw_cursor, cr->url, crh->url_len);
         append_to_str(*raw_db, &raw_cursor, cr->additional, crh->additional_len);   
     }
@@ -290,42 +295,61 @@ PIPASS_ERR raw_database(struct Database *db, uint8_t **raw_db, int32_t *raw_db_s
     append_to_str(*raw_db, &raw_cursor, db_len_bin, sizeof(db->db_len));
     erase_buffer(&db_len_bin, sizeof(db->db_len));
 
-    append_to_str(*raw_db, &raw_cursor, db->dek_blob, AES256_KEY_SIZE);
-    append_to_str(*raw_db, &raw_cursor, db->dek_blob_enc_mac, MAC_SIZE);
-    append_to_str(*raw_db, &raw_cursor, db->dek_blob_enc_iv, IV_SIZE);
-    append_to_str(*raw_db, &raw_cursor, db->iv_dek_blob, IV_SIZE);
-    append_to_str(*raw_db, &raw_cursor, db->iv_dek_blob_enc_mac, MAC_SIZE);
-    append_to_str(*raw_db, &raw_cursor, db->iv_dek_blob_enc_iv, IV_SIZE);
-    append_to_str(*raw_db, &raw_cursor, db->mac_dek_blob, MAC_SIZE);
-    append_to_str(*raw_db, &raw_cursor, db->mac_dek_blob_enc_mac, MAC_SIZE);
-    append_to_str(*raw_db, &raw_cursor, db->mac_dek_blob_enc_iv, IV_SIZE);
-    append_to_str(*raw_db, &raw_cursor, db->kek_hash, SHA256_DGST_SIZE);
-    append_to_str(*raw_db, &raw_cursor, db->kek_salt, SALT_SIZE);
-    append_to_str(*raw_db, &raw_cursor, db->login_hash, SHA256_DGST_SIZE);
-    append_to_str(*raw_db, &raw_cursor, db->login_salt, SALT_SIZE);
+    append_to_str(*raw_db, &raw_cursor, db->dek.ciphertext, AES256_KEY_SIZE);
+    append_to_str(*raw_db, &raw_cursor, db->dek.mac, MAC_SIZE);
+    append_to_str(*raw_db, &raw_cursor, db->dek.iv, IV_SIZE);
+    append_to_str(*raw_db, &raw_cursor, db->kek.hash, SHA256_DGST_SIZE);
+    append_to_str(*raw_db, &raw_cursor, db->kek.salt, SALT_SIZE);
+    append_to_str(*raw_db, &raw_cursor, db->login.hash, SHA256_DGST_SIZE);
+    append_to_str(*raw_db, &raw_cursor, db->login.salt, SALT_SIZE);
     
     *raw_db_size = db->db_len;
     
     return DB_OK;
 }
 
-void free_database(struct Database *db) {
+PIPASS_ERR db_get_master_pass_hash(struct DataHash *master_pass_hash) {
+    if (master_pass_hash == NULL || datahash_has_null_fields(*master_pass_hash))
+        return ERR_GET_MASTER_PWD_INV_PARAMS;
+
+    struct DatabaseHeader *header = NULL;
+
+    if (!FL_DB_INITIALIZED) {
+        if (FL_DB_HEADER_LOADED)
+           header = db_header;
+        else
+            return ERR_DB_HEADER_NOT_LOADED;
+    } else {
+        header = db->header;
+    }
+
+    if (datahash_has_null_fields(header->master_pass_hash))
+        return ERR_DB_MISSING_PASSW_HASH;
+         
+    err = datahash_memcpy(master_pass_hash, header->master_pass_hash);
+    if (err != PIPASS_OK)
+        return err;
+
+    return PIPASS_OK;
+}
+
+PIPASS_ERR db_get_DEK(struct DataBlob *dek) {
     if (db == NULL)
+        return ERR_DB_NOT_INITIALIZED;
+
+    err = datablob_memcpy(dek, &(db->dek), AES256_KEY_SIZE);
+    if (err != PIPASS_OK)
+        return err;
+
+    return PIPASS_OK;
+}
+
+void db_free() {
+    if (db == NULL || !FL_DB_INITIALIZED)
         return;
 
-    if (db->dek_blob != NULL) erase_buffer(&(db->dek_blob), AES256_KEY_SIZE);
-    if (db->dek_blob_enc_mac != NULL) erase_buffer(&(db->dek_blob_enc_mac), MAC_SIZE);
-    if (db->dek_blob_enc_iv != NULL) erase_buffer(&(db->dek_blob_enc_iv), IV_SIZE);
-    if (db->iv_dek_blob != NULL) erase_buffer(&(db->iv_dek_blob), IV_SIZE);
-    if (db->iv_dek_blob_enc_mac != NULL) erase_buffer(&(db->iv_dek_blob_enc_mac), MAC_SIZE);
-    if (db->iv_dek_blob_enc_iv != NULL) erase_buffer(&(db->iv_dek_blob_enc_iv), IV_SIZE);
-    if (db->mac_dek_blob != NULL) erase_buffer(&(db->mac_dek_blob), MAC_SIZE);
-    if (db->mac_dek_blob_enc_mac != NULL) erase_buffer(&(db->mac_dek_blob_enc_mac), MAC_SIZE);
-    if (db->mac_dek_blob_enc_iv != NULL) erase_buffer(&(db->mac_dek_blob_enc_iv), IV_SIZE);
-    if (db->kek_hash != NULL) erase_buffer(&(db->kek_hash), SHA256_DGST_SIZE);
-    if (db->kek_salt != NULL) erase_buffer(&(db->kek_salt), SALT_SIZE);
-    if (db->login_hash != NULL) erase_buffer(&(db->login_hash), SHA256_DGST_SIZE);
-    if (db->login_salt != NULL) erase_buffer(&(db->login_salt), SALT_SIZE);
+    free_datablob(&db->dek, AES256_KEY_SIZE);
+    free_datahash(&db->header->master_pass_hash);
 
     for (int i = 0; i < db->cred_len; ++i)
         free_credential(&(db->cred[i]), &(db->cred_headers[i]));
@@ -333,22 +357,10 @@ void free_database(struct Database *db) {
     free(db->cred);
     free(db->cred_headers);
 
-    db->cred_len = db->db_len = db->version = 0;
+    db->cred_len = db->db_len = db->header->version = 0;
+
+    free(db->header);
 
     free(db);
-}
-
-PIPASS_ERR verify_existing_credential(struct Database *db, struct Credential *cr, struct CredentialHeader *crh) {
-    if (db == NULL || cr == NULL || crh == NULL)
-        return ERR_DB_EXIST_CRED_INV_PARAMS;
-
-    PIPASS_ERR err = DB_OK;
-
-    for (int i = 0; i < db->cred_len; ++i) {
-        err = credentials_equal(&(db->cred[i]), &(db->cred_headers[i]), cr, crh);
-        if (err == DB_OK)
-            return ERR_CRED_ALREADY_EXISTS;
-    }
-
-    return DB_OK;
+    db = NULL;
 }

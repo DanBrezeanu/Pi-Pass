@@ -1,6 +1,9 @@
 #include <aes256.h>
 
 PIPASS_ERR generate_aes256_key(uint8_t *key) {
+    if (key == NULL)
+        return ERR_CRYPTO_GEN_KEY_INV_PARAMS;
+
     int32_t err = RAND_bytes(key, AES256_KEY_SIZE);
     if (err == -1) {
         return ERR_RAND_NOT_SUPPORTED;

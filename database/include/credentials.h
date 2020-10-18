@@ -6,15 +6,14 @@
 #include <string.h>
 #include <crypto_utils.h>
 #include <database.h>
+#include <crypto.h>
+#include <credentials_utils.h>
+#include <datablob.h>
 
 struct Credential {
     uint8_t *name;
-    uint8_t *username;
-    uint8_t *username_mac;
-    uint8_t *username_iv;
-    uint8_t *passw;
-    uint8_t *passw_mac;
-    uint8_t *passw_iv;
+    struct DataBlob username;
+    struct DataBlob password;
     uint8_t *url;
     uint8_t *additional;
 } __attribute__((packed, aligned(1)));
@@ -50,26 +49,28 @@ struct PlainTextCredential {
 PIPASS_ERR new_credential(struct Credential **cr, struct CredentialHeader **crh);
 
 PIPASS_ERR populate_plaintext_field(struct Credential *cr, struct CredentialHeader *crh, uint8_t *data,
-  int32_t data_len, enum CredentialField field);
+  int32_t data_len, enum CredentialField field_type);
 
-PIPASS_ERR populate_encrypted_field(struct Database *db, struct Credential *cr, struct CredentialHeader *crh, uint8_t *data,
-  int32_t data_len, enum CredentialEncryptedField field, uint8_t *master_pass);
+PIPASS_ERR populate_encrypted_field(struct Credential *cr, struct CredentialHeader *crh, uint8_t *data,
+  int32_t data_len, enum CredentialEncryptedField field_type);
 
-PIPASS_ERR populate_credential(struct Database *db, struct Credential **cr, struct CredentialHeader **crh, uint8_t *user_hash,
- uint8_t *master_pass, uint8_t *name, int32_t name_len, uint8_t *username, int32_t username_len, uint8_t *passw,
- int32_t passw_len, uint8_t *url, int32_t url_len, uint8_t *additional, int32_t additional_len);
+PIPASS_ERR populate_credential(struct Credential **cr, struct CredentialHeader **crh,
+  uint8_t *name, int32_t name_len, uint8_t *username, int32_t username_len, uint8_t *passw, 
+  int32_t passw_len, uint8_t *url, int32_t url_len, uint8_t *additional, int32_t additional_len);
 
 PIPASS_ERR recalculate_header_len(struct CredentialHeader *crh);
 
-PIPASS_ERR credentials_equal(struct Credential *cr1, struct CredentialHeader *crh1,
-  struct Credential *cr2, struct CredentialHeader *crh2);
-PIPASS_ERR fields_equal(uint8_t *field1, uint8_t *field2, int32_t field_len);
-
 PIPASS_ERR zero_credential(struct Credential *cr);
+
 PIPASS_ERR zero_credential_header(struct CredentialHeader *crh);
+
 void free_credential(struct Credential *cr, struct CredentialHeader *crh);
+
 void free_plaintext_credential(struct PlainTextCredential *cr, struct CredentialHeader *crh);
-PIPASS_ERR append_to_credential_array(struct Credential **cr, int32_t *cr_len, struct Credential *to_add);
+
+PIPASS_ERR append_to_credential_array(struct Credential **cr, int32_t *cr_len, struct Credential *to_add, struct CredentialHeader *to_add_header);
+
 PIPASS_ERR append_to_credential_header_array(struct CredentialHeader **crh, int32_t *crh_len, struct CredentialHeader *to_add);
+
 
 #endif
