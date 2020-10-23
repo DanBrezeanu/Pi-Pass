@@ -3,94 +3,10 @@
 #include <sha256.h>
 #include <credentials.h>
 
-PIPASS_ERR read_credentials(int32_t db_fd, struct Credential *cr, struct CredentialHeader *crh) {
-    if (cr == NULL || crh == NULL)
-        return ERR_STORG_READ_CRED_INV_PARAMS;
-
-    PIPASS_ERR err = STORAGE_OK;
-
-    if (crh->name_len > 0) {
-        err = alloc_and_read_field(db_fd, &(cr->name), crh->name_len);
-        if (err != STORAGE_OK)
-            goto error;
-    }
-
-    if (crh->username_len <= 0) {
-        err = ERR_LOAD_DB_READ_CRED;
-        goto error;
-    }
-
-    err = alloc_and_read_datablob(db_fd, &(cr->username), crh->username_len);
-    if (err != STORAGE_OK)
-        goto error;
-
-
-    if (crh->passw_len <= 0) {
-        err = ERR_LOAD_DB_READ_CRED;
-        goto error;
-    }
-    err = alloc_and_read_datablob(db_fd, &(cr->password), crh->passw_len);
-    if (err != STORAGE_OK)
-        goto error;
-    
-    if (crh->url_len > 0) {
-        err = alloc_and_read_field(db_fd, &(cr->url), crh->url_len);
-        if (err != STORAGE_OK)
-            goto error;
-    }
-    
-    if (crh->additional_len > 0) {
-            err = alloc_and_read_field(db_fd, &(cr->additional), crh->additional_len);
-        if (err != STORAGE_OK)
-            goto error;
-    }
-
-    return STORAGE_OK;
-
-error:
-    erase_buffer(&(cr->name), crh->name_len);
-    erase_buffer(&(cr->username.ciphertext), crh->username_len);
-    erase_buffer(&(cr->username.mac), MAC_SIZE);
-    erase_buffer(&(cr->username.iv), IV_SIZE);
-    erase_buffer(&(cr->password.ciphertext), crh->passw_len);
-    erase_buffer(&(cr->password.mac), MAC_SIZE);
-    erase_buffer(&(cr->password.iv), IV_SIZE);
-    erase_buffer(&(cr->url), crh->url_len);
-    erase_buffer(&(cr->additional), crh->additional_len);
-
-    return err;
-}
-
-PIPASS_ERR read_db_buffers(int32_t db_fd, struct Database *db) {
-    PIPASS_ERR err = STORAGE_OK;
-
-    err = alloc_and_read_datablob(db_fd, &(db->dek), AES256_KEY_SIZE);
-    if (err != STORAGE_OK)
-        goto error;
-        
-    err = alloc_and_read_datahash(db_fd, &(db->kek));
-    if (err != STORAGE_OK)
-        goto error;
-
-    err = alloc_and_read_datahash(db_fd, &(db->login));
-    if (err != STORAGE_OK)
-        goto error;
-
-    return STORAGE_OK;
-
-error:
-    erase_buffer(&(db->dek.ciphertext), AES256_KEY_SIZE);
-    erase_buffer(&(db->dek.iv), IV_SIZE);
-    erase_buffer(&(db->dek.mac), MAC_SIZE);
-    erase_buffer(&(db->kek.hash), SHA256_DGST_SIZE);
-    erase_buffer(&(db->kek.salt), SALT_SIZE);
-    erase_buffer(&(db->login.hash), SHA256_DGST_SIZE);
-    erase_buffer(&(db->login.salt), SALT_SIZE);
-
-    return err;
-}
-
 PIPASS_ERR create_user_directory(uint8_t *user_hash) {
+    if (FL_LOGGED_IN)
+        return ERR_ALREADY_LOGGED_IN;
+
     if (user_hash == NULL)
         return ERR_CREATE_USER_DIR_INV_PARAMS;
     
@@ -143,62 +59,132 @@ error:
     return err;
 }
 
-PIPASS_ERR dump_database(struct Database *db, uint8_t *user_hash) {
-    if (db == NULL || user_hash == NULL)
+PIPASS_ERR dump_database(uint8_t *user_hash, uint8_t *master_pass) {
+    if (!FL_LOGGED_IN)
+        return ERR_NOT_LOGGED_IN;
+
+    if (!FL_DB_INITIALIZED)
+        return ERR_DB_NOT_INITIALIZED;
+
+    if (user_hash == NULL)
         return ERR_DUMP_DB_INV_PARAMS;
 
     PIPASS_ERR err = verify_user_directory(user_hash);
-    if (err != STORAGE_OK)
+    if (err != PIPASS_OK)
+        return err;
+
+    err = verify_master_password_with_db(master_pass);
+    if (err != PIPASS_OK)
         return err;
 
     uint8_t *file_path = NULL;
     int32_t file_path_len = 0;
-    int32_t file_fd = -1;
+    int32_t db_fd = -1;
     uint8_t *raw_db = NULL;
+    uint8_t *raw_db_header = NULL;
     uint32_t raw_db_size = 0;
+    struct DataBlob raw_db_blob;
+    struct DataHash master_pass_hash = {0};
+    uint8_t *kek = NULL;
 
     err = user_file_path(user_hash, PIPASS_DB, &file_path, &file_path_len);
     if (err != STORAGE_OK)
         goto error;
 
-    file_fd = open(file_path, O_WRONLY | O_CREAT, 0400);
-    if (file_fd == -1) {
+    db_fd = open(file_path, O_WRONLY | O_CREAT, 0400);
+    if (db_fd == -1) {
         err = ERR_STORE_OPEN_FILE;
         goto error;
     }
 
     erase_buffer(&file_path, file_path_len);
 
-    err = db_raw(db, &raw_db, &raw_db_size);
-    if (err != DB_OK)
+    err = db_header_raw(&raw_db_header);
+    if (err != PIPASS_OK)
         goto error;
 
-    int32_t res = write(file_fd, raw_db, raw_db_size);
+    err = db_raw(&raw_db, &raw_db_size);
+    if (err != PIPASS_OK)
+        goto error;
+
+    err = alloc_datahash(&master_pass_hash);
+    if (err != PIPASS_OK)
+        goto error;
+
+    err = db_get_master_pass_hash(&master_pass_hash);
+    if (err != PIPASS_OK)
+        goto error;
+
+    err = generate_KEK(master_pass, master_pass_hash.salt, &kek);
+    if (err != PIPASS_OK)
+        goto error;
+
+    err = encrypt_data_with_key(raw_db, raw_db_size, kek, &raw_db_blob);
+    if (err != PIPASS_OK)
+        goto error;
+
+    erase_buffer(&kek, AES256_KEY_SIZE);
+    erase_buffer(&raw_db, raw_db_size);
+
+    int32_t res = write(db_fd, raw_db_header, DB_HEADER_SIZE);
+    if (res != DB_HEADER_SIZE) {
+        err = ERR_STORE_WRITE_FILE;
+        goto error;
+    }
+
+    res = write(db_fd, raw_db_blob.ciphertext, raw_db_size);
     if (res != raw_db_size) {
         err = ERR_STORE_WRITE_FILE;
         goto error;
     }
 
-    err = STORAGE_OK;
-
-error:
-    if (file_fd != -1) {
-        close(file_fd);
-        file_fd = -1;
+    res = write(db_fd, raw_db_blob.iv, IV_SIZE);
+    if (res != IV_SIZE) {
+        err = ERR_STORE_WRITE_FILE;
+        goto error;
     }
 
+    res = write(db_fd, raw_db_blob.mac, MAC_SIZE);
+    if (res != MAC_SIZE) {
+        err = ERR_STORE_WRITE_FILE;
+        goto error;
+    }
+
+
+    // TODO: write in a separate file and replace it after write is completed
+    err = PIPASS_OK;
+
+error:
+    if (db_fd != -1) {
+        close(db_fd);
+        db_fd = -1;
+    }
+
+    erase_buffer(&kek, AES256_KEY_SIZE);
     erase_buffer(&file_path, file_path_len);
     erase_buffer(&raw_db, raw_db_size);
+    free_datahash(&master_pass_hash);
+    free_datablob(&raw_db_blob, raw_db_size);
 
     return err;
 }
 
-PIPASS_ERR load_database(struct Database **db, uint8_t *user_hash) {
-    if (user_hash == NULL)
+PIPASS_ERR read_database(uint8_t *user_hash, struct DataBlob *raw_db, uint32_t *raw_db_len) {
+
+    if (!FL_LOGGED_IN)
+        return ERR_NOT_LOGGED_IN;
+
+    if (FL_DB_INITIALIZED)
+        return ERR_DB_ALREADY_INIT;
+
+    if (!FL_DB_HEADER_LOADED)
+        return ERR_DB_HEADER_NOT_LOADED;
+
+    if (user_hash == NULL || raw_db == NULL)
         return ERR_LOAD_DB_INV_PARAMS;
 
-    if (*db != NULL)
-        return ERR_LOAD_DB_MEM_LEAK;
+    if (raw_db->ciphertext != NULL || raw_db->iv != NULL || raw_db->mac != NULL)
+        return ERR_LOAD_DB_MEM_LEAK; 
 
     PIPASS_ERR err = verify_user_directory(user_hash);
     if (err != STORAGE_OK)
@@ -212,8 +198,90 @@ PIPASS_ERR load_database(struct Database **db, uint8_t *user_hash) {
     if (err != STORAGE_OK)
         goto error;
 
+    db_fd = open(db_file_path, O_RDONLY);
+    if (db_fd == -1) {
+        err = ERR_LOAD_DB_OPEN_FILE;
+        goto error;
+    }
 
-    *db = calloc(1, sizeof(struct Database));
+    erase_buffer(&db_file_path, db_file_path_len);
+
+    int32_t ret = lseek(db_fd, DB_HEADER_SIZE, SEEK_SET);
+    if (ret == -1)
+        return ERR_LOAD_DB_OPEN_FILE;
+
+    uint32_t db_len = 0;
+    err = db_get_length(&db_len);
+    if (err != PIPASS_OK)
+        goto error;
+
+    raw_db->ciphertext = malloc(db_len);
+    if (raw_db->ciphertext == NULL)
+        return ERR_DB_MEM_ALLOC;
+
+    int32_t res = read(db_fd, raw_db->ciphertext, db_len);
+    if (res == -1 || res != db_len) {
+        err = ERR_LOAD_DB_READ;
+        goto error;
+    }
+
+    raw_db->iv = malloc(IV_SIZE);
+    if (raw_db->iv == NULL)
+        return ERR_DB_MEM_ALLOC;
+
+    res = read(db_fd, raw_db->iv, IV_SIZE);
+    if (res == -1 || res != IV_SIZE) {
+        err = ERR_LOAD_DB_READ;
+        goto error;
+    }
+
+    raw_db->mac = malloc(MAC_SIZE);
+    if (raw_db->mac == NULL)
+        return ERR_DB_MEM_ALLOC;
+
+    res = read(db_fd, raw_db->mac, MAC_SIZE);
+    if (res == -1 || res != MAC_SIZE) {
+        err = ERR_LOAD_DB_READ;
+        goto error;
+    }
+
+    *raw_db_len = db_len; 
+
+    return PIPASS_OK;
+
+error:
+    if (db_fd != -1)
+        close(db_fd);
+    
+    erase_buffer(&db_file_path, db_file_path_len);
+    free_datablob(raw_db, db_len);
+
+    return err;
+}
+
+PIPASS_ERR read_database_header(uint8_t *user_hash, uint8_t **raw_db_header) {
+    if (FL_LOGGED_IN)
+        return ERR_ALREADY_LOGGED_IN;
+
+    if (FL_DB_INITIALIZED)
+        return ERR_DB_ALREADY_INIT;
+
+    if (*raw_db_header != NULL)
+        return ERR_DB_MEM_LEAK;
+
+    PIPASS_ERR err;
+
+    err = verify_user_directory(user_hash);
+    if (err != PIPASS_OK)
+        return err;
+
+    uint8_t *db_file_path = NULL;
+    uint32_t db_file_path_len = 0;
+    int32_t db_fd = -1;
+    
+    err = user_file_path(user_hash, PIPASS_DB, &db_file_path, &db_file_path_len);
+    if (err != PIPASS_OK)
+        goto error;
 
     db_fd = open(db_file_path, O_RDONLY);
     if (db_fd == -1) {
@@ -223,77 +291,22 @@ PIPASS_ERR load_database(struct Database **db, uint8_t *user_hash) {
 
     erase_buffer(&db_file_path, db_file_path_len);
 
-    int32_t res = read(db_fd, &((*db)->version), sizeof((*db)->version));
-    if (res == -1 || res != sizeof((*db)->version)) {
+    *raw_db_header = malloc(DB_HEADER_SIZE);
+    if (*raw_db_header == NULL)
+        return ERR_DB_MEM_ALLOC;
+
+    int32_t res = read(db_fd, *raw_db_header, DB_HEADER_SIZE);
+    if (res == -1 || res != DB_HEADER_SIZE) {
         err = ERR_LOAD_DB_READ_FIELD;
         goto error;
     }
 
-    res = read(db_fd, &((*db)->cred_len), sizeof((*db)->cred_len));
-    if (res == -1 || res != sizeof((*db)->cred_len)) {
-        err = ERR_LOAD_DB_READ_FIELD;
-        goto error;
-    }
-
-    if ((*db)->cred_len == 0)
-        goto skip_reading_creds;
-
-    (*db)->cred = calloc((*db)->cred_len, sizeof(struct Credential) );
-    if ((*db)->cred == NULL) {
-        err = ERR_LOAD_DB_MEM_ALLOC;
-        goto error;
-    }
-
-    (*db)->cred_headers = calloc((*db)->cred_len, sizeof(struct CredentialHeader));
-    if ((*db)->cred_headers == NULL) {
-        err = ERR_LOAD_DB_MEM_ALLOC;
-        goto error;
-    }
-
-    for (int i = 0; i < (*db)->cred_len; ++i) {
-        res = read(db_fd, &((*db)->cred_headers[i]), sizeof(struct CredentialHeader));
-        if (res == -1 || res != sizeof(struct CredentialHeader)) {
-            err = ERR_LOAD_DB_READ_CRED;
-            goto error;
-        }
-
-        err = read_credentials(db_fd, &((*db)->cred[i]), &((*db)->cred_headers[i]));
-        if (err != STORAGE_OK)
-            goto error;
-    }
-
-skip_reading_creds:
-    res = read(db_fd, &((*db)->db_len), sizeof((*db)->db_len));
-    if (res == -1 || res != sizeof((*db)->db_len)) {
-        err = ERR_LOAD_DB_READ_FIELD;
-        goto error;
-    }
-
-    err = read_db_buffers(db_fd, *db);
-    if (err != STORAGE_OK)
-        goto error;
-
-    if (db_fd != -1) {
-        close(db_fd);
-        db_fd = -1;
-    }
-
-    return STORAGE_OK;
+    return PIPASS_OK;
 
 error:
-    if (*db != NULL) {
-        memset(*db, 0, sizeof(struct Database));
-        free(*db);
-        *db = NULL;
-    }
-
-    if (db_fd != -1) {
-        close(db_fd);
-        db_fd = -1;
-    }
-
     erase_buffer(&db_file_path, db_file_path_len);
+    erase_buffer(raw_db_header, DB_HEADER_SIZE);
+    if (db_fd != -1)
+        close(db_fd);
 
-    return err;
 }
-

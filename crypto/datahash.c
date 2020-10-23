@@ -1,4 +1,5 @@
 #include <datahash.h>
+#include <crypto_utils.h>
 
 PIPASS_ERR alloc_datahash(struct DataHash *hash) {
     if (hash == NULL)

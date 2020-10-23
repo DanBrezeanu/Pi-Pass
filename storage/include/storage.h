@@ -14,9 +14,7 @@
 
 PIPASS_ERR create_user_directory(uint8_t *user_hash);
 PIPASS_ERR verify_user_directory(uint8_t *user_hash);
-PIPASS_ERR store_file(uint8_t *user_hash, uint8_t *content, int32_t content_len, uint8_t *file_name);
-PIPASS_ERR store_user_DEK_blob(uint8_t *user_hash, uint8_t *DEK_blob, uint8_t *iv, uint8_t *mac);
-PIPASS_ERR dump_database(struct Database *db, uint8_t *user_hash);
-PIPASS_ERR load_database(struct Database **db, uint8_t *user_hash);
-
+PIPASS_ERR dump_database(uint8_t *user_hash, uint8_t *master_pass);
+PIPASS_ERR read_database(uint8_t *user_hash, struct DataBlob *raw_db, uint32_t *raw_db_len);
+PIPASS_ERR read_database_header(uint8_t *user_hash, uint8_t **raw_db_header);
 #endif

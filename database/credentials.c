@@ -134,10 +134,9 @@ PIPASS_ERR populate_encrypted_field(struct Credential *cr, struct CredentialHead
     return PIPASS_OK;
 
 error:
-    free_datablob(field, field_len);
+    free_datablob(field, *field_len);
 
     return err;
-
 }
 
 PIPASS_ERR populate_credential(struct Credential **cr, struct CredentialHeader **crh,

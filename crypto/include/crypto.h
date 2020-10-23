@@ -4,7 +4,6 @@
 #include <defines.h>
 #include <errors.h>
 
-
 extern uint8_t *OTK;
 extern struct DataBlob *DEK_BLOB;
 
@@ -18,6 +17,10 @@ PIPASS_ERR encrypt_DEK_with_KEK(uint8_t *dek, uint8_t *kek, struct DataBlob *dek
 
 PIPASS_ERR decrypt_DEK_with_KEK(uint8_t *kek, uint8_t **dek);
 
+PIPASS_ERR decrypt_cipher_with_key(struct DataBlob *cipher, uint32_t cipher_len, uint8_t *key, uint8_t **data);
+
+PIPASS_ERR encrypt_data_with_key(uint8_t *data, uint32_t data_len, uint8_t *key, struct DataBlob *cipher);
+
 PIPASS_ERR encrypt_DEK_with_OTK(uint8_t *dek);
 
 PIPASS_ERR decrypt_DEK_with_OTK(uint8_t **dek);
@@ -25,6 +28,9 @@ PIPASS_ERR decrypt_DEK_with_OTK(uint8_t **dek);
 PIPASS_ERR encrypt_field_with_DEK(uint8_t *field, int32_t field_len, struct DataBlob *field_blob, int16_t *cipher_len);
 
 PIPASS_ERR decrypt_field_with_DEK(struct DataBlob *cipher, int16_t cipher_len, uint8_t **data, int32_t *data_len);
+
+PIPASS_ERR reencrypt_DEK(struct DataBlob *dek_blob, uint8_t *new_master_pass, uint8_t *new_master_pass_salt, 
+  uint8_t *old_master_pass, uint8_t *old_master_pass_salt);
 
 PIPASS_ERR verify_master_password_with_db(uint8_t *passw);
 

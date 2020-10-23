@@ -67,6 +67,18 @@ uint8_t *var_to_bin(void *value, size_t size) {
     return bin;
 }
 
+void *bin_to_var(uint8_t *bin, size_t size) {
+    uint8_t *var = malloc(size);
+    if (var == NULL)
+        return NULL;
+
+    for (int i = 0; i < size; ++i) {
+        var[i] = bin[i];
+    }
+
+    return var;
+}
+
 void append_to_str(uint8_t *str, int32_t *cursor, uint8_t *substr, int32_t substr_len) {
     if (substr != NULL) {
         memcpy(str + *cursor, substr, substr_len);
@@ -157,7 +169,7 @@ PIPASS_ERR alloc_and_read_datahash(int32_t fd, struct DataHash *hash) {
         goto error;
     }
 
-    int32_t res = read(fd, hash->salt, SALT_SIZE);
+    res = read(fd, hash->salt, SALT_SIZE);
     if (res == -1 || res != SALT_SIZE) {
         err = ERR_LOAD_DB_READ_CRED;
         goto error;

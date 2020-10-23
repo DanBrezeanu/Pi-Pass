@@ -5,11 +5,14 @@
 #include <sha256.h>
 #include <datablob.h>
 
+uint8_t *OTK = NULL;
+struct DataBlob *DEK_BLOB = NULL;
+
 PIPASS_ERR generate_KEK(uint8_t *passw, uint8_t *salt, uint8_t **KEK) {
     PIPASS_ERR err = CRYPTO_OK; 
     uint8_t *passw_pepper = NULL;
     
-    if (passw == NULL || salt == 0)
+    if (passw == NULL || salt == NULL)
         return ERR_CRYPTO_KEK_INV_PARAMS;
 
     if (*KEK != NULL)
@@ -77,9 +80,6 @@ error:
 }
 
 PIPASS_ERR generate_new_master_passw_hash(uint8_t *passw, struct DataHash *passw_hash) {
-    if (!FL_LOGGED_IN)
-        return ERR_NOT_LOGGED_IN;
-
     if (passw == NULL || passw_hash == NULL)
         return ERR_CRYPTO_GEN_HASH_INV_PARAMS;
     
@@ -87,31 +87,27 @@ PIPASS_ERR generate_new_master_passw_hash(uint8_t *passw, struct DataHash *passw
         return ERR_CRYPTO_HASH_MEM_LEAK;
 
     uint8_t *passw_and_pepper = NULL;
+    PIPASS_ERR err;
 
-    passw_hash->salt = malloc(SALT_SIZE);
-    if (passw_hash->salt == NULL)
-        return ERR_CRYPTO_MEM_ALLOC;
-
-    PIPASS_ERR err = create_salt(SALT_SIZE, passw_hash->salt);
-    if (err != CRYPTO_OK)
+    err = alloc_datahash(passw_hash);
+    if (err != PIPASS_OK)
         goto error;
 
-    passw_hash->hash = malloc(SHA256_DGST_SIZE);
-    if (passw_hash->hash == NULL) {
-        err = ERR_CRYPTO_MEM_ALLOC;
+    err = create_salt(SALT_SIZE, passw_hash->salt);
+    if (err != PIPASS_OK)
         goto error;
-    }
     
     err = concat_passw_pepper(passw, &passw_and_pepper);
-    if (err != PIPASS_OK)   
+    if (err != PIPASS_OK)
+        goto error;
     
     err = hash_sha256(passw_and_pepper, MASTER_PASS_SIZE_WITH_PEPPER, passw_hash->salt, SALT_SIZE, passw_hash->hash);
-    if (err != CRYPTO_OK)
+    if (err != PIPASS_OK)
         goto error;
 
     erase_buffer(&passw_and_pepper, MASTER_PASS_SIZE_WITH_PEPPER);
 
-    return CRYPTO_OK;
+    return PIPASS_OK;
 
 error:
     erase_buffer(&passw_and_pepper, MASTER_PASS_SIZE_WITH_PEPPER);
@@ -121,9 +117,66 @@ error:
     return err;
 }
 
+PIPASS_ERR decrypt_cipher_with_key(struct DataBlob *cipher, uint32_t cipher_len, uint8_t *key, uint8_t **data) {
+    if (cipher == NULL || !cipher_len || key == NULL || datablob_has_null_fields(*cipher))
+        return ERR_DECRYPT_CIPHER_INV_PARAMS;
+
+    if (*data != NULL)
+        return ERR_CRYPTO_MEM_LEAK;
+
+    PIPASS_ERR err;
+
+    *data = malloc(cipher_len);
+    if (*data == NULL)
+        return ERR_CRYPTO_MEM_ALLOC;
+
+    int32_t data_len = 0;
+    err = decrypt_aes256(cipher->ciphertext, cipher_len, NULL, 0, cipher->mac, key, cipher->iv, *data, &data_len);
+    if (err != PIPASS_OK)
+        goto error;
+
+    return PIPASS_OK;
+
+error:
+    erase_buffer(data, cipher_len);
+
+    return err;
+}
+
+PIPASS_ERR encrypt_data_with_key(uint8_t *data, uint32_t data_len, uint8_t *key, struct DataBlob *cipher) {
+    if (data == NULL || !data_len || key == NULL || cipher == NULL)
+        return ERR_ENCRYPT_DATA_INV_PARAMS;
+
+    if (cipher->ciphertext != NULL || cipher->iv != NULL || cipher->mac != NULL)
+        return ERR_CRYPTO_MEM_LEAK;
+
+    PIPASS_ERR err;
+
+    err = alloc_datablob(cipher, data_len);
+    if (err != PIPASS_OK)
+        return err;
+
+    err = create_salt(IV_SIZE, cipher->iv);
+    if (err != PIPASS_OK)
+        goto error;
+
+    int32_t cipher_len = 0;
+    err = encrypt_aes256(data, data_len, NULL, 0, key, cipher->iv, cipher->mac, cipher->ciphertext, &cipher_len);
+    if (err != CRYPTO_OK || cipher_len != data_len) {
+        err = ERR_CRYPTO_ENCRYPT_DATA;
+        goto error;
+    }
+
+    return PIPASS_OK;
+
+error:
+    free_datablob(cipher, data_len);
+
+    return err;
+}
+
 PIPASS_ERR encrypt_DEK_with_KEK(uint8_t *dek, uint8_t *kek, struct DataBlob *dek_blob) {
 
-    PIPASS_ERR err = CRYPTO_OK;
 
     if (dek == NULL || kek == NULL || dek_blob == NULL)
         return ERR_CRYPTO_DEK_BLOB_INV_PARAMS;
@@ -131,22 +184,24 @@ PIPASS_ERR encrypt_DEK_with_KEK(uint8_t *dek, uint8_t *kek, struct DataBlob *dek
     if (dek_blob->ciphertext != NULL || dek_blob->iv != NULL || dek_blob->mac != NULL)
         return ERR_CRYPTO_DEK_BLOB_MEM_LEAK;
 
+    PIPASS_ERR err = PIPASS_OK;
+
     err = alloc_datablob(dek_blob, AES256_KEY_SIZE);
     if (err != PIPASS_OK)
         return err;
 
     err = create_salt(IV_SIZE, dek_blob->iv);
-    if (err != CRYPTO_OK)
+    if (err != PIPASS_OK)
         goto error;
 
     int32_t dek_blob_len = 0;
     err = encrypt_aes256(dek, AES256_KEY_SIZE, NULL, 0, kek, dek_blob->iv, dek_blob->mac, dek_blob->ciphertext, &dek_blob_len);
-    if (err != CRYPTO_OK || dek_blob_len != AES256_KEY_SIZE) {
+    if (err != PIPASS_OK || dek_blob_len != AES256_KEY_SIZE) {
         err = ERR_CRYPTO_DEK_BLOB_ENCRYPT;
         goto error;
     }
 
-    return CRYPTO_OK;
+    return PIPASS_OK;
 
 error:
     free_datablob(dek_blob, AES256_KEY_SIZE);
@@ -181,13 +236,13 @@ PIPASS_ERR decrypt_DEK_with_KEK(uint8_t *kek, uint8_t **dek) {
 
     int32_t data_len = 0;
     err = decrypt_aes256(dek_blob.ciphertext, cipher_len, NULL, 0, dek_blob.mac, kek, dek_blob.iv, *dek, &data_len);
-    if (err != CRYPTO_OK)
+    if (err != PIPASS_OK)
         goto error;
 
-    return CRYPTO_OK;
+    return PIPASS_OK;
 
 error:
-    erase_buffer(*dek, AES256_KEY_SIZE);
+    erase_buffer(dek, AES256_KEY_SIZE);
 
     return err;
 }
@@ -351,6 +406,51 @@ PIPASS_ERR decrypt_field_with_DEK(struct DataBlob *cipher, int16_t cipher_len, u
 error:
     erase_buffer(&dek, AES256_KEY_SIZE);
     erase_buffer(data, cipher_len);
+
+    return err;
+}
+
+PIPASS_ERR reencrypt_DEK(struct DataBlob *dek_blob, uint8_t *new_master_pass, uint8_t *new_master_pass_salt, 
+  uint8_t *old_master_pass, uint8_t *old_master_pass_salt) {
+
+      if (dek_blob == NULL || new_master_pass == NULL || new_master_pass_salt == NULL 
+       || old_master_pass == NULL || old_master_pass_salt == NULL)
+        return ERR_REENCRYPT_DEK_INV_PARAMS;
+    
+    uint8_t *old_kek = NULL;
+    uint8_t *new_kek = NULL;
+    uint8_t *dek = NULL;
+    struct DataBlob new_dek_blob = {0};
+
+    PIPASS_ERR err;
+
+    err = generate_KEK(old_master_pass, old_master_pass_salt, &old_kek);
+    if (err != PIPASS_OK)
+        goto error;    
+
+    err = generate_KEK(new_master_pass, new_master_pass_salt, &new_kek);
+    if (err != PIPASS_OK)
+        goto error;    
+
+    err = decrypt_DEK_with_KEK(old_kek, &dek);
+    if (err != PIPASS_OK)
+        goto error;    
+
+    err = encrypt_DEK_with_KEK(dek, new_kek, &new_dek_blob);
+    if (err != PIPASS_OK)
+        goto error;    
+
+    err = datablob_memcpy(dek_blob, &new_dek_blob, AES256_KEY_SIZE);
+    if (err != PIPASS_OK)
+        goto error;    
+
+    err = PIPASS_OK;
+
+error:
+    erase_buffer(&new_kek, AES256_KEY_SIZE);
+    erase_buffer(&old_kek, AES256_KEY_SIZE);
+    erase_buffer(&dek, AES256_KEY_SIZE);
+    free_datablob(&new_dek_blob, AES256_KEY_SIZE);
 
     return err;
 }

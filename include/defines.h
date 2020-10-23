@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 #ifndef PIPASS_VERSION
     #define PIPASS_VERSION 0x0001
@@ -16,7 +17,7 @@
 
 #define CPU_ID_SIZE         16
 
-#define MASTER_PASS_SIZE_WITH_PEPPER  20
+#define MASTER_PASS_SIZE_WITH_PEPPER  (PEPPER_SIZE + MASTER_PASS_SIZE)
 #define MASTER_PASS_SIZE    4
 #define PEPPER_SIZE         CPU_ID_SIZE
 #define SALT_SIZE           64
@@ -29,6 +30,7 @@
 
 #define CREDENTIALS_FIELD_LIMIT ((1 << 16) - 1)
 #define CREDENTIAL_HEADER_SIZE  (4 + 2*5)
+#define DB_HEADER_SIZE          (2 + 4 + SHA256_DGST_SIZE + SALT_SIZE)
 
 
 #define S_TTY    "/dev/ttyGS0"

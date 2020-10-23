@@ -1,5 +1,5 @@
 #include <flags.h>
 
-FL_LOGGED_IN = 0;
-FL_DB_INITIALIZED = 0;
-FL_DB_HEADER_LOADED = 0;
+volatile uint8_t FL_LOGGED_IN = 0;
+volatile uint8_t FL_DB_INITIALIZED = 0;
+volatile uint8_t FL_DB_HEADER_LOADED = 0;
