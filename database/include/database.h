@@ -11,7 +11,7 @@
 struct DatabaseHeader {
     uint16_t version;
     uint32_t db_len;
-    struct DataHash master_pass_hash;
+    struct DataHash master_pin_hash;
 }__attribute__((packed, aligned(1)));
 
 struct Database {
@@ -28,14 +28,14 @@ struct Database {
 } __attribute__((packed, aligned(1)));
 
 
-PIPASS_ERR db_create_new(uint8_t *master_pass);
-PIPASS_ERR db_update_DEK(uint8_t *dek, uint8_t *master_pass);
+PIPASS_ERR db_create_new(uint8_t *master_pin);
+PIPASS_ERR db_update_DEK(uint8_t *dek, uint8_t *master_pin);
 PIPASS_ERR db_update_login(uint8_t *login_hash, uint8_t *login_salt);
 PIPASS_ERR db_update_KEK(uint8_t *kek_hash, uint8_t *kek_salt);
 PIPASS_ERR db_raw(uint8_t **raw_db, int32_t *raw_db_size);
 PIPASS_ERR db_header_raw(uint8_t **raw_db_header);
 PIPASS_ERR db_append_credential(struct Credential *cr, struct CredentialHeader *crh);
-PIPASS_ERR db_get_master_pass_hash(struct DataHash *master_pass_hash);
+PIPASS_ERR db_get_master_pin_hash(struct DataHash *master_pin_hash);
 PIPASS_ERR db_get_length(uint32_t *db_len);
 PIPASS_ERR db_get_DEK(struct DataBlob *dek);
 PIPASS_ERR load_database(struct DataBlob *raw_db, uint32_t db_len, uint8_t *kek);

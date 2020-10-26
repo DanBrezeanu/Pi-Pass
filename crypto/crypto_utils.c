@@ -111,11 +111,11 @@ error:
     return err;
 }
 
-PIPASS_ERR concat_passw_pepper(uint8_t *passw, uint8_t **passw_pepper) {
-    if (passw == NULL)
+PIPASS_ERR concat_pin_pepper(uint8_t *pin, uint8_t **pin_pepper) {
+    if (pin == NULL)
         return ERR_CONCAT_PEPPER_INV_PARAMS;
 
-    if (*passw_pepper != NULL)
+    if (*pin_pepper != NULL)
         return ERR_CRYPTO_MEM_LEAK;
 
     PIPASS_ERR err;
@@ -125,14 +125,14 @@ PIPASS_ERR concat_passw_pepper(uint8_t *passw, uint8_t **passw_pepper) {
     if (err != PIPASS_OK)
         return err;
 
-    *passw_pepper = malloc(MASTER_PASS_SIZE_WITH_PEPPER);
-    if (*passw_pepper == NULL) {
+    *pin_pepper = malloc(MASTER_PIN_SIZE_WITH_PEPPER);
+    if (*pin_pepper == NULL) {
         err = ERR_CRYPTO_MEM_ALLOC;
         goto error;
     }
 
-    memcpy(*passw_pepper, passw, MASTER_PASS_SIZE);
-    memcpy(*passw_pepper + MASTER_PASS_SIZE, pepper, PEPPER_SIZE);
+    memcpy(*pin_pepper, pin, MASTER_PIN_SIZE);
+    memcpy(*pin_pepper + MASTER_PIN_SIZE, pepper, PEPPER_SIZE);
 
     erase_buffer(&pepper, PEPPER_SIZE);
 
@@ -140,7 +140,7 @@ PIPASS_ERR concat_passw_pepper(uint8_t *passw, uint8_t **passw_pepper) {
 
 error:
     erase_buffer(&pepper, PEPPER_SIZE);
-    erase_buffer(passw_pepper, PEPPER_SIZE);
+    erase_buffer(pin_pepper, PEPPER_SIZE);
     
     return err;
 }

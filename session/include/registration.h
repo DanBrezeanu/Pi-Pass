@@ -6,6 +6,6 @@
 #include <errors.h>
 #include <defines.h>
 
-PIPASS_ERR register_new_user(uint8_t *user_data, int32_t user_data_len, uint8_t *master_pass);
+PIPASS_ERR register_new_user(uint8_t *user_data, int32_t user_data_len, uint8_t *master_pin);
 
 #endif

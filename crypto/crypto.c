@@ -8,11 +8,11 @@
 uint8_t *OTK = NULL;
 struct DataBlob *DEK_BLOB = NULL;
 
-PIPASS_ERR generate_KEK(uint8_t *passw, uint8_t *salt, uint8_t **KEK) {
+PIPASS_ERR generate_KEK(uint8_t *pin, uint8_t *salt, uint8_t **KEK) {
     PIPASS_ERR err = CRYPTO_OK; 
-    uint8_t *passw_pepper = NULL;
+    uint8_t *pin_pepper = NULL;
     
-    if (passw == NULL || salt == NULL)
+    if (pin == NULL || salt == NULL)
         return ERR_CRYPTO_KEK_INV_PARAMS;
 
     if (*KEK != NULL)
@@ -24,21 +24,21 @@ PIPASS_ERR generate_KEK(uint8_t *passw, uint8_t *salt, uint8_t **KEK) {
         goto error;
     }
 
-    err = concat_passw_pepper(passw, &passw_pepper);
+    err = concat_pin_pepper(pin, &pin_pepper);
     if (err != PIPASS_OK)
         goto error;
 
-    err = create_PBKDF2_key(passw_pepper, MASTER_PASS_SIZE_WITH_PEPPER, salt, SALT_SIZE, *KEK);
+    err = create_PBKDF2_key(pin_pepper, MASTER_PIN_SIZE_WITH_PEPPER, salt, SALT_SIZE, *KEK);
     if (err != PIPASS_OK)
         goto error;
 
-    erase_buffer(&passw_pepper, MASTER_PASS_SIZE_WITH_PEPPER);
+    erase_buffer(&pin_pepper, MASTER_PIN_SIZE_WITH_PEPPER);
 
     return CRYPTO_OK;
 
 error:
     erase_buffer(KEK, AES256_KEY_SIZE);
-    erase_buffer(&passw_pepper, MASTER_PASS_SIZE_WITH_PEPPER);
+    erase_buffer(&pin_pepper, MASTER_PIN_SIZE_WITH_PEPPER);
 
     return err;
 } 
@@ -79,40 +79,40 @@ error:
     return err;
 }
 
-PIPASS_ERR generate_new_master_passw_hash(uint8_t *passw, struct DataHash *passw_hash) {
-    if (passw == NULL || passw_hash == NULL)
+PIPASS_ERR generate_new_master_pin_hash(uint8_t *pin, struct DataHash *pin_hash) {
+    if (pin == NULL || pin_hash == NULL)
         return ERR_CRYPTO_GEN_HASH_INV_PARAMS;
     
-    if (passw_hash->hash != NULL || passw_hash->salt != NULL)
+    if (pin_hash->hash != NULL || pin_hash->salt != NULL)
         return ERR_CRYPTO_HASH_MEM_LEAK;
 
-    uint8_t *passw_and_pepper = NULL;
+    uint8_t *pin_and_pepper = NULL;
     PIPASS_ERR err;
 
-    err = alloc_datahash(passw_hash);
+    err = alloc_datahash(pin_hash);
     if (err != PIPASS_OK)
         goto error;
 
-    err = create_salt(SALT_SIZE, passw_hash->salt);
+    err = create_salt(SALT_SIZE, pin_hash->salt);
     if (err != PIPASS_OK)
         goto error;
     
-    err = concat_passw_pepper(passw, &passw_and_pepper);
+    err = concat_pin_pepper(pin, &pin_and_pepper);
     if (err != PIPASS_OK)
         goto error;
     
-    err = hash_sha256(passw_and_pepper, MASTER_PASS_SIZE_WITH_PEPPER, passw_hash->salt, SALT_SIZE, passw_hash->hash);
+    err = hash_sha256(pin_and_pepper, MASTER_PIN_SIZE_WITH_PEPPER, pin_hash->salt, SALT_SIZE, pin_hash->hash);
     if (err != PIPASS_OK)
         goto error;
 
-    erase_buffer(&passw_and_pepper, MASTER_PASS_SIZE_WITH_PEPPER);
+    erase_buffer(&pin_and_pepper, MASTER_PIN_SIZE_WITH_PEPPER);
 
     return PIPASS_OK;
 
 error:
-    erase_buffer(&passw_and_pepper, MASTER_PASS_SIZE_WITH_PEPPER);
-    erase_buffer(&(passw_hash->salt), SALT_SIZE);
-    erase_buffer(&(passw_hash->hash), SHA256_DGST_SIZE);
+    erase_buffer(&pin_and_pepper, MASTER_PIN_SIZE_WITH_PEPPER);
+    erase_buffer(&(pin_hash->salt), SALT_SIZE);
+    erase_buffer(&(pin_hash->hash), SHA256_DGST_SIZE);
 
     return err;
 }
@@ -410,11 +410,11 @@ error:
     return err;
 }
 
-PIPASS_ERR reencrypt_DEK(struct DataBlob *dek_blob, uint8_t *new_master_pass, uint8_t *new_master_pass_salt, 
-  uint8_t *old_master_pass, uint8_t *old_master_pass_salt) {
+PIPASS_ERR reencrypt_DEK(struct DataBlob *dek_blob, uint8_t *new_master_pin, uint8_t *new_master_pin_salt, 
+  uint8_t *old_master_pin, uint8_t *old_master_pin_salt) {
 
-      if (dek_blob == NULL || new_master_pass == NULL || new_master_pass_salt == NULL 
-       || old_master_pass == NULL || old_master_pass_salt == NULL)
+      if (dek_blob == NULL || new_master_pin == NULL || new_master_pin_salt == NULL 
+       || old_master_pin == NULL || old_master_pin_salt == NULL)
         return ERR_REENCRYPT_DEK_INV_PARAMS;
     
     uint8_t *old_kek = NULL;
@@ -424,11 +424,11 @@ PIPASS_ERR reencrypt_DEK(struct DataBlob *dek_blob, uint8_t *new_master_pass, ui
 
     PIPASS_ERR err;
 
-    err = generate_KEK(old_master_pass, old_master_pass_salt, &old_kek);
+    err = generate_KEK(old_master_pin, old_master_pin_salt, &old_kek);
     if (err != PIPASS_OK)
         goto error;    
 
-    err = generate_KEK(new_master_pass, new_master_pass_salt, &new_kek);
+    err = generate_KEK(new_master_pin, new_master_pin_salt, &new_kek);
     if (err != PIPASS_OK)
         goto error;    
 
@@ -455,63 +455,63 @@ error:
     return err;
 }
 
-PIPASS_ERR verify_master_password_with_db(uint8_t *passw) {
+PIPASS_ERR verify_master_pin_with_db(uint8_t *pin) {
     if (!FL_DB_HEADER_LOADED && !FL_DB_INITIALIZED)
         return ERR_DB_HEADER_NOT_LOADED;
     
-    if (passw == NULL)
+    if (pin == NULL)
         return ERR_VERIFY_PWD_INV_PARAMS;
 
     PIPASS_ERR err;
-    uint8_t *passw_pepper = NULL;
-    struct DataHash master_passw_hash;
+    uint8_t *pin_pepper = NULL;
+    struct DataHash master_pin_hash;
 
-    err = alloc_datahash(&master_passw_hash);
+    err = alloc_datahash(&master_pin_hash);
     if (err != PIPASS_OK)
         return err;
 
-    err = db_get_master_pass_hash(&master_passw_hash);
+    err = db_get_master_pin_hash(&master_pin_hash);
     if (err != PIPASS_OK)
         goto error;
 
-    err = concat_passw_pepper(passw, &passw_pepper);
+    err = concat_pin_pepper(pin, &pin_pepper);
     if (err != PIPASS_OK)
         goto error;
 
-    err = verify_sha256(passw_pepper, MASTER_PASS_SIZE_WITH_PEPPER, master_passw_hash.salt,
-         SALT_SIZE, master_passw_hash.hash);
+    err = verify_sha256(pin_pepper, MASTER_PIN_SIZE_WITH_PEPPER, master_pin_hash.salt,
+         SALT_SIZE, master_pin_hash.hash);
     if (err != PIPASS_OK)
         goto error;  
 
     err = PIPASS_OK;
 
 error:
-    free_datahash(&master_passw_hash);
-    erase_buffer(&passw_pepper, MASTER_PASS_SIZE_WITH_PEPPER);
+    free_datahash(&master_pin_hash);
+    erase_buffer(&pin_pepper, MASTER_PIN_SIZE_WITH_PEPPER);
     
     return err;
 }
 
-PIPASS_ERR verify_master_password_with_hash(uint8_t *passw, struct DataHash passw_hash) {    
-    if (passw == NULL || datahash_has_null_fields(passw_hash))
+PIPASS_ERR verify_master_pin_with_hash(uint8_t *pin, struct DataHash pin_hash) {    
+    if (pin == NULL || datahash_has_null_fields(pin_hash))
         return ERR_VERIFY_PWD_INV_PARAMS;
 
     PIPASS_ERR err;
-    uint8_t *passw_pepper = NULL;
+    uint8_t *pin_pepper = NULL;
 
-    err = concat_passw_pepper(passw, &passw_pepper);
+    err = concat_pin_pepper(pin, &pin_pepper);
     if (err != PIPASS_OK)
         goto error;
 
-    err = verify_sha256(passw_pepper, MASTER_PASS_SIZE_WITH_PEPPER, passw_hash.salt,
-         SALT_SIZE, passw_hash.hash);
+    err = verify_sha256(pin_pepper, MASTER_PIN_SIZE_WITH_PEPPER, pin_hash.salt,
+         SALT_SIZE, pin_hash.hash);
     if (err != PIPASS_OK)
         goto error;  
 
     err = PIPASS_OK;
 
 error:
-    erase_buffer(&passw_pepper, MASTER_PASS_SIZE_WITH_PEPPER);
+    erase_buffer(&pin_pepper, MASTER_PIN_SIZE_WITH_PEPPER);
     
     return err;
 }

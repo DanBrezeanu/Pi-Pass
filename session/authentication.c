@@ -6,11 +6,11 @@
 #include <aes256.h>
 #include <flags.h>
 
-PIPASS_ERR authenticate(uint8_t *user_hash, uint8_t *master_pass) {
+PIPASS_ERR authenticate(uint8_t *user_hash, uint8_t *master_pin) {
     if (FL_LOGGED_IN)
         return ERR_ALREADY_LOGGED_IN;
     
-    if (user_hash == NULL || master_pass == NULL)
+    if (user_hash == NULL || master_pin == NULL)
         return ERR_AUTH_INV_PARAMS;
 
     PIPASS_ERR err = PIPASS_OK;
@@ -23,7 +23,7 @@ PIPASS_ERR authenticate(uint8_t *user_hash, uint8_t *master_pass) {
     uint8_t *raw_db_header = NULL;
     struct DataBlob raw_db = {0};
     uint32_t raw_db_len = 0;
-    struct DataHash *master_pass_hash = NULL;
+    struct DataHash *master_pin_hash = NULL;
     uint8_t *kek = NULL;
 
     err = read_database_header(user_hash, &raw_db_header);
@@ -36,7 +36,7 @@ PIPASS_ERR authenticate(uint8_t *user_hash, uint8_t *master_pass) {
 
     FL_DB_HEADER_LOADED = 1;
     
-    err = verify_master_password_with_db(user_hash);
+    err = verify_master_pin_with_db(user_hash);
     if (err != PIPASS_OK)
         return err;
 
@@ -47,21 +47,21 @@ PIPASS_ERR authenticate(uint8_t *user_hash, uint8_t *master_pass) {
     if (err != PIPASS_OK)
         goto error;
 
-    master_pass_hash = calloc(1, sizeof(master_pass_hash));
-    if (master_pass_hash == NULL) {
+    master_pin_hash = calloc(1, sizeof(master_pin_hash));
+    if (master_pin_hash == NULL) {
         err = ERR_DB_MEM_ALLOC;
         goto error;
     }
     
-    err = alloc_datahash(master_pass_hash);
+    err = alloc_datahash(master_pin_hash);
     if (err != PIPASS_OK)
         goto error;
 
-    err = db_get_master_pass_hash(master_pass_hash);
+    err = db_get_master_pin_hash(master_pin_hash);
     if (err != PIPASS_OK)
         goto error;
 
-    err = generate_KEK(master_pass, master_pass_hash->salt, &kek);
+    err = generate_KEK(master_pin, master_pin_hash->salt, &kek);
     if (err != PIPASS_OK)
         goto error;
 
@@ -84,9 +84,9 @@ cleanup:
     erase_buffer(&kek, AES256_KEY_SIZE);
     erase_buffer(&raw_db_header, DB_HEADER_SIZE);
     free_datablob(&raw_db, raw_db_len);
-    free_datahash(master_pass_hash);
-    if (master_pass_hash != NULL)
-        free(master_pass_hash);
+    free_datahash(master_pin_hash);
+    if (master_pin_hash != NULL)
+        free(master_pin_hash);
 
     return err;
 }

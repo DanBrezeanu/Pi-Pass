@@ -59,7 +59,7 @@ error:
     return err;
 }
 
-PIPASS_ERR dump_database(uint8_t *user_hash, uint8_t *master_pass) {
+PIPASS_ERR dump_database(uint8_t *user_hash, uint8_t *master_pin) {
     if (!FL_LOGGED_IN)
         return ERR_NOT_LOGGED_IN;
 
@@ -73,7 +73,7 @@ PIPASS_ERR dump_database(uint8_t *user_hash, uint8_t *master_pass) {
     if (err != PIPASS_OK)
         return err;
 
-    err = verify_master_password_with_db(master_pass);
+    err = verify_master_pin_with_db(master_pin);
     if (err != PIPASS_OK)
         return err;
 
@@ -84,7 +84,7 @@ PIPASS_ERR dump_database(uint8_t *user_hash, uint8_t *master_pass) {
     uint8_t *raw_db_header = NULL;
     uint32_t raw_db_size = 0;
     struct DataBlob raw_db_blob;
-    struct DataHash master_pass_hash = {0};
+    struct DataHash master_pin_hash = {0};
     uint8_t *kek = NULL;
 
     err = user_file_path(user_hash, PIPASS_DB, &file_path, &file_path_len);
@@ -107,15 +107,15 @@ PIPASS_ERR dump_database(uint8_t *user_hash, uint8_t *master_pass) {
     if (err != PIPASS_OK)
         goto error;
 
-    err = alloc_datahash(&master_pass_hash);
+    err = alloc_datahash(&master_pin_hash);
     if (err != PIPASS_OK)
         goto error;
 
-    err = db_get_master_pass_hash(&master_pass_hash);
+    err = db_get_master_pin_hash(&master_pin_hash);
     if (err != PIPASS_OK)
         goto error;
 
-    err = generate_KEK(master_pass, master_pass_hash.salt, &kek);
+    err = generate_KEK(master_pin, master_pin_hash.salt, &kek);
     if (err != PIPASS_OK)
         goto error;
 
@@ -163,7 +163,7 @@ error:
     erase_buffer(&kek, AES256_KEY_SIZE);
     erase_buffer(&file_path, file_path_len);
     erase_buffer(&raw_db, raw_db_size);
-    free_datahash(&master_pass_hash);
+    free_datahash(&master_pin_hash);
     free_datablob(&raw_db_blob, raw_db_size);
 
     return err;

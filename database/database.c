@@ -11,7 +11,7 @@
 static struct Database *db;
 static struct DatabaseHeader *db_header;
 
-PIPASS_ERR db_create_new(uint8_t *master_pass) {
+PIPASS_ERR db_create_new(uint8_t *master_pin) {
     if (db != NULL || FL_DB_INITIALIZED)
         return ERR_DB_ALREADY_INIT;
 
@@ -26,17 +26,17 @@ PIPASS_ERR db_create_new(uint8_t *master_pass) {
     db->header = db_header;
 
     memset(&(db->dek), 0, sizeof(struct DataBlob));
-    memset(&(db->header->master_pass_hash), 0, sizeof(struct DataHash));
+    memset(&(db->header->master_pin_hash), 0, sizeof(struct DataHash));
 
     PIPASS_ERR err;
     uint8_t *dek = NULL;  
     uint8_t *kek = NULL;
 
-    err = generate_new_master_passw_hash(master_pass, &db->header->master_pass_hash);
+    err = generate_new_master_pin_hash(master_pin, &db->header->master_pin_hash);
     if (err != PIPASS_OK)
         goto error;
 
-    err = generate_KEK(master_pass, db->header->master_pass_hash.salt, &kek);
+    err = generate_KEK(master_pin, db->header->master_pin_hash.salt, &kek);
     if (err != PIPASS_OK)
         goto error;
     
@@ -73,37 +73,37 @@ error:
     return err;
 }
 
-PIPASS_ERR db_update_master_pass_hash(struct DataHash *new_master_pass_hash, 
-  uint8_t *new_master_pass, uint8_t *old_master_pass) {
+PIPASS_ERR db_update_master_pin_hash(struct DataHash *new_master_pin_hash, 
+  uint8_t *new_master_pin, uint8_t *old_master_pin) {
      if (db == NULL || !FL_DB_INITIALIZED)
         return ERR_DB_NOT_INITIALIZED;
 
     if (!FL_LOGGED_IN)
         return ERR_NOT_LOGGED_IN;
 
-    if (datahash_has_null_fields(db->header->master_pass_hash))
+    if (datahash_has_null_fields(db->header->master_pin_hash))
         return ERR_DB_MISSING_PASSW_HASH;
 
-    if (new_master_pass_hash == NULL || datahash_has_null_fields(*new_master_pass_hash) ||
-      new_master_pass == NULL || old_master_pass == NULL)
+    if (new_master_pin_hash == NULL || datahash_has_null_fields(*new_master_pin_hash) ||
+      new_master_pin == NULL || old_master_pin == NULL)
         return ERR_DB_UPDATE_LOGIN_INV_PARAMS;
 
     PIPASS_ERR err = PIPASS_OK;
 
-    err = verify_master_password_with_hash(new_master_pass, *new_master_pass_hash);
+    err = verify_master_pin_with_hash(new_master_pin, *new_master_pin_hash);
     if (err != PIPASS_OK)
         return err;
 
-    err = verify_master_password_with_db(old_master_pass);
+    err = verify_master_pin_with_db(old_master_pin);
     if (err != PIPASS_OK)
         return err;
 
     if (db->dek.ciphertext != NULL) {
-        err = reencrypt_DEK(&(db->dek), new_master_pass, new_master_pass_hash->salt, old_master_pass,
-          db->header->master_pass_hash.salt);
+        err = reencrypt_DEK(&(db->dek), new_master_pin, new_master_pin_hash->salt, old_master_pin,
+          db->header->master_pin_hash.salt);
     }  
 
-    err = datahash_memcpy(&(db->header->master_pass_hash), new_master_pass_hash);
+    err = datahash_memcpy(&(db->header->master_pin_hash), new_master_pin_hash);
     if (err != PIPASS_OK)
         goto error;
 
@@ -115,14 +115,14 @@ error:
     return err;
 }
 
-PIPASS_ERR db_update_DEK(uint8_t *dek, uint8_t *master_pass) {
+PIPASS_ERR db_update_DEK(uint8_t *dek, uint8_t *master_pin) {
     if (db == NULL || !FL_DB_INITIALIZED)
         return ERR_DB_NOT_INITIALIZED;
 
     if (!FL_LOGGED_IN || OTK == NULL)
         return ERR_NOT_LOGGED_IN;
 
-    if (dek == NULL || master_pass == NULL)   
+    if (dek == NULL || master_pin == NULL)   
         return ERR_DB_UPDATE_DEK_INV_PARAMS;
     
     if (datablob_has_null_fields(db->dek))
@@ -132,11 +132,11 @@ PIPASS_ERR db_update_DEK(uint8_t *dek, uint8_t *master_pass) {
     uint8_t *kek = NULL;
     struct DataBlob dek_blob;
 
-    err = verify_master_password_with_db(master_pass);
+    err = verify_master_pin_with_db(master_pin);
     if (err != PIPASS_OK)
         return err;
     
-    err = generate_KEK(master_pass, db->header->master_pass_hash.salt, &kek);
+    err = generate_KEK(master_pin, db->header->master_pin_hash.salt, &kek);
     if (err != PIPASS_OK)
         return err;
 
@@ -336,8 +336,8 @@ PIPASS_ERR db_header_raw(uint8_t **raw_db_header) {
     append_to_str(*raw_db_header, &raw_cursor, db_len_bin, sizeof(db_header->db_len));
     erase_buffer(&db_len_bin, sizeof(db_header->db_len));
 
-    append_to_str(*raw_db_header, &raw_cursor, db_header->master_pass_hash.hash, SHA256_DGST_SIZE);
-    append_to_str(*raw_db_header, &raw_cursor, db_header->master_pass_hash.salt, SALT_SIZE);
+    append_to_str(*raw_db_header, &raw_cursor, db_header->master_pin_hash.hash, SHA256_DGST_SIZE);
+    append_to_str(*raw_db_header, &raw_cursor, db_header->master_pin_hash.salt, SALT_SIZE);
 
     return PIPASS_OK;
 
@@ -349,8 +349,8 @@ error:
     return err;
 }
 
-PIPASS_ERR db_get_master_pass_hash(struct DataHash *master_pass_hash) {
-    if (master_pass_hash == NULL || datahash_has_null_fields(*master_pass_hash))
+PIPASS_ERR db_get_master_pin_hash(struct DataHash *master_pin_hash) {
+    if (master_pin_hash == NULL || datahash_has_null_fields(*master_pin_hash))
         return ERR_GET_MASTER_PWD_INV_PARAMS;
 
     struct DatabaseHeader *header = NULL;
@@ -365,10 +365,10 @@ PIPASS_ERR db_get_master_pass_hash(struct DataHash *master_pass_hash) {
         header = db->header;
     }
 
-    if (datahash_has_null_fields(header->master_pass_hash))
+    if (datahash_has_null_fields(header->master_pin_hash))
         return ERR_DB_MISSING_PASSW_HASH;
          
-    err = datahash_memcpy(master_pass_hash, &(header->master_pass_hash));
+    err = datahash_memcpy(master_pin_hash, &(header->master_pin_hash));
     if (err != PIPASS_OK)
         return err;
 
@@ -402,7 +402,7 @@ void db_free() {
         return;
 
     free_datablob(&db->dek, AES256_KEY_SIZE);
-    free_datahash(&db->header->master_pass_hash);
+    free_datahash(&db->header->master_pin_hash);
 
     for (int i = 0; i < db->cred_len; ++i)
         free_credential(&(db->cred[i]), &(db->cred_headers[i]));
@@ -422,7 +422,7 @@ void db_free_header() {
     if (db_header == NULL)
         return;
 
-    free_datahash(&db_header->master_pass_hash);
+    free_datahash(&db_header->master_pin_hash);
 
     free(db_header);
     db_header = NULL;
@@ -531,18 +531,18 @@ PIPASS_ERR load_database_header(uint8_t *raw_db_header) {
     db_header->db_len = *db_len;
     raw_db_header += sizeof(uint32_t);
 
-    err = alloc_datahash(&db_header->master_pass_hash);
+    err = alloc_datahash(&db_header->master_pin_hash);
     if (err != PIPASS_OK)
         goto error;
 
-    memcpy(db_header->master_pass_hash.hash, raw_db_header, SHA256_DGST_SIZE);
-    memcpy(db_header->master_pass_hash.salt, raw_db_header + SHA256_DGST_SIZE, SALT_SIZE);
+    memcpy(db_header->master_pin_hash.hash, raw_db_header, SHA256_DGST_SIZE);
+    memcpy(db_header->master_pin_hash.salt, raw_db_header + SHA256_DGST_SIZE, SALT_SIZE);
 
     err = PIPASS_OK;
     goto cleanup;
 
 error:
-    free_datahash(&db_header->master_pass_hash);
+    free_datahash(&db_header->master_pin_hash);
     free(db_header);
 cleanup:
     if (db_version != NULL)

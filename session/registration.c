@@ -7,7 +7,7 @@
 #include <credentials.h>
 #include <authentication.h>
 
-PIPASS_ERR register_new_user(uint8_t *user_data, int32_t user_data_len, uint8_t *master_pass) {
+PIPASS_ERR register_new_user(uint8_t *user_data, int32_t user_data_len, uint8_t *master_pin) {
     if (FL_LOGGED_IN)
         return ERR_ALREADY_LOGGED_IN;
     
@@ -17,7 +17,7 @@ PIPASS_ERR register_new_user(uint8_t *user_data, int32_t user_data_len, uint8_t 
     if (FL_DB_HEADER_LOADED)
         return ERR_DB_HEADER_ALREADY_LOADED;
 
-    if (user_data == NULL || master_pass == NULL || user_data_len == 0) 
+    if (user_data == NULL || master_pin == NULL || user_data_len == 0) 
         return ERR_REGISTER_USER_INV_PARAMS;
 
     uint8_t *user_hash = NULL;
@@ -27,7 +27,7 @@ PIPASS_ERR register_new_user(uint8_t *user_data, int32_t user_data_len, uint8_t 
     if (err != PIPASS_OK)
         goto error;    
 
-    err = db_create_new(master_pass);
+    err = db_create_new(master_pin);
     if (err != PIPASS_OK)
         goto error;
 
@@ -37,7 +37,7 @@ PIPASS_ERR register_new_user(uint8_t *user_data, int32_t user_data_len, uint8_t 
 
     FL_LOGGED_IN = FL_DB_HEADER_LOADED = FL_DB_INITIALIZED = 1;
 
-    err = dump_database(user_hash, master_pass);
+    err = dump_database(user_hash, master_pin);
     if (err != DB_OK)
         goto error;
 
@@ -59,17 +59,17 @@ int main(int argc, char **argv) {
     PIPASS_ERR err = -1;
 
     if (argc == 1) {
-        char pass[] = "1234";
-        err = register_new_user("test", strlen("test"), pass);
+        char pin[] = "1234";
+        err = register_new_user("test", strlen("test"), pin);
     } else if (argc == 2) {
         uint8_t *user_hash = NULL;
         err = generate_user_hash("test", 4, &user_hash);
         if (err != STORAGE_OK)
             goto error;
 
-        char pass[] = "1234";
+        char pin[] = "1234";
 
-        // err = verify_master_password_with_hashvei(pass, user_hash);
+        // err = verify_master_pin_with_hashvei(pass, user_hash);
 
         free(user_hash);
     }
