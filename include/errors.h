@@ -197,7 +197,6 @@
 #define ERR_DISPLAY_TEXT_INV_PARAMS    0x500B
 
 /* Connection Error Codes */
-#define CONN_OK                        0x6000
 #define ERR_SERIAL_MEM_LEAK            0x6001
 #define ERR_SERIAL_MEM_ALLOC           0x6002
 #define ERR_SERIAL_OPEN_CONN           0x6003
@@ -211,5 +210,21 @@
 #define ERR_EXEC_CMD_INV_PARAMS        0x600A
 #define ERR_RECV_CMD_INV_PARAMS        0x600B
 
+
+/* Fingerprint Error Codes */
+#define ERR_VERIFY_PIN_INV_PARAMS      0x7001
+#define ERR_FP_ALREADY_INIT            0x7002
+#define ERR_DRIVER_INIT_FAIL           0x7003
+#define ERR_FINGERPRINT_MEM_ALLOC      0x7004
+#define ERR_FP_WRONG_PASSWORD          0x7005
+#define ERR_VFY_PASSWORD_FAIL          0x7006
+#define ERR_FP_NOT_INIT                0x7007
+#define ERR_FP_NOT_UNLOCKED            0x7008
+#define ERR_FP_ALREADY_UNLOCKED        0x7009
+#define ERR_FP_ENROLL_FAIL             0x700A
+#define ERR_FP_VERIFY_FAIL             0x700B
+#define ERR_FP_NO_FINGER_FOUND         0x700C
+#define ERR_FP_MEM_LEAK                0x700D
+#define ERR_FP_GET_DATA_FAIL           0x700E
 
 #endif

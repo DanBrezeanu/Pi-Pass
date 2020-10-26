@@ -17,8 +17,8 @@ cd /sys/kernel/config/usb_gadget/
 mkdir -p pipass
 cd pipass
 echo 0x1d6b > idVendor # Linux Foundation
-echo 0x0104 > idProduct # Multifunction Composite Gadget
-echo 0x0100 > bcdDevice # v1.0.0
+echo 0x0105 > idProduct # Multifunction Composite Gadget
+echo 0x1133 > bcdDevice # v1.0.0
 echo 0x0200 > bcdUSB # USB2
 mkdir -p strings/0x409
 echo \"fedcba9876543210\" > strings/0x409/serialnumber
@@ -41,4 +41,4 @@ ln -s functions/acm.gs0 configs/c.1/
 
 # End functions
 
-ls /sys/class/udc > UDC
+ls /sys/class/udc > UDC' > /usr/bin/pipass_usb
