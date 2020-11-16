@@ -6,6 +6,7 @@
 #include <database.h>
 #include <credentials.h>
 #include <authentication.h>
+#include <fingerprint.h>
 
 PIPASS_ERR register_new_user(uint8_t *user_data, int32_t user_data_len, uint8_t *master_pin) {
     if (FL_LOGGED_IN)
@@ -21,13 +22,23 @@ PIPASS_ERR register_new_user(uint8_t *user_data, int32_t user_data_len, uint8_t 
         return ERR_REGISTER_USER_INV_PARAMS;
 
     uint8_t *user_hash = NULL;
+    uint8_t *fp_data = NULL;
+    uin16_t fp_index = 0;
     PIPASS_ERR err = PIPASS_OK;
    
     err = generate_user_hash(user_data, user_data_len, &user_hash);
     if (err != PIPASS_OK)
         goto error;    
 
-    err = db_create_new(master_pin);
+    err = fp_enroll_fingerprint(&fp_index);
+    if (err != PIPASS_OK)
+        goto error;
+
+    err = fp_get_fingerprint_data(&fp_data);
+    if (err != PIPASS_OK)
+        goto error;
+
+    err = db_create_new(master_pin, fp_data);
     if (err != PIPASS_OK)
         goto error;
 
@@ -47,6 +58,7 @@ PIPASS_ERR register_new_user(uint8_t *user_data, int32_t user_data_len, uint8_t 
 
 error:
     erase_buffer(&user_hash, SHA256_HEX_SIZE);
+    erase_buffer(&fp_data, FINGERPRINT_SIZE);
     db_free();
 
     return err;

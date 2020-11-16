@@ -195,6 +195,11 @@
 #define ERR_DISPLAY_GET_ATTR           0x5009
 #define ERR_DISPLAY_CALL_FUNCTION      0x500A
 #define ERR_DISPLAY_TEXT_INV_PARAMS    0x500B
+#define ERR_DISPLAY_ALREADY_INIT       0x500C
+#define ERR_DISPLAY_NOT_INIT           0x500D
+#define ERR_SCREEN_ST_ALREADY_INIT     0x500E
+#define ERR_DISPLAY_MEM_ALLOC          0x500F
+#define ERR_DISPLAY_NO_SUCH_SCREEN     0x5010
 
 /* Connection Error Codes */
 #define ERR_SERIAL_MEM_LEAK            0x6001
@@ -209,6 +214,15 @@
 #define ERR_CONN_MEM_ALLOC             0x6009
 #define ERR_EXEC_CMD_INV_PARAMS        0x600A
 #define ERR_RECV_CMD_INV_PARAMS        0x600B
+#define ERR_CONN_ALREADY_OPEN          0x600C
+#define ERR_CONN_NOT_INIT              0x600D
+#define ERR_SEND_CMD_INV_PARAMS        0x600E
+#define ERR_PARSE_CMD_2_BUF_INV_PARAMS 0x600F
+#define ERR_CALC_CRC_INV_PARAMS        0x6010
+#define ERR_PARSE_BUF_2_CMD_INV_PARAMS 0x6011
+#define ERR_PIN_NOT_ENTERED            0x6012
+#define ERR_CONN_INVALID_COMM          0x6013
+#define ERR_CRC_DIFFERENT              0x6014
 
 
 /* Fingerprint Error Codes */

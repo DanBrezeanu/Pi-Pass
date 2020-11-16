@@ -6,6 +6,8 @@
 #include <errors.h>
 #include <defines.h>
 
+extern uint8_t FL_PIN_ENTERED;
+
 typedef struct Connection {
     SerialConnection *s_conn;
     Command comm;

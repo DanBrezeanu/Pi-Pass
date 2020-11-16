@@ -8,6 +8,8 @@
 #define SENDER_APP    0x02
 #define SENDER_PLUGIN 0x03 
 
+#define APP_HELLO   0xB0
+
 /* 
 |-- 1 byte --|-- 1 byte -- |-- 2 bytes --|-- 2 bytes --|
 |   command  |   sender    |   length    |     CRC     |
@@ -59,18 +61,24 @@
 #define WIPE_DEVICE        0xC9
 
 #define CHANGE_PIN         0xCA
-#define CHANGE_DIP_SWITCH  0XCB
+#define CHANGE_DIP_SWITCH  0XCB 
+
+#define ASK_FOR_PASSWORD   0xCC
+#define ASK_FOR_PIN        0xCD
 
 
 
 
 typedef struct Command {
     uint8_t type;
+    uint8_t sender;
+    uint16_t length;
+
+    uint8_t *options;
+
+    uint8_t is_reply;
     uint8_t reply_code;
-
-    uint8_t *send_buff;
-    uint8_t *recv_buff;
-
+    uint16_t crc;
 } Command;
 
 #endif
