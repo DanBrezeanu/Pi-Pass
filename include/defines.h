@@ -38,6 +38,9 @@
 
 #define FP_PORT  "/dev/ttyS0"
 
+#define MEDIA_DIR "./media"
+#define IMG_DIR   MEDIA_DIR"/img"
+
 typedef uint8_t * usb_packet;
 typedef uint8_t   BYTE;
 typedef uint32_t  PIPASS_ERR;

@@ -200,6 +200,9 @@
 #define ERR_SCREEN_ST_ALREADY_INIT     0x500E
 #define ERR_DISPLAY_MEM_ALLOC          0x500F
 #define ERR_DISPLAY_NO_SUCH_SCREEN     0x5010
+#define ERR_DRAW_NOT_INIT              0x5011
+#define ERR_DRAW_IMG_INV_PARAMS        0x5012
+#define ERR_DISPLAY_CANVAS_INV_PARAMS  0x5013
 
 /* Connection Error Codes */
 #define ERR_SERIAL_MEM_LEAK            0x6001

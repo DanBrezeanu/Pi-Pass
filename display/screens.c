@@ -22,3 +22,16 @@ PIPASS_ERR main_screen(enum Button pressed) {
 
     draw_screen(MAIN_SCREEN, (int32_t)options);
 }
+
+#include <display.h>
+
+int main() {
+    Py_Initialize();
+    init_display();
+    main_screen(2);
+
+    sleep(5);
+    Py_Finalize();
+
+    return 0;
+}

@@ -3,8 +3,6 @@
 
 static PyObject *device;
 
-
-
 PIPASS_ERR init_display() {
     PyObject *device_module = NULL, *serial_module = NULL;
     PyObject *serial = NULL;
@@ -30,6 +28,10 @@ PIPASS_ERR init_display() {
     if (err != PIPASS_OK)
         goto error;
 
+    err = init_draw();
+    if (err != PIPASS_OK)
+        goto error;
+
     err = PIPASS_OK;
 
 error:
@@ -46,9 +48,26 @@ PIPASS_ERR destroy_device() {
 }
 
 /* Wrapper function */
-PIPASS_ERR draw_text(int32_t x, int32_t y, uint8_t *text) {
-    return _draw_text(device, x, y, text);
+PIPASS_ERR display(PyObject *canvas) {
+    return _display(device, canvas);
 }
+
+/* Wrapper function */
+PIPASS_ERR draw_text(int32_t x, int32_t y, uint8_t *text, PyObject *canvas) {
+    return _draw_text(device, x, y, text, canvas);
+}
+
+/* Wrapper function */
+PIPASS_ERR draw_image(int32_t x, int32_t y, uint8_t* image_res, PyObject **background) {
+    return _draw_image(device, x, y, image_res, background);
+}
+
+/* Wrapper function */
+PIPASS_ERR create_canvas(PyObject *background, PyObject **canvas) {
+    return _create_canvas(device, background, canvas);
+}
+
+
 
 
 
