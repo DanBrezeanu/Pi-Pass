@@ -40,10 +40,14 @@
 
 #define MEDIA_DIR "./media"
 #define IMG_DIR   MEDIA_DIR"/img"
+#define FONTS_DIR MEDIA_DIR"/fonts"
 
 typedef uint8_t * usb_packet;
 typedef uint8_t   BYTE;
 typedef uint32_t  PIPASS_ERR;
 typedef uint16_t  KEY;
+
+#define MIN(x,y) (((x) < (y)) ? (x) : (y))
+#define MAX(x,y) (((x) > (y)) ? (x) : (y))
 
 #endif

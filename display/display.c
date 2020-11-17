@@ -53,8 +53,20 @@ PIPASS_ERR display(PyObject *canvas) {
 }
 
 /* Wrapper function */
-PIPASS_ERR draw_text(int32_t x, int32_t y, uint8_t *text, PyObject *canvas) {
-    return _draw_text(device, x, y, text, canvas);
+PIPASS_ERR draw_text(int32_t x, int32_t y, uint8_t *text, uint8_t *fill, uint8_t font_attr,
+  PyObject *canvas, uint32_t attrs, ...) {
+      va_list args;
+      va_start(args, attrs);
+      PIPASS_ERR err = _draw_text(device, x, y, text, fill, font_attr, canvas, attrs, args);
+      va_end(args);
+
+      return err;
+}
+
+/* Wrapper function */
+PIPASS_ERR draw_rectangle(int32_t x1, int32_t y1, int32_t x2, int32_t y2, uint8_t *fill, 
+  uint8_t *outline, PyObject *canvas) {
+    return _draw_rectangle(device, x1, y1, x2, y2, fill, outline, canvas);     
 }
 
 /* Wrapper function */

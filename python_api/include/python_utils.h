@@ -9,6 +9,7 @@
 
 #define TO_PY_STRING(x) (PyUnicode_DecodeFSDefault((x)))
 #define TO_PY_LONG(x) (PyLong_FromLong((x)))
+#define FROM_PY_LONG(x) (PyLong_AsLong((x)))
 
 PyObject *pack_arguments(int num, ...);
 PyObject *pack_arguments_list(int num, va_list args);

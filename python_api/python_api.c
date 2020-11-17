@@ -113,3 +113,17 @@ PIPASS_ERR call_function(PyObject *func, PyObject *args, PyObject **ret) {
     return DISPLAY_OK;
 }
 
+PIPASS_ERR get_item_at(PyObject *tuple, int32_t index, PyObject **ret) {
+    if (tuple == NULL)
+        return ERR_PYTHON_GET_ITEM_INV_PARAMS;
+
+    if (!PyTuple_Check(tuple))
+        return ERR_PYTHON_NOT_A_TUPLE;
+
+    *ret = PyTuple_GetItem(tuple, (Py_ssize_t) index);
+
+    if (*ret == NULL)
+        return ERR_PYTHON_INDEX_ERROR;
+
+    return PIPASS_OK;
+}

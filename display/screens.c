@@ -29,8 +29,13 @@ int main() {
     Py_Initialize();
     init_display();
     main_screen(2);
-
-    sleep(5);
+    sleep(2);
+    main_screen(4);
+    sleep(2);
+    main_screen(4);
+    sleep(2);
+    main_screen(4);
+    sleep(2);
     Py_Finalize();
 
     return 0;
