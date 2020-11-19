@@ -14,7 +14,8 @@ PyObject *pack_arguments_list(int num, va_list args) {
     PyObject *py_args = PyTuple_New(num);
 
     for (int i = 0; i < num; ++i) {
-        PyTuple_SetItem(py_args, i, va_arg(args, PyObject *));
+        PyObject *arg = va_arg(args, PyObject *);
+        PyTuple_SetItem(py_args, i, arg);
     }
 
     return py_args;

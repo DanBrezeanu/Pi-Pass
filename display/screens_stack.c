@@ -4,7 +4,7 @@
 static ScreensStack *st;
 
 PIPASS_ERR stack_init() {
-    if (st == NULL)
+    if (st != NULL)
         return ERR_SCREEN_ST_ALREADY_INIT;
 
     PIPASS_ERR err;
@@ -22,8 +22,12 @@ PIPASS_ERR stack_init() {
         goto error;
     }
 
+    return PIPASS_OK;
+
 error:
     free(st);
+
+    return err;
 }
 
 void stack_push(display_func e) {
@@ -36,7 +40,7 @@ void stack_push(display_func e) {
     st->array[st->size++] = e;
 }
 
-display_func *stack_top() {
+display_func stack_top() {
     if (st->size == 0) {
         return NULL;
     }
@@ -44,12 +48,12 @@ display_func *stack_top() {
     return st->array[st->size - 1];
 }
 
-display_func *stack_pop() {
+display_func stack_pop() {
     if (st->size == 0) {
         return NULL;
     }
 
-    display_func *ret = stack_top();
+    display_func ret = stack_top();
     --st->size;
 
     return ret;

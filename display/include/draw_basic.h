@@ -28,5 +28,6 @@ PIPASS_ERR _create_canvas(PyObject *device, PyObject *background, PyObject **can
 PIPASS_ERR new_image(PyObject *device, uint32_t width, uint32_t height, PyObject **image);
 PIPASS_ERR compute_alignment(uint8_t *text, PyObject *font, PyObject *canvas, uint32_t alignment,
   uint32_t x1, uint32_t y1, uint32_t x2, uint32_t y2, PyObject **xy);
-  
+PIPASS_ERR _clear_screen(PyObject *device);
+
 #endif

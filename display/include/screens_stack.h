@@ -14,5 +14,11 @@ typedef struct ScreensStack {
 
 } ScreensStack;
 
+PIPASS_ERR stack_init();
+void stack_push(display_func e);
+display_func stack_top();
+display_func stack_pop();
+uint8_t stack_empty();
+void stack_destroy();
 
 #endif

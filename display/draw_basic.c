@@ -65,7 +65,6 @@ PIPASS_ERR _display(PyObject *device, PyObject *canvas) {
     err = PIPASS_OK;
 
 error:
-    Py_XDECREF(canv_image);
     Py_XDECREF(_);
 
     return err;
@@ -94,7 +93,6 @@ PIPASS_ERR _draw_image(PyObject *device, int32_t x, int32_t y, uint8_t* image_re
     err = get_attr(pillow_module, "Image", &pillow_image);
     if (err != PIPASS_OK)
         goto error;
-
 
     err = get_and_call_function(pillow_image, "open", &image, 1, TO_PY_STRING(image_res));
     if (err != PIPASS_OK)
@@ -166,8 +164,7 @@ PIPASS_ERR _draw_text(PyObject *device, int32_t x, int32_t y, uint8_t *text, uin
     if (err != PIPASS_OK)
         goto error; 
 
-    if (font != Py_None)
-        Py_INCREF(font);
+    Py_INCREF(font);
         
     err = get_and_call_function(draw, "text", &_, 4, xy, TO_PY_STRING(text), TO_PY_STRING(fill), font);
     if (err != PIPASS_OK)
@@ -344,10 +341,23 @@ PIPASS_ERR compute_alignment(uint8_t *text, PyObject *font, PyObject *canvas, ui
     err = PIPASS_OK;
 
 error:
-    Py_XDECREF(width_height);
     Py_XDECREF(draw);
     Py_XDECREF(_width);
     Py_XDECREF(_height);
+
+    return err;
+}
+
+PIPASS_ERR _clear_screen(PyObject *device) {
+    if (device == NULL)
+        return ERR_DISPLAY_NOT_INIT;
+
+    PyObject *_ = NULL;
+    PIPASS_ERR err;
+
+    err = get_and_call_function(device, "clear", &_, 0);
+
+    Py_XDECREF(_);
 
     return err;
 }

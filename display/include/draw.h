@@ -13,4 +13,7 @@
 
 #define FREEPIXEL_FONT_PATH FONTS_DIR"/FreePixel.ttf"
 
+
+PIPASS_ERR draw_screen(uint8_t screen, int32_t option);
+
 #endif

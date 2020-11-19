@@ -4,13 +4,17 @@
 #include <draw_basic.h>
 
 static PIPASS_ERR _draw_main_screen(int32_t option);
+static PIPASS_ERR _draw_shutdown_screen(int32_t option);
 static PIPASS_ERR _draw_menu_tile(uint8_t *image, int32_t image_x, int32_t image_y, uint8_t *text, 
   int32_t text_x, int32_t text_y, PyObject **canvas);
 
 PIPASS_ERR draw_screen(uint8_t screen, int32_t option) {
+
     switch (screen) {
     case MAIN_SCREEN:
         return _draw_main_screen(option);
+    case SHUTDOWN_SCREEN:
+        return _draw_shutdown_screen(option);
     default:
         return ERR_DISPLAY_NO_SUCH_SCREEN;
     }
@@ -104,6 +108,67 @@ error:
     return err;
 }
 
+static PIPASS_ERR _draw_shutdown_screen(int32_t option) {
+    enum Options {YES, NO};
+
+    PyObject *canvas = NULL;
+    PIPASS_ERR err;
+
+    err = create_canvas(NULL, &canvas);
+    if (err != PIPASS_OK)
+        goto error;
+
+    err = draw_text(0, 2, "Power off the device?", "white",
+     FREEPIXEL_FONT, canvas, ALIGN_TEXT, ALIGN_CENTER, DISPLAY_WIDTH, 20);
+    if (err != PIPASS_OK)
+        goto error;
+
+    switch (option) {
+    case YES:
+        err = draw_rectangle(30, 30, 50, 40, "white", "white", canvas);
+        if (err != PIPASS_OK)
+            goto error;
+        
+        err = draw_text(31, 30, "Yes", "black", FREEPIXEL_FONT, canvas, ALIGN_TEXT,
+          ALIGN_CENTER, 50, 40);
+        if (err != PIPASS_OK)
+            goto error;
+
+        err = draw_text(78, 30, "No", "white", FREEPIXEL_FONT, canvas, ALIGN_TEXT,
+          ALIGN_CENTER, 97, 40);
+        if (err != PIPASS_OK)
+            goto error;
+
+        break;
+
+    case NO:
+        err = draw_rectangle(77, 30, 97, 40, "white", "white", canvas);
+        if (err != PIPASS_OK)
+            goto error;
+        
+        err = draw_text(31, 30, "Yes", "white", FREEPIXEL_FONT, canvas, ALIGN_TEXT,
+          ALIGN_CENTER, 50, 40);
+        if (err != PIPASS_OK)
+            goto error;
+
+        err = draw_text(78, 30, "No", "black", FREEPIXEL_FONT, canvas, ALIGN_TEXT,
+          ALIGN_CENTER, 97, 40);
+        if (err != PIPASS_OK)
+            goto error;
+
+        break;
+    }
+
+    err = _draw_controls("Prev", "Enter", "Back", "Next", canvas);
+    if (err != PIPASS_OK)
+        goto error;
+
+    display(canvas);
+
+error:
+
+    return err;
+}
 
 static PIPASS_ERR _draw_menu_tile(uint8_t *image, int32_t image_x, int32_t image_y, uint8_t *text, 
   int32_t text_x, int32_t text_y, PyObject **canvas) {
@@ -129,8 +194,6 @@ static PIPASS_ERR _draw_menu_tile(uint8_t *image, int32_t image_x, int32_t image
     err = PIPASS_OK;
 
 error:
-    // Py_XDECREF(background);
-
     return err;
 }
 

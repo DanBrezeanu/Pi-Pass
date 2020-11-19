@@ -1,5 +1,6 @@
 #include <display.h>
 #include <draw_basic.h>
+#include <screens_stack.h>
 
 static PyObject *device;
 
@@ -29,6 +30,10 @@ PIPASS_ERR init_display() {
         goto error;
 
     err = init_draw();
+    if (err != PIPASS_OK)
+        goto error;
+
+    err = stack_init();
     if (err != PIPASS_OK)
         goto error;
 
@@ -77,6 +82,11 @@ PIPASS_ERR draw_image(int32_t x, int32_t y, uint8_t* image_res, PyObject **backg
 /* Wrapper function */
 PIPASS_ERR create_canvas(PyObject *background, PyObject **canvas) {
     return _create_canvas(device, background, canvas);
+}
+
+/* Wrapper function */
+PIPASS_ERR clear_screen() {
+    return _clear_screen(device);
 }
 
 
