@@ -6,6 +6,10 @@
 static PyObject *render_module;
 static PyObject *pillow_module;
 static PyObject *free_pixel_font;
+static PyObject *pixelmix_font;
+static PyObject *fontawesome_font;
+
+PIPASS_ERR load_fonts();
 
 PIPASS_ERR init_draw() {
     PIPASS_ERR err;
@@ -22,26 +26,49 @@ PIPASS_ERR init_draw() {
             return err;
     }
 
-    if (free_pixel_font == NULL) {
-        PyObject *image_font = NULL;
+    err = load_fonts();
+    if (err != PIPASS_OK)
+        goto error;
+    
+    return PIPASS_OK;
 
-        err = get_attr(pillow_module, "ImageFont", &image_font);
-        if (err != PIPASS_OK)
-            goto error_font;
+error:
+    return err;
+}
 
-        err = get_and_call_function(image_font, "truetype", &free_pixel_font, 2,
-         TO_PY_STRING(FREEPIXEL_FONT_PATH), TO_PY_LONG(12));
-        if (err != PIPASS_OK)
-            goto error_font;
+PIPASS_ERR load_fonts() {
+    PIPASS_ERR err;
+    const uint32_t FONTS_COUNT = 3;
 
-        goto cleanup;
-error_font:
-        Py_XDECREF(image_font);
-        return ERR_DISPLAY_GET_FONT_FAIL;
+    uint8_t *font_paths[] = {
+        FREEPIXEL_FONT_PATH,
+        PIXELMIX_FONT_PATH,
+        FONTAWESOME_FONT_PATH
+    };
+    uint32_t font_sizes[] = {12, 25, 12};
+    PyObject **font_pyobjects[] = {&free_pixel_font, &pixelmix_font, &fontawesome_font};
+    PyObject *image_font = NULL;
+
+    for (int32_t i = 0; i < FONTS_COUNT; ++i) {
+        if (*font_pyobjects[i] == NULL) {
+            err = get_attr(pillow_module, "ImageFont", &image_font);
+            if (err != PIPASS_OK)
+                goto error;
+
+            err = get_and_call_function(image_font, "truetype", font_pyobjects[i], 2,
+            TO_PY_STRING(font_paths[i]), TO_PY_LONG(font_sizes[i]));
+            if (err != PIPASS_OK)
+                goto error;
+
+            Py_XDECREF(image_font);
+            image_font = NULL;
+        }
     }
 
-cleanup:
-    return PIPASS_OK;
+    err = PIPASS_OK;
+
+error:
+    return err;
 }
 
 PIPASS_ERR _display(PyObject *device, PyObject *canvas) {
@@ -115,8 +142,8 @@ error:
     return err;
 }
 
-PIPASS_ERR _draw_text(PyObject *device, int32_t x, int32_t y, uint8_t *text, uint8_t *fill, uint8_t font_attr,
-  PyObject *canvas, uint32_t attrs, va_list args) {
+PIPASS_ERR _draw_text(PyObject *device, int32_t x, int32_t y, uint8_t *text, uint8_t *fill,
+ uint8_t highlight, uint8_t font_attr, PyObject *canvas, uint32_t attrs, va_list args) {
     if (device == NULL)
         return ERR_DISPLAY_NOT_INIT;
 
@@ -130,6 +157,10 @@ PIPASS_ERR _draw_text(PyObject *device, int32_t x, int32_t y, uint8_t *text, uin
 
     PIPASS_ERR err = PIPASS_OK;
 
+    /* Determine font */
+    if (IS_UTF(text))
+        font_attr = FONTAWESOME_FONT;
+
     switch (font_attr) {
     case DEFAULT_FONT:
         font = Py_None;
@@ -137,21 +168,33 @@ PIPASS_ERR _draw_text(PyObject *device, int32_t x, int32_t y, uint8_t *text, uin
     case FREEPIXEL_FONT:
         font = free_pixel_font;
         break;
+    case PIXELMIX_FONT:
+        font = pixelmix_font;
+        break;
+    case FONTAWESOME_FONT:
+        font = fontawesome_font;
+        break;
     default:
         err = ERR_DISPLAY_NO_SUCH_FONT;
         goto error;
     }
 
+    int32_t aligned_x = 0, aligned_y = 0;
+    int32_t text_width = 0, text_height = 0;
+
+    /* Determine x,y if text is aligned */
     switch (attrs) {
     case NO_ATTRIBUTES:
-        xy = pack_arguments(2, TO_PY_LONG(x), TO_PY_LONG(y));
+        aligned_x = x;
+        aligned_y = y;
         break;
     case ALIGN_TEXT:
         alignment = va_arg(args, uint32_t);
         max_width = va_arg(args, uint32_t);
         max_height = va_arg(args, uint32_t);
         
-        err = compute_alignment(text, font, canvas, alignment, x, y, max_width, max_height, &xy);
+        err = compute_alignment(text, font, canvas, alignment, x, y, max_width,
+          max_height, &aligned_x, &aligned_y);
         if (err != PIPASS_OK)
             goto error;
         break;
@@ -160,13 +203,36 @@ PIPASS_ERR _draw_text(PyObject *device, int32_t x, int32_t y, uint8_t *text, uin
         goto error;
     }
 
+    /* Draw highlight */
+    if (highlight == WITH_HIGHLIGHT) {
+        err = get_text_size(text, font, canvas, &text_width, &text_height);
+        if (err != PIPASS_OK)
+            goto error;
+
+        err = _draw_rectangle(
+            device,
+            MAX(0, aligned_x - 2),
+            MAX(0, aligned_y),
+            MIN(DISPLAY_WIDTH - 1, aligned_x + text_width + 1),
+            MIN(DISPLAY_HEIGHT - 1, aligned_y + text_height + 1),
+            "white",
+            "white",
+            canvas
+        );
+        if (err != PIPASS_OK)
+            goto error; 
+    }
+
+    xy = pack_arguments(2, TO_PY_LONG(aligned_x), TO_PY_LONG(aligned_y));
+
     err = get_attr(canvas, "draw", &draw);
     if (err != PIPASS_OK)
         goto error; 
 
     Py_INCREF(font);
         
-    err = get_and_call_function(draw, "text", &_, 4, xy, TO_PY_STRING(text), TO_PY_STRING(fill), font);
+    err = get_and_call_function(draw, "text", &_, 4, xy, TO_PY_STRING(text),
+      TO_PY_STRING(fill), font);
     if (err != PIPASS_OK)
         goto error;
 
@@ -289,7 +355,7 @@ cleanup:
 }
 
 PIPASS_ERR compute_alignment(uint8_t *text, PyObject *font, PyObject *canvas, uint32_t alignment,
-  uint32_t x1, uint32_t y1, uint32_t x2, uint32_t y2, PyObject **xy) {
+  int32_t x1, int32_t y1, int32_t x2, int32_t y2, int32_t *aligned_x, int32_t *aligned_y) {
     
     if (text == NULL || font == NULL) {
         return ERR_COMPUTE_ALIGN_INV_PARAMS;
@@ -298,12 +364,40 @@ PIPASS_ERR compute_alignment(uint8_t *text, PyObject *font, PyObject *canvas, ui
     PIPASS_ERR err;
 
     if (alignment == ALIGN_LEFT) { 
-        *xy = pack_arguments(2, TO_PY_LONG(x1), TO_PY_LONG(y1));
+        *aligned_x = x1;
+        *aligned_y = y1;
         return PIPASS_OK;
     }
-
-    PyObject *width_height = NULL, *draw = NULL, *_width = NULL, *_height = NULL;
+    
     uint32_t width, height;
+
+    err = get_text_size(text, font, canvas, &width, &height);
+    if (err != PIPASS_OK)
+        goto error;
+    
+    if (alignment == ALIGN_RIGHT) {
+        *aligned_x = x2 - width;
+        *aligned_y = y1;
+    } else if (alignment == ALIGN_CENTER) {
+        *aligned_x = (x1 + MAX(0, (int32_t)(x2 - x1 - width) / 2));
+        *aligned_y = (y1 + MAX(0, (int32_t)(y2 - y1 - height) / 2));
+    } else {
+        err = ERR_DISPLAY_NO_SUCH_ALIGN;
+        goto error;
+    }
+
+    err = PIPASS_OK;
+
+error:
+    return err;
+}
+
+PIPASS_ERR get_text_size(uint8_t *text, PyObject *font, PyObject *canvas, uint32_t *width, uint32_t *height) {
+    if (text == NULL || font == NULL || canvas == NULL)
+        return ERR_GET_TEXT_SIZE_INV_PARAMS;
+
+    PIPASS_ERR err;
+    PyObject *draw = NULL, *width_height = NULL, *_width = NULL, *_height = NULL;
 
     err = get_attr(canvas, "draw", &draw);
     if (err != PIPASS_OK)
@@ -322,22 +416,9 @@ PIPASS_ERR compute_alignment(uint8_t *text, PyObject *font, PyObject *canvas, ui
     if (err != PIPASS_OK)
         goto error;
 
-    width  = FROM_PY_LONG(_width);
-    height = FROM_PY_LONG(_height);
-    
-    if (alignment == ALIGN_RIGHT) {
-        *xy = pack_arguments(2, TO_PY_LONG(x2 - width), TO_PY_LONG(y1));
-    } else if (alignment == ALIGN_CENTER) {
-        int32_t x = (x1 + MAX(0, (int32_t)(x2 - x1 - width) / 2));
-        int32_t y = (y1 + MAX(0, (int32_t)(y2 - y1 - height) / 2));
+    *width  = FROM_PY_LONG(_width);
+    *height = FROM_PY_LONG(_height);
 
-        *xy = pack_arguments(2, TO_PY_LONG(x), TO_PY_LONG(y));
-    } else {
-        err = ERR_DISPLAY_NO_SUCH_ALIGN;
-        goto error;
-    }
-
-    
     err = PIPASS_OK;
 
 error:

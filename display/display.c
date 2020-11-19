@@ -58,11 +58,11 @@ PIPASS_ERR display(PyObject *canvas) {
 }
 
 /* Wrapper function */
-PIPASS_ERR draw_text(int32_t x, int32_t y, uint8_t *text, uint8_t *fill, uint8_t font_attr,
+PIPASS_ERR draw_text(int32_t x, int32_t y, uint8_t *text, uint8_t *fill, uint8_t highlight, uint8_t font_attr,
   PyObject *canvas, uint32_t attrs, ...) {
       va_list args;
       va_start(args, attrs);
-      PIPASS_ERR err = _draw_text(device, x, y, text, fill, font_attr, canvas, attrs, args);
+      PIPASS_ERR err = _draw_text(device, x, y, text, fill, highlight, font_attr, canvas, attrs, args);
       va_end(args);
 
       return err;

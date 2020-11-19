@@ -7,17 +7,30 @@ static PIPASS_ERR _draw_main_screen(int32_t option);
 static PIPASS_ERR _draw_shutdown_screen(int32_t option);
 static PIPASS_ERR _draw_menu_tile(uint8_t *image, int32_t image_x, int32_t image_y, uint8_t *text, 
   int32_t text_x, int32_t text_y, PyObject **canvas);
+static PIPASS_ERR _draw_pin_screen(int32_t option, va_list args);
 
-PIPASS_ERR draw_screen(uint8_t screen, int32_t option) {
+PIPASS_ERR draw_screen(uint8_t screen, int32_t option, int32_t nargs, ...) {
+    PIPASS_ERR err;
+    va_list args;
+    va_start(args, nargs);
 
     switch (screen) {
+    case PIN_SCREEN:
+        err = _draw_pin_screen(option, args);
+        break;
     case MAIN_SCREEN:
-        return _draw_main_screen(option);
+        err = _draw_main_screen(option);
+        break;
     case SHUTDOWN_SCREEN:
-        return _draw_shutdown_screen(option);
+        err = _draw_shutdown_screen(option);
+        break;
     default:
-        return ERR_DISPLAY_NO_SUCH_SCREEN;
+        err = ERR_DISPLAY_NO_SUCH_SCREEN;
     }
+
+    va_end(args);
+
+    return err;
 }
 
 static PIPASS_ERR _draw_controls(uint8_t *o1, uint8_t *o2, uint8_t *o3, uint8_t *o4, PyObject *canvas) {
@@ -42,22 +55,22 @@ static PIPASS_ERR _draw_controls(uint8_t *o1, uint8_t *o2, uint8_t *o3, uint8_t 
     if (err != PIPASS_OK)
         goto error;
 
-    err = draw_text(0, 54, o1, "black", FREEPIXEL_FONT, canvas, ALIGN_TEXT,
+    err = draw_text(0, 54, o1, "black", NO_HIGHLIGHT, FREEPIXEL_FONT, canvas, ALIGN_TEXT,
       ALIGN_CENTER, 28, 63);
     if (err != PIPASS_OK)
         goto error;
 
-    err = draw_text(33, 54, o2, "black", FREEPIXEL_FONT, canvas, ALIGN_TEXT,
+    err = draw_text(33, 54, o2, "black", NO_HIGHLIGHT, FREEPIXEL_FONT, canvas, ALIGN_TEXT,
       ALIGN_CENTER, 61, 63);
     if (err != PIPASS_OK)
         goto error;
 
-    err = draw_text(65, 54, o3, "black", FREEPIXEL_FONT, canvas, ALIGN_TEXT,
+    err = draw_text(65, 54, o3, "black", NO_HIGHLIGHT, FREEPIXEL_FONT, canvas, ALIGN_TEXT,
       ALIGN_CENTER, 94, 63);
     if (err != PIPASS_OK)
         goto error;
 
-    err = draw_text(99, 54, o4, "black", FREEPIXEL_FONT, canvas, ALIGN_TEXT,
+    err = draw_text(99, 54, o4, "black", NO_HIGHLIGHT, FREEPIXEL_FONT, canvas, ALIGN_TEXT,
       ALIGN_CENTER, 127, 63);
     if (err != PIPASS_OK)
         goto error;
@@ -65,6 +78,56 @@ static PIPASS_ERR _draw_controls(uint8_t *o1, uint8_t *o2, uint8_t *o3, uint8_t 
     return PIPASS_OK;
 
 error:
+    return err;
+}
+
+
+static PIPASS_ERR _draw_pin_screen(int32_t option, va_list args) {
+    enum Options {FIRST_DIGIT = 0, SECOND_DIGIT, THIRD_DIGIT, FOURTH_DIGIT, DONE};
+
+    PyObject *canvas = NULL;
+    PIPASS_ERR err;
+
+    err = create_canvas(NULL, &canvas);
+    if (err != PIPASS_OK)
+        goto error;
+
+    uint8_t digit_buffer[2] = {0};
+    uint8_t *digits = va_arg(args, uint8_t *);
+
+    if (option != DONE) {
+        err = draw_rectangle(option * (DISPLAY_WIDTH / 4) + 4, 1, (option * (DISPLAY_WIDTH / 4) + 23),
+        26, "white", "white", canvas);
+    }
+    for (int32_t i = 0; i < 4; ++i) {
+        sprintf(digit_buffer, "%d", (int32_t)digits[i]);
+        err = draw_text(
+            (i * (DISPLAY_WIDTH / 4)),
+            0,
+            digit_buffer,
+            (option == i) ? "black" : "white",
+            NO_HIGHLIGHT,
+            PIXELMIX_FONT,
+            canvas,
+            ALIGN_TEXT,
+            ALIGN_CENTER,
+            ((i + 1) * (DISPLAY_WIDTH / 4)),
+            0
+        );
+    }
+
+    draw_text(0, 30, "Done", ((option == DONE) ? "black" : "white"),
+      ((option == DONE) ? WITH_HIGHLIGHT : NO_HIGHLIGHT), DEFAULT_FONT, canvas,
+       ALIGN_TEXT,ALIGN_CENTER, DISPLAY_WIDTH, 30);
+
+    err = _draw_controls(CARET_LEFT, CARET_DOWN, CARET_UP, CARET_RIGHT, canvas);
+    if (err != PIPASS_OK)
+        goto error;
+
+    display(canvas);
+
+error:
+
     return err;
 }
 
@@ -97,7 +160,7 @@ static PIPASS_ERR _draw_main_screen(int32_t option) {
         break;
     }
 
-    err = _draw_controls("Prev", "Enter", "Back", "Next", canvas);
+    err = _draw_controls(CARET_LEFT, "Enter", "Back", CARET_RIGHT, canvas);
     if (err != PIPASS_OK)
         goto error;
 
@@ -118,24 +181,20 @@ static PIPASS_ERR _draw_shutdown_screen(int32_t option) {
     if (err != PIPASS_OK)
         goto error;
 
-    err = draw_text(0, 2, "Power off the device?", "white",
+    err = draw_text(0, 2, "Power off the device?", "white", NO_HIGHLIGHT,
      FREEPIXEL_FONT, canvas, ALIGN_TEXT, ALIGN_CENTER, DISPLAY_WIDTH, 20);
     if (err != PIPASS_OK)
         goto error;
 
     switch (option) {
-    case YES:
-        err = draw_rectangle(30, 30, 50, 40, "white", "white", canvas);
-        if (err != PIPASS_OK)
-            goto error;
-        
-        err = draw_text(31, 30, "Yes", "black", FREEPIXEL_FONT, canvas, ALIGN_TEXT,
-          ALIGN_CENTER, 50, 40);
+    case YES:        
+        err = draw_text(31, 30, "Yes", "black", WITH_HIGHLIGHT,
+          FREEPIXEL_FONT, canvas, ALIGN_TEXT, ALIGN_CENTER, 50, 40);
         if (err != PIPASS_OK)
             goto error;
 
-        err = draw_text(78, 30, "No", "white", FREEPIXEL_FONT, canvas, ALIGN_TEXT,
-          ALIGN_CENTER, 97, 40);
+        err = draw_text(78, 30, "No", "white", NO_HIGHLIGHT,
+          FREEPIXEL_FONT, canvas, ALIGN_TEXT, ALIGN_CENTER, 97, 40);
         if (err != PIPASS_OK)
             goto error;
 
@@ -146,20 +205,20 @@ static PIPASS_ERR _draw_shutdown_screen(int32_t option) {
         if (err != PIPASS_OK)
             goto error;
         
-        err = draw_text(31, 30, "Yes", "white", FREEPIXEL_FONT, canvas, ALIGN_TEXT,
-          ALIGN_CENTER, 50, 40);
+        err = draw_text(31, 30, "Yes", "white", NO_HIGHLIGHT,
+          FREEPIXEL_FONT, canvas, ALIGN_TEXT, ALIGN_CENTER, 50, 40);
         if (err != PIPASS_OK)
             goto error;
 
-        err = draw_text(78, 30, "No", "black", FREEPIXEL_FONT, canvas, ALIGN_TEXT,
-          ALIGN_CENTER, 97, 40);
+        err = draw_text(78, 30, "No", "black", WITH_HIGHLIGHT,
+          FREEPIXEL_FONT, canvas, ALIGN_TEXT, ALIGN_CENTER, 97, 40);
         if (err != PIPASS_OK)
             goto error;
 
         break;
     }
 
-    err = _draw_controls("Prev", "Enter", "Back", "Next", canvas);
+    err = _draw_controls(CARET_LEFT, "Enter", "Back", CARET_RIGHT, canvas);
     if (err != PIPASS_OK)
         goto error;
 
@@ -186,8 +245,8 @@ static PIPASS_ERR _draw_menu_tile(uint8_t *image, int32_t image_x, int32_t image
     if (err != PIPASS_OK)
         goto error;
 
-    err = draw_text(text_x, text_y, text, "white", DEFAULT_FONT, *canvas, ALIGN_TEXT,
-        ALIGN_CENTER, DISPLAY_WIDTH, text_y);
+    err = draw_text(text_x, text_y, text, "white", NO_HIGHLIGHT,
+      DEFAULT_FONT, *canvas, ALIGN_TEXT, ALIGN_CENTER, DISPLAY_WIDTH, text_y);
     if (err != PIPASS_OK)
         goto error;
 
