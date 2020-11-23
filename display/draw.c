@@ -8,6 +8,7 @@ static PIPASS_ERR _draw_shutdown_screen(int32_t option);
 static PIPASS_ERR _draw_menu_tile(uint8_t *image, int32_t image_x, int32_t image_y, uint8_t *text, 
   int32_t text_x, int32_t text_y, PyObject **canvas);
 static PIPASS_ERR _draw_pin_screen(int32_t option, va_list args);
+static PIPASS_ERR _draw_fingerprint_screen(int32_t option, va_list args);
 
 PIPASS_ERR draw_screen(uint8_t screen, int32_t option, int32_t nargs, ...) {
     PIPASS_ERR err;
@@ -17,6 +18,9 @@ PIPASS_ERR draw_screen(uint8_t screen, int32_t option, int32_t nargs, ...) {
     switch (screen) {
     case PIN_SCREEN:
         err = _draw_pin_screen(option, args);
+        break;
+    case FINGERPRINT_SCREEN:
+        err = _draw_fingerprint_screen(option, args);
         break;
     case MAIN_SCREEN:
         err = _draw_main_screen(option);
@@ -128,6 +132,26 @@ static PIPASS_ERR _draw_pin_screen(int32_t option, va_list args) {
 
 error:
 
+    return err;
+}
+
+static PIPASS_ERR _draw_fingerprint_screen(int32_t option, va_list args) {
+    PyObject *background = NULL;
+    PyObject *canvas = NULL;
+    PIPASS_ERR err;
+
+
+    err = draw_image(40, 0, FINGERPRINT_IMAGE, &background);
+    if (err != PIPASS_OK)
+        goto error;
+
+    err = create_canvas(background, &canvas);
+    if (err != PIPASS_OK)
+        goto error;
+
+    display(canvas);
+
+error:
     return err;
 }
 

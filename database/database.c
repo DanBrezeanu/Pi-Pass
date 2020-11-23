@@ -7,13 +7,18 @@
 #include <datahash.h>
 #include <storage_utils.h>
 #include <database_utils.h>
+#include <fingerprint.h>
 
 static struct Database *db;
 static struct DatabaseHeader *db_header;
 
-PIPASS_ERR db_create_new(uint8_t *master_pin) {
+PIPASS_ERR db_create_new(uint8_t *master_pin, uint8_t *fp_data, uint8_t *master_password,
+  uint32_t master_password_len) {
     if (db != NULL || FL_DB_INITIALIZED)
         return ERR_DB_ALREADY_INIT;
+
+    if (master_pin == NULL || fp_data == NULL || master_password == NULL || !master_password_len)
+        return ERR_DB_NEW_INV_PARAMS;
 
     db = calloc(1, sizeof(struct Database));
     if (db == NULL)
@@ -27,16 +32,43 @@ PIPASS_ERR db_create_new(uint8_t *master_pin) {
 
     memset(&(db->dek), 0, sizeof(struct DataBlob));
     memset(&(db->header->master_pin_hash), 0, sizeof(struct DataHash));
+    memset(&(db->header->encrypted_fp_key), 0, sizeof(struct DataBlob));
 
     PIPASS_ERR err;
     uint8_t *dek = NULL;  
     uint8_t *kek = NULL;
+    uint8_t *passw_key = NULL;
+    uint8_t *fp_key = NULL;
 
     err = generate_new_master_pin_hash(master_pin, &db->header->master_pin_hash);
     if (err != PIPASS_OK)
         goto error;
 
-    err = generate_KEK(master_pin, db->header->master_pin_hash.salt, &kek);
+    fp_key = malloc(AES256_KEY_SIZE);
+    if (fp_key == NULL) {
+        err = ERR_DB_MEM_ALLOC;
+        goto error;
+    }
+
+    err = create_PBKDF2_key(fp_data, FINGERPRINT_SIZE, NULL, 0, fp_key);
+    if (err != PIPASS_OK)
+        goto error;
+
+    err = generate_KEK(master_pin, db->header->master_pin_hash.salt, fp_key, &kek);
+    if (err != PIPASS_OK)
+        goto error;
+
+    passw_key = malloc(AES256_KEY_SIZE);
+    if (passw_key == NULL) {
+        err = ERR_DB_MEM_ALLOC;
+        goto error;
+    }
+
+    err = create_PBKDF2_key(master_password, master_password_len, NULL, 0, passw_key);
+    if (err != PIPASS_OK)
+        goto error;
+
+    err = encrypt_data_with_key(fp_key, AES256_KEY_SIZE, passw_key, &db->header->encrypted_fp_key);
     if (err != PIPASS_OK)
         goto error;
     
@@ -54,25 +86,29 @@ PIPASS_ERR db_create_new(uint8_t *master_pin) {
     if (err != PIPASS_OK)
         goto error;
 
-    db->__guard_value = DEFAULT_GUARD_VALUE;
     db->header->version = PIPASS_VERSION;
 
-    db->header->db_len = sizeof(db->__guard_value) + sizeof(db->cred_len) +
+    db->header->db_len = sizeof(db->cred_len) +
         AES256_KEY_SIZE + MAC_SIZE + IV_SIZE; 
 
     erase_buffer(&dek, AES256_KEY_SIZE);
     erase_buffer(&kek, AES256_KEY_SIZE);
 
-    return PIPASS_OK;
+    err = PIPASS_OK;
+    goto cleanup;
 
 error:
+    db_free();
+cleanup:
     erase_buffer(&dek, AES256_KEY_SIZE);
     erase_buffer(&kek, AES256_KEY_SIZE);
-    db_free();
+    erase_buffer(&passw_key, AES256_KEY_SIZE);
+    erase_buffer(&fp_key, AES256_KEY_SIZE);
 
     return err;
 }
 
+/* TODO */
 PIPASS_ERR db_update_master_pin_hash(struct DataHash *new_master_pin_hash, 
   uint8_t *new_master_pin, uint8_t *old_master_pin) {
      if (db == NULL || !FL_DB_INITIALIZED)
@@ -115,6 +151,7 @@ error:
     return err;
 }
 
+/* TODO */
 PIPASS_ERR db_update_DEK(uint8_t *dek, uint8_t *master_pin) {
     if (db == NULL || !FL_DB_INITIALIZED)
         return ERR_DB_NOT_INITIALIZED;
@@ -339,6 +376,10 @@ PIPASS_ERR db_header_raw(uint8_t **raw_db_header) {
     append_to_str(*raw_db_header, &raw_cursor, db_header->master_pin_hash.hash, SHA256_DGST_SIZE);
     append_to_str(*raw_db_header, &raw_cursor, db_header->master_pin_hash.salt, SALT_SIZE);
 
+    append_to_str(*raw_db_header, &raw_cursor, db_header->encrypted_fp_key.ciphertext, AES256_KEY_SIZE);
+    append_to_str(*raw_db_header, &raw_cursor, db_header->encrypted_fp_key.mac, MAC_SIZE);
+    append_to_str(*raw_db_header, &raw_cursor, db_header->encrypted_fp_key.iv, IV_SIZE);
+
     return PIPASS_OK;
 
 error:
@@ -397,6 +438,18 @@ PIPASS_ERR db_get_length(uint32_t *db_len) {
     return PIPASS_OK;
 }
 
+PIPASS_ERR db_get_encrypted_fp_key(struct DataBlob *fp_key) {
+    if (db_header == NULL || !FL_DB_HEADER_LOADED)
+        return ERR_DB_HEADER_NOT_LOADED;
+
+    PIPASS_ERR err;
+    err = datablob_memcpy(fp_key, db_header->encrypted_fp_key, AES256_KEY_SIZE);
+    if (err != PIPASS_OK)
+        return err;
+
+    return PIPASS_OK;
+}
+
 void db_free() {
     if (db == NULL || !FL_DB_INITIALIZED)
         return;
@@ -423,12 +476,13 @@ void db_free_header() {
         return;
 
     free_datahash(&db_header->master_pin_hash);
+    free_datablob(&db_header->encrypted_fp_key);
 
     free(db_header);
     db_header = NULL;
 }
 
-PIPASS_ERR load_database(struct DataBlob *raw_db, uint32_t db_len, uint8_t *kek) {
+PIPASS_ERR load_database(uint8_t *raw_db, uint32_t db_len, uint8_t *kek) {
     if (!FL_LOGGED_IN)
         return ERR_NOT_LOGGED_IN;
     
@@ -442,12 +496,7 @@ PIPASS_ERR load_database(struct DataBlob *raw_db, uint32_t db_len, uint8_t *kek)
         return ERR_LOAD_DB_INV_PARAMS;
 
     PIPASS_ERR err;
-    uint8_t *raw_db_data = NULL;
     uint32_t read_cursor = 0;
-
-    err = decrypt_cipher_with_key(raw_db, db_len, kek, &raw_db_data);
-    if (err != PIPASS_OK)
-        return err;
 
     db = calloc(1, sizeof(struct Database));
     if (db == NULL) {
@@ -455,16 +504,7 @@ PIPASS_ERR load_database(struct DataBlob *raw_db, uint32_t db_len, uint8_t *kek)
         goto error;
     } 
 
-    err = read_db_field_32b_from_raw(raw_db_data, &read_cursor, db_len, &(db->__guard_value));
-    if (err != PIPASS_OK)
-        goto error;
-
-    if (db->__guard_value != DEFAULT_GUARD_VALUE) {
-        err = ERR_GUARD_VALUE_DOES_NOT_MATCH;
-        goto error;
-    }
-
-    err = read_db_field_32b_from_raw(raw_db_data, &read_cursor, db_len, &(db->cred_len));
+    err = read_db_field_32b_from_raw(raw_db, &read_cursor, db_len, &(db->cred_len));
     if (err != PIPASS_OK)
         goto error;
 
@@ -476,12 +516,12 @@ PIPASS_ERR load_database(struct DataBlob *raw_db, uint32_t db_len, uint8_t *kek)
     if (db->cred == NULL || db->cred_headers == NULL)
         return ERR_DB_MEM_ALLOC;
     
-    err = read_credentials_from_raw(raw_db_data, &read_cursor, db_len, db->cred, db->cred_headers, db->cred_len);
+    err = read_credentials_from_raw(raw_db, &read_cursor, db_len, db->cred, db->cred_headers, db->cred_len);
     if (err != PIPASS_OK)
         goto error;
 
 skip_loading_credentials:
-    err = read_datablob_from_raw(raw_db_data, &read_cursor, db_len, &(db->dek), AES256_KEY_SIZE);
+    err = read_datablob_from_raw(raw_db, &read_cursor, db_len, &(db->dek), AES256_KEY_SIZE);
     if (err != PIPASS_OK)
         goto error;
 
@@ -490,7 +530,7 @@ skip_loading_credentials:
     return PIPASS_OK;
 
 error:
-    erase_buffer(&raw_db_data, db_len);
+    erase_buffer(&raw_db, db_len);
     db_free();
 }
 
@@ -535,14 +575,31 @@ PIPASS_ERR load_database_header(uint8_t *raw_db_header) {
     if (err != PIPASS_OK)
         goto error;
 
+    err = alloc_datablob(&db_header->encrypted_fp_key, AES256_KEY_SIZE);
+    if (err != PIPASS_OK)
+        goto error;
+
     memcpy(db_header->master_pin_hash.hash, raw_db_header, SHA256_DGST_SIZE);
-    memcpy(db_header->master_pin_hash.salt, raw_db_header + SHA256_DGST_SIZE, SALT_SIZE);
+    raw_db_header += sizeof(SHA256_DGST_SIZE);
+
+    memcpy(db_header->master_pin_hash.salt, raw_db_header, SALT_SIZE);
+    raw_db_header += sizeof(SALT_SIZE);
+
+    memcpy(db_header->encrypted_fp_key.ciphertext, raw_db_header, AES256_KEY_SIZE);
+    raw_db_header += sizeof(AES256_KEY_SIZE);
+
+    memcpy(db_header->encrypted_fp_key.mac, raw_db_header, MAC_SIZE);
+    raw_db_header += sizeof(MAC_SIZE);
+
+    memcpy(db_header->encrypted_fp_key.iv, raw_db_header, IV_SIZE);
+    raw_db_header += sizeof(IV_SIZE);
 
     err = PIPASS_OK;
     goto cleanup;
 
 error:
     free_datahash(&db_header->master_pin_hash);
+    free_datablob(&db_header->encrypted_fp_key);
     free(db_header);
 cleanup:
     if (db_version != NULL)

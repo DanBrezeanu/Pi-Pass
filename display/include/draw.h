@@ -7,6 +7,7 @@
 #define SETTINGS_IMAGE      IMG_DIR"/settings.png"
 #define LOCK_IMAGE          IMG_DIR"/lock.png"
 #define SHUTDOWN_IMAGE      IMG_DIR"/shutdown.png"
+#define FINGERPRINT_IMAGE   IMG_DIR"/fingerprint.png"
 
 #define GITHUB_IMAGE IMG_DIR"/github.png"
 

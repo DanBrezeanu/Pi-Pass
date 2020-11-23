@@ -2,9 +2,17 @@
 #include <screens_stack.h>
 #include <draw.h>
 #include <display.h>
+#include <connection.h>
+#include <commands.h>
 
 PIPASS_ERR show_screen(enum Button pressed) {
     PIPASS_ERR err;
+    int32_t ret;
+
+    ret = pthread_mutex_trylock(&display_lock);
+    if (ret != 0) {
+        return ERR_DISPLAY_BUSY;
+    }
 
     if (stack_empty()) {
         clear_screen();
@@ -25,6 +33,8 @@ PIPASS_ERR show_screen(enum Button pressed) {
     }
 
 error:
+    pthread_mutex_unlock(&display_lock);
+
     return err;
 }
 
@@ -135,98 +145,10 @@ PIPASS_ERR shutdown_screen(enum Button pressed) {
     return draw_screen(SHUTDOWN_SCREEN, (int32_t)options, 0);
 }
 
-int main() {
-    PIPASS_ERR err;
+PIPASS_ERR fingerprint_screen(enum Button pressed) {
+    const uint32_t num_options = 0;
 
-    Py_Initialize();
-    
-    err = init_display();
-    if (err != PIPASS_OK) {
-        printf("%X\n", err);
-        return err;
-    }
-    
-    stack_push(pin_screen);
+    // command_to_send = ASK_FOR_PASSWORD;
 
-    show_screen(0);
-    sleep(1);
-
-    for (int i = 0; i < 11; ++i) {
-        show_screen(3);
-        sleep(1);
-    }
-
-    show_screen(4);
-    sleep(1);
-
-    for (int i = 0; i < 2; ++i) {
-        show_screen(3);
-        sleep(1);
-    }
-
-    show_screen(4);
-    sleep(1);
-
-    for (int i = 0; i < 3; ++i) {
-        show_screen(3);
-        sleep(1);
-    }
-
-    show_screen(4);
-    sleep(1);
-
-    for (int i = 0; i < 4; ++i) {
-        show_screen(3);
-        sleep(1);
-    }
-
-    show_screen(4);
-    sleep(1);
-
-    show_screen(4);
-    sleep(1);
-
-
-
-
-    // show_screen(2);
-    // sleep(3);
-    // show_screen(2);
-    // sleep(3);
-    // show_screen(2);
-    // sleep(3);
-    // show_screen(2);
-    // sleep(3);
-    // show_screen(1);
-    // sleep(3);
-    // show_screen(4);
-    // sleep(1);
-    // show_screen(4);
-    // sleep(1);
-    // show_screen(4);
-    // sleep(1);
-    // show_screen(2);
-    // show_screen(0);
-    // sleep(1);
-    // show_screen(4);
-    // sleep(1);
-    // show_screen(4);
-    // sleep(1);
-    // show_screen(3);
-    // show_screen(0);
-    // sleep(1);
-    // show_screen(1);
-    // sleep(1);
-
-    // main_screen(3);
-    // sleep(1);
-    // main_screen(4);
-    // sleep(1);
-    // main_screen(4);
-    // sleep(1);
-
-
-    Py_Finalize();
-
-    return 0;
+    return draw_screen(FINGERPRINT_SCREEN, 0, 0);
 }

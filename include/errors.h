@@ -179,6 +179,7 @@
 #define ERR_DB_READ_FIELD_TOO_MUCH     0x4034
 #define ERR_DB_READ_FIELD_MEM_LEAK     0x4035
 #define ERR_REENCRYPT_DEK_INV_PARAMS   0x4036
+#define ERR_DB_NEW_INV_PARAMS          0x4037
 
 
 
@@ -216,6 +217,9 @@
 #define ERR_DRAW_MENU_TILE_INV_PARAMS  0x501E
 #define ERR_DISPLAY_NO_SCREEN_TO_SHOW  0x501F
 #define ERR_GET_TEXT_SIZE_INV_PARAMS   0x5020
+#define ERR_SCREEN_STACK_INIT_FAIL     0x5021
+#define ERR_DISPLAY_INIT_FAIL          0x5022
+#define ERR_DISPLAY_BUSY               0x5023
 
 /* Connection Error Codes */
 #define ERR_SERIAL_MEM_LEAK            0x6001
@@ -239,7 +243,9 @@
 #define ERR_PIN_NOT_ENTERED            0x6012
 #define ERR_CONN_INVALID_COMM          0x6013
 #define ERR_CRC_DIFFERENT              0x6014
-
+#define ERR_READ_TIMED_OUT             0x6015
+#define ERR_CONN_INIT_FAIL             0x6016
+#define ERR_CONN_TO_SEND_BUSY          0x6017
 
 /* Fingerprint Error Codes */
 #define ERR_VERIFY_PIN_INV_PARAMS      0x7001
@@ -256,5 +262,8 @@
 #define ERR_FP_NO_FINGER_FOUND         0x700C
 #define ERR_FP_MEM_LEAK                0x700D
 #define ERR_FP_GET_DATA_FAIL           0x700E
+
+/* GPIO Error Codes */
+#define ERR_GPIO_INIT_FAIL             0x8001
 
 #endif

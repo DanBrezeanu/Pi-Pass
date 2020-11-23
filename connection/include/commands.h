@@ -10,6 +10,9 @@
 
 #define APP_HELLO   0xB0
 
+
+#define NO_COMMAND          0x00
+
 /* 
 |-- 1 byte --|-- 1 byte -- |-- 2 bytes --|-- 2 bytes --|
 |   command  |   sender    |   length    |     CRC     |
@@ -67,6 +70,7 @@
 #define ASK_FOR_PIN        0xCD
 
 
+extern uint8_t command_to_send; 
 
 
 typedef struct Command {
@@ -80,5 +84,11 @@ typedef struct Command {
     uint8_t reply_code;
     uint16_t crc;
 } Command;
+
+
+PIPASS_ERR create_command(uint8_t cmd_code, Command **cmd);
+PIPASS_ERR parse_buffer_to_cmd(uint8_t *buf, int32_t buf_size, Command **cmd);
+PIPASS_ERR parse_cmd_to_buffer(Command *cmd, uint8_t *buf);
+uint8_t cmd_requires_additional(Command *cmd);
 
 #endif

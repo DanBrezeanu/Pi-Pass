@@ -3,6 +3,7 @@
 #include <screens_stack.h>
 
 static PyObject *device;
+pthread_mutex_t display_lock;
 
 PIPASS_ERR init_display() {
     PyObject *device_module = NULL, *serial_module = NULL;
@@ -12,6 +13,7 @@ PIPASS_ERR init_display() {
         return ERR_DISPLAY_ALREADY_INIT;
 
     PIPASS_ERR err = PIPASS_OK;
+    int32_t ret;
 
     err = import_module("luma.oled.device", &device_module);
     if (err != PIPASS_OK)
@@ -37,6 +39,16 @@ PIPASS_ERR init_display() {
     if (err != PIPASS_OK)
         goto error;
 
+    pthread_mutexattr_t attrs;
+
+    pthread_mutexattr_init(&attrs);
+    pthread_mutexattr_settype(&attrs, PTHREAD_MUTEX_RECURSIVE_NP);
+    ret = pthread_mutex_init(&display_lock, &attrs);
+    if (ret != 0) {
+        err = ERR_DISPLAY_INIT_FAIL;
+        goto error;
+    }
+
     err = PIPASS_OK;
 
 error:
@@ -46,7 +58,6 @@ error:
 
     return err;
 }
-
 
 PIPASS_ERR destroy_device() {
     Py_XDECREF(device);

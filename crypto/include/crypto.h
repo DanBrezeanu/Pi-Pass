@@ -7,7 +7,7 @@
 extern uint8_t *OTK;
 extern struct DataBlob *DEK_BLOB;
 
-PIPASS_ERR generate_KEK(uint8_t *pin, uint8_t *salt, uint8_t **KEK);
+PIPASS_ERR generate_KEK(uint8_t *pin, uint8_t *salt, uint8_t *fp_data, uint8_t **KEK);
 
 PIPASS_ERR generate_user_hash(uint8_t *user_data, int32_t user_data_len, uint8_t **user_hash);
 

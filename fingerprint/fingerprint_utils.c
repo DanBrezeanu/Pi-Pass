@@ -1,5 +1,6 @@
 #include <fingerprint_utils.h>
 #include <fingerprint.h>
+#include <gpio_control.h>
 
 uint32_t bin_to_number(uint8_t *bin, size_t size) {
     uint32_t number = 0;
@@ -12,11 +13,5 @@ uint32_t bin_to_number(uint8_t *bin, size_t size) {
 }
 
 void wait_for_sensor_touch() {
-    while (1) {
-        int8_t sensor_touched = !gpioRead(IRQ_PIN);
-        if (sensor_touched)
-            return;
-
-        usleep(100000);
-    }
+    
 }

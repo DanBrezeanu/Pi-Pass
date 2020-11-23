@@ -52,6 +52,9 @@ PIPASS_ERR parse_buffer_to_cmd(uint8_t *buf, int32_t buf_size, Command **cmd) {
     memcpy((*cmd)->options, buf + idx, (*cmd)->length);
     idx += (*cmd)->length;
 
+    (*cmd)->is_reply = buf[idx++];
+    (*cmd)->reply_code = buf[idx++];
+
     tmp = bin_to_var(buf + idx, sizeof((*cmd)->crc));
     if (tmp == NULL) {
         err = ERR_CONN_MEM_ALLOC;
@@ -60,9 +63,6 @@ PIPASS_ERR parse_buffer_to_cmd(uint8_t *buf, int32_t buf_size, Command **cmd) {
     (*cmd)->crc = *tmp;
     free(tmp);
     idx += sizeof((*cmd)->crc);
-
-    (*cmd)->is_reply = buf[idx++];
-    (*cmd)->reply_code = buf[idx++];
 
     return PIPASS_OK;
 
@@ -75,13 +75,13 @@ PIPASS_ERR parse_cmd_to_buffer(Command *cmd, uint8_t *buf) {
     if (cmd == NULL || buf == NULL)
         return ERR_PARSE_CMD_2_BUF_INV_PARAMS;
 
-    uint16_t idx = 2;
+    uint32_t idx = 2;
     PIPASS_ERR err;
 
     buf[0] = cmd->type;
     buf[1] = cmd->sender;
 
-    uint8_t *length_bin = var_to_bin(cmd->length, sizeof(cmd->length));
+    uint8_t *length_bin = var_to_bin(&cmd->length, sizeof(cmd->length));
     if (length_bin == NULL) {
         err = ERR_CONN_MEM_ALLOC;
         goto error;
@@ -92,21 +92,20 @@ PIPASS_ERR parse_cmd_to_buffer(Command *cmd, uint8_t *buf) {
     if (cmd->options != NULL)
         append_to_str(buf, &idx, cmd->options, cmd->length);
 
+    buf[idx++] = cmd->is_reply;
+    buf[idx++] = cmd->reply_code;
+
     err = calculate_crc(cmd, &(cmd->crc));
     if (err != PIPASS_OK)
         goto error;
 
-    uint8_t *crc_bin = var_to_bin(cmd->crc, sizeof(cmd->crc));
+    uint8_t *crc_bin = var_to_bin(&cmd->crc, sizeof(cmd->crc));
     if (crc_bin == NULL) {
         err = ERR_CONN_MEM_ALLOC;
         goto error;
     }
 
     append_to_str(buf, &idx, crc_bin, sizeof(cmd->crc));
-
-    buf[idx++] = cmd->is_reply;
-    buf[idx++] = cmd->reply_code;
-
     err = PIPASS_OK;
     goto cleanup;
 

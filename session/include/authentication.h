@@ -13,7 +13,7 @@
 #include <crypto_utils.h>
 #include <storage_utils.h>
 
-PIPASS_ERR authenticate(uint8_t *user_hash, uint8_t *master_pin);
+PIPASS_ERR authenticate(uint8_t *user, uint32_t user_len, uint8_t *master_pin);
 PIPASS_ERR verify_user_exists(uint8_t *user, int user_len);
 
 #endif

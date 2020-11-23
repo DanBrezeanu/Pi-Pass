@@ -128,9 +128,6 @@ PIPASS_ERR read_credentials_from_raw(uint8_t *raw_db, uint32_t *read_cursor, uin
             return err;
     }
 
-    if (*read_cursor > db_len)
-        return ERR_DB_READ_FIELD_TOO_MUCH;
-
     for (int32_t i = 0; i < cred_len; ++i) {
         struct Credential *cr = &(cred[i]);
         
@@ -140,6 +137,11 @@ PIPASS_ERR read_credentials_from_raw(uint8_t *raw_db, uint32_t *read_cursor, uin
                 goto error;
         }
 
+        if (cred_headers[i].url_len) {
+            err = read_bytes_from_raw(raw_db, read_cursor, db_len, &(cr->url), cred_headers[i].url_len);
+            if (err != PIPASS_OK)
+                goto error;
+        }
         err = read_datablob_from_raw(raw_db, read_cursor, db_len, &(cr->username), cred_headers[i].username_len);
         if (err != PIPASS_OK)
             goto error;
@@ -148,11 +150,6 @@ PIPASS_ERR read_credentials_from_raw(uint8_t *raw_db, uint32_t *read_cursor, uin
         if (err != PIPASS_OK)
             goto error;
 
-        if (cred_headers[i].name_len) {
-            err = read_bytes_from_raw(raw_db, read_cursor, db_len, &(cr->url), cred_headers[i].url_len);
-            if (err != PIPASS_OK)
-                goto error;
-        }
 
         if (cred_headers[i].name_len) {
             err = read_bytes_from_raw(raw_db, read_cursor, db_len, &(cr->additional), cred_headers[i].additional_len);

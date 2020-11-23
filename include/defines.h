@@ -35,7 +35,7 @@
 
 
 #define S_TTY    "/dev/ttyGS0"
-#define SERIAL_PKT_SIZE 20
+#define SERIAL_PKT_SIZE 256
 
 #define FP_PORT  "/dev/ttyS0"
 

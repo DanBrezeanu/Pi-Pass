@@ -1,10 +1,10 @@
 #include <crypto_utils.h>
 
-void zero_buffer(void *buf, int32_t size) {
+void zero_buffer(uint8_t *buf, int32_t size) {
     memset(buf, 0, size);
 }
 
-void erase_buffer(void **buf, int32_t size) {
+void erase_buffer(uint8_t **buf, int32_t size) {
     if (*buf != NULL) {
         zero_buffer(*buf, size);
         free(*buf);

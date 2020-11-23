@@ -12,30 +12,30 @@
 
 struct Credential {
     uint8_t *name;
+    uint8_t *url;
     struct DataBlob username;
     struct DataBlob password;
-    uint8_t *url;
-    uint8_t *additional;
+    struct DataBlob additional;
 } __attribute__((packed, aligned(1)));
 
 struct CredentialHeader {
     uint32_t cred_len;
     uint16_t name_len;
+    uint16_t url_len;
     uint16_t username_len;
     uint16_t passw_len;
-    uint16_t url_len;
     uint16_t additional_len;
 } __attribute__((packed, aligned(1)));
 
 enum CredentialField {
     NAME       = 0,
-    URL        = 1,
-    ADDITIONAL = 2
+    URL        = 1
 };
 
 enum CredentialEncryptedField {
     USERNAME = 0,
-    PASSW    = 1
+    PASSW    = 1,
+    ADDITIONAL = 2
 };
 
 struct PlainTextCredential {

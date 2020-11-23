@@ -1,5 +1,6 @@
 #include <fingerprint.h>
 #include <fingerprint_utils.h>
+#include <gpio_control.h>
 
 #include <errors.h>
 #include <unistd.h>
@@ -18,12 +19,6 @@ PIPASS_ERR init_fingerprint() {
     err = init_driver(FP_PORT, DEFAULT_FP_ADDRESS, &driver);
     if (err != PIPASS_OK)
         return ERR_DRIVER_INIT_FAIL;
-
-    ret = gpioInitialise();
-    if (ret < 0)
-        return ERR_DRIVER_INIT_FAIL;
-    
-    gpioSetMode(IRQ_PIN, PI_INPUT);
 
     return PIPASS_OK;
 }

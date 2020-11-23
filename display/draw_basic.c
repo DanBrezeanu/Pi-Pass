@@ -46,7 +46,11 @@ PIPASS_ERR load_fonts() {
         FONTAWESOME_FONT_PATH
     };
     uint32_t font_sizes[] = {12, 25, 12};
-    PyObject **font_pyobjects[] = {&free_pixel_font, &pixelmix_font, &fontawesome_font};
+    PyObject **font_pyobjects[] = {
+        &free_pixel_font,
+        &pixelmix_font,
+        &fontawesome_font
+    };
     PyObject *image_font = NULL;
 
     for (int32_t i = 0; i < FONTS_COUNT; ++i) {

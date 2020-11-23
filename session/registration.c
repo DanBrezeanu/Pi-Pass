@@ -8,7 +8,8 @@
 #include <authentication.h>
 #include <fingerprint.h>
 
-PIPASS_ERR register_new_user(uint8_t *user_data, int32_t user_data_len, uint8_t *master_pin) {
+PIPASS_ERR register_new_user(uint8_t *user_data, int32_t user_data_len, uint8_t *master_pin,
+  uint8_t *fp_data, uint8_t *master_password, uint32_t master_password_len) {
     if (FL_LOGGED_IN)
         return ERR_ALREADY_LOGGED_IN;
     
@@ -18,27 +19,20 @@ PIPASS_ERR register_new_user(uint8_t *user_data, int32_t user_data_len, uint8_t 
     if (FL_DB_HEADER_LOADED)
         return ERR_DB_HEADER_ALREADY_LOADED;
 
-    if (user_data == NULL || master_pin == NULL || user_data_len == 0) 
+    if (user_data == NULL || master_pin == NULL || user_data_len == 0 || fp_data == NULL ||
+      master_password == NULL || !master_password_len) 
         return ERR_REGISTER_USER_INV_PARAMS;
 
     uint8_t *user_hash = NULL;
     uint8_t *fp_data = NULL;
-    uin16_t fp_index = 0;
+    uint16_t fp_index = 0;
     PIPASS_ERR err = PIPASS_OK;
    
     err = generate_user_hash(user_data, user_data_len, &user_hash);
     if (err != PIPASS_OK)
         goto error;    
 
-    err = fp_enroll_fingerprint(&fp_index);
-    if (err != PIPASS_OK)
-        goto error;
-
-    err = fp_get_fingerprint_data(&fp_data);
-    if (err != PIPASS_OK)
-        goto error;
-
-    err = db_create_new(master_pin, fp_data);
+    err = db_create_new(master_pin, fp_data, master_password, master_password_len);
     if (err != PIPASS_OK)
         goto error;
 
@@ -48,6 +42,8 @@ PIPASS_ERR register_new_user(uint8_t *user_data, int32_t user_data_len, uint8_t 
 
     FL_LOGGED_IN = FL_DB_HEADER_LOADED = FL_DB_INITIALIZED = 1;
 
+
+    /* Not this way */
     err = dump_database(user_hash, master_pin);
     if (err != DB_OK)
         goto error;
@@ -67,24 +63,32 @@ error:
 #include <stdio.h>
 #include <actions.h>
 
-int main(int argc, char **argv) {
-    PIPASS_ERR err = -1;
+//  err = fp_enroll_fingerprint(&fp_index);
+//     if (err != PIPASS_OK)
+//         goto error;
 
-    if (argc == 1) {
-        char pin[] = "1234";
-        err = register_new_user("test", strlen("test"), pin);
-    } else if (argc == 2) {
-        uint8_t *user_hash = NULL;
-        err = generate_user_hash("test", 4, &user_hash);
-        if (err != STORAGE_OK)
-            goto error;
+//     err = fp_get_fingerprint(&fp_data);
+//     if (err != PIPASS_OK)
+//         goto error;
 
-        char pin[] = "1234";
+// int main(int argc, char **argv) {
+//     PIPASS_ERR err = -1;
 
-        // err = verify_master_pin_with_hashvei(pass, user_hash);
+//     if (argc == 1) {
+//         char pin[] = "1234";
+//         err = register_new_user("test", strlen("test"), pin);
+//     } else if (argc == 2) {
+//         uint8_t *user_hash = NULL;
+//         err = generate_user_hash("test", 4, &user_hash);
+//         if (err != STORAGE_OK)
+//             goto error;
 
-        free(user_hash);
-    }
+//         char pin[] = "1234";
+
+//         // err = verify_master_pin_with_hashvei(pass, user_hash);
+
+//         free(user_hash);
+//     }
     // } else if (argc == 3){
     //     struct Database *db = NULL;
 
@@ -156,7 +160,7 @@ int main(int argc, char **argv) {
     //     free(user_hash);
     //     free_database(db);
     // }
-error:
-    printf("0x%.4X\n", err);
-    return 0;
-}
+// error:
+//     printf("0x%.4X\n", err);
+//     return 0;
+// }

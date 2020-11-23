@@ -4,22 +4,24 @@
 #include <credentials.h>
 #include <sha256.h>
 #include <datablob.h>
+#include <fingerprint.h>
 
 uint8_t *OTK = NULL;
 struct DataBlob *DEK_BLOB = NULL;
 
-PIPASS_ERR generate_KEK(uint8_t *pin, uint8_t *salt, uint8_t **KEK) {
+PIPASS_ERR generate_KEK(uint8_t *pin, uint8_t *salt, uint8_t *fp_key, uint8_t **KEK) {
     PIPASS_ERR err = CRYPTO_OK; 
     uint8_t *pin_pepper = NULL;
+    uint8_t *KEK_pin = NULL, *KEK_fp = NULL;
     
-    if (pin == NULL || salt == NULL)
+    if (pin == NULL || salt == NULL || fp_key == NULL)
         return ERR_CRYPTO_KEK_INV_PARAMS;
 
     if (*KEK != NULL)
         return ERR_CRYPTO_KEK_MEM_LEAK;
 
-    *KEK = malloc(AES256_KEY_SIZE);
-    if (*KEK == NULL) {
+    KEK_pin = malloc(AES256_KEY_SIZE);
+    if (KEK_pin == NULL) {
         err = ERR_CRYPTO_MEM_ALLOC;
         goto error;
     }
@@ -28,17 +30,26 @@ PIPASS_ERR generate_KEK(uint8_t *pin, uint8_t *salt, uint8_t **KEK) {
     if (err != PIPASS_OK)
         goto error;
 
-    err = create_PBKDF2_key(pin_pepper, MASTER_PIN_SIZE_WITH_PEPPER, salt, SALT_SIZE, *KEK);
+    err = create_PBKDF2_key(pin_pepper, MASTER_PIN_SIZE_WITH_PEPPER, salt, SALT_SIZE, KEK_pin);
     if (err != PIPASS_OK)
         goto error;
 
     erase_buffer(&pin_pepper, MASTER_PIN_SIZE_WITH_PEPPER);
 
-    return CRYPTO_OK;
+    err = merge_keys(KEK_pin, fp_key, KEK);
+    if (err != PIPASS_OK)
+        goto error;
+
+    err = PIPASS_OK;
+    goto cleanup;
+
 
 error:
     erase_buffer(KEK, AES256_KEY_SIZE);
+cleanup:
     erase_buffer(&pin_pepper, MASTER_PIN_SIZE_WITH_PEPPER);
+    erase_buffer(&KEK_pin, AES256_KEY_SIZE);
+    erase_buffer(&KEK_fp, AES256_KEY_SIZE);
 
     return err;
 } 
@@ -513,6 +524,45 @@ PIPASS_ERR verify_master_pin_with_hash(uint8_t *pin, struct DataHash pin_hash) {
 error:
     erase_buffer(&pin_pepper, MASTER_PIN_SIZE_WITH_PEPPER);
     
+    return err;
+}
+
+PIPASS_ERR merge_keys(uint8_t *key_1, uint8_t *key_2, uint8_t **key) {
+    if (key_1 == NULL || key_2 == NULL)
+        return ERR_KEY_MERGE_INV_PARAMS;
+
+    if (*key != NULL)
+        return ERR_CRYPTO_MEM_LEAK;
+
+    PIPASS_ERR err;
+    uint8_t *key_tmp = NULL;
+
+    *key = malloc(AES256_KEY_SIZE);
+    if (*key == NULL)
+        return ERR_CRYPTO_MEM_ALLOC;
+
+    key_tmp = malloc(AES256_KEY_SIZE * 2);
+    if (key_tmp == NULL) {
+        err = ERR_CRYPTO_MEM_ALLOC;
+        goto error;
+    }
+
+    memcpy(key_tmp, key_1, AES256_KEY_SIZE);
+    memcpy(key_tmp + AES256_KEY_SIZE, key_2, AES256_KEY_SIZE);
+
+    err = create_PBKDF2_key(key_tmp, 2 * AES256_KEY_SIZE, NULL, 0, *key);
+    if (err != PIPASS_OK)
+        goto error;
+
+    err = PIPASS_OK;
+    goto cleanup;
+
+error:
+    erase_buffer(key, AES256_KEY_SIZE);
+
+cleanup:
+    erase_buffer(&key_tmp, AES256_KEY_SIZE);
+
     return err;
 }
 

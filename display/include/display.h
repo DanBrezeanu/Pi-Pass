@@ -5,9 +5,12 @@
 #include <python_api.h>
 #include <stdarg.h>
 #include <utf_chars.h>
+#include <pthread.h>
 
 #define DISPLAY_WIDTH  128
 #define DISPLAY_HEIGHT 64
+
+extern pthread_mutex_t display_lock;
 
 PIPASS_ERR init_display();
 PIPASS_ERR destroy_device();

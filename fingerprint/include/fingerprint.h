@@ -4,14 +4,12 @@
 #include <defines.h>
 #include <errors.h>
 #include <r502.h>
-#include <pigpio.h>
 
 
 #ifndef DEFAULT_FP_ADDRESS
     #define DEFAULT_FP_ADDRESS 0xFFFFFFFF
 #endif
 
-#define IRQ_PIN 23
 #define MINIMUM_MATCH_SCORE 80
 #define FINGERPRINT_SIZE 1536
 

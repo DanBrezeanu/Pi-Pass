@@ -5,15 +5,23 @@
 #include <crypto.h>
 #include <aes256.h>
 #include <flags.h>
+#include <fingerprint.h>
 
-PIPASS_ERR authenticate(uint8_t *user_hash, uint8_t *master_pin) {
+PIPASS_ERR authenticate(uint8_t *user, uint32_t user_len, uint8_t *master_pin,
+  uint8_t *fp_data, uint8_t *master_password, uint32_t master_password_len) {
     if (FL_LOGGED_IN)
         return ERR_ALREADY_LOGGED_IN;
     
-    if (user_hash == NULL || master_pin == NULL)
+    if (user == NULL || master_pin == NULL || !user_len ||
+      (fp_data == NULL && (master_password == NULL || !master_password_len)))
         return ERR_AUTH_INV_PARAMS;
 
     PIPASS_ERR err = PIPASS_OK;
+
+    uint8_t *user_hash = NULL;
+    err = generate_user_hash(user, user_len, &user_hash);
+    if (err != PIPASS_OK)
+        goto error;
 
     //TODO: check db file exists
     err = verify_user_directory(user_hash);
@@ -25,6 +33,9 @@ PIPASS_ERR authenticate(uint8_t *user_hash, uint8_t *master_pin) {
     uint32_t raw_db_len = 0;
     struct DataHash *master_pin_hash = NULL;
     uint8_t *kek = NULL;
+    uint8_t *fp_key = NULL;
+    uint8_t *master_passw_key = NULL;
+    struct DataBlob encrypted_fp_key = {0};
 
     err = read_database_header(user_hash, &raw_db_header);
     if (err != PIPASS_OK)
@@ -36,7 +47,7 @@ PIPASS_ERR authenticate(uint8_t *user_hash, uint8_t *master_pin) {
 
     FL_DB_HEADER_LOADED = 1;
     
-    err = verify_master_pin_with_db(user_hash);
+    err = verify_master_pin_with_db(master_pin);
     if (err != PIPASS_OK)
         return err;
 
@@ -61,7 +72,40 @@ PIPASS_ERR authenticate(uint8_t *user_hash, uint8_t *master_pin) {
     if (err != PIPASS_OK)
         goto error;
 
-    err = generate_KEK(master_pin, master_pin_hash->salt, &kek);
+    
+    if (fp_data != NULL) {
+        fp_key = malloc(AES256_KEY_SIZE);
+        if (fp_key == NULL) {
+            err = ERR_STORAGE_MEM_ALLOC;
+            goto error;
+        }
+
+        err = create_PBKDF2_key(fp_data, FINGERPRINT_SIZE, NULL, 0, fp_key);
+        if (err != PIPASS_OK)
+            goto error;
+    } else {
+        err = db_get_encrypted_fp_key(&encrypted_fp_key);
+        if (err != PIPASS_OK)
+            goto error;
+
+        master_passw_key = malloc(AES256_KEY_SIZE);
+        if (master_passw_key == NULL) {
+            err = ERR_STORAGE_MEM_ALLOC;
+            goto error;
+        }
+
+        err = create_PBKDF2_key(master_password, master_password_len, NULL, 0, master_passw_key);
+        if (err != PIPASS_OK)
+            goto error;
+
+        err = decrypt_cipher_with_key(encrypted_fp_key, AES256_KEY_SIZE, master_passw_key, &fp_key);
+        if (err != PIPASS_OK)
+            goto error;
+
+        erase_buffer(&master_passw_key, AES256_KEY_SIZE);
+    }
+
+    err = generate_KEK(master_pin, master_pin_hash->salt, fp_key, &kek);
     if (err != PIPASS_OK)
         goto error;
 
@@ -81,6 +125,9 @@ error:
     db_free_header();
 
 cleanup:
+    erase_buffer(&user_hash, SHA256_HEX_SIZE);
+    erase_buffer(&fp_key, AES256_KEY_SIZE);
+    erase_buffer(master_passw_key, AES256_KEY_SIZE);
     erase_buffer(&kek, AES256_KEY_SIZE);
     erase_buffer(&raw_db_header, DB_HEADER_SIZE);
     free_datablob(&raw_db, raw_db_len);

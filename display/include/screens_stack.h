@@ -11,7 +11,7 @@ typedef struct ScreensStack {
     uint16_t capacity;
     uint16_t size;
     display_func *array;
-
+    pthread_mutex_t lock;
 } ScreensStack;
 
 PIPASS_ERR stack_init();

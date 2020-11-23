@@ -1,12 +1,17 @@
 #include <connection.h>
 #include <commands_utils.h>
 #include <commands.h>
+#include <authentication.h>
+
 
 static Connection *conn;
 uint8_t FL_PIN_ENTERED = 0;
 
+uint8_t command_to_send = NO_COMMAND;
+
 PIPASS_ERR open_connection() {
     PIPASS_ERR err;
+    int32_t ret;
     
     if (conn != NULL)
         return ERR_CONN_ALREADY_OPEN;
@@ -18,6 +23,14 @@ PIPASS_ERR open_connection() {
     err = open_serial_connection(&(conn->s_conn));
     if (err != PIPASS_OK)
         goto error;
+
+    ret = pthread_mutex_init(&conn->to_send_lock, NULL);
+    if (ret != 0) {
+        err = ERR_CONN_INIT_FAIL;
+        goto error;
+    }
+
+    return PIPASS_OK;
 
 error:
     if (conn != NULL)
@@ -42,10 +55,16 @@ PIPASS_ERR recv_command(Command **cmd) {
     err = read_bytes(conn->s_conn, buf, SERIAL_PKT_SIZE, &bytes_read, &timed_out);
     if (err != PIPASS_OK)
         goto error;
+    
+    if (timed_out == 1) {
+        err = ERR_READ_TIMED_OUT;
+        goto error;
+    }
 
     err = parse_buffer_to_cmd(buf, SERIAL_PKT_SIZE, cmd);
     if (err != PIPASS_OK)
         goto error;
+
 
     uint16_t crc = 0;
     err = calculate_crc(*cmd, &crc);
@@ -99,7 +118,7 @@ PIPASS_ERR execute_command(Command *cmd) {
     if (cmd == NULL)
         return ERR_SEND_CMD_INV_PARAMS;
 
-    PIPASS_ERR err;
+    PIPASS_ERR err = PIPASS_OK;
 
     if (cmd->type == APP_HELLO) {
         if (cmd->sender == SENDER_APP && !cmd->is_reply) {
@@ -113,17 +132,21 @@ PIPASS_ERR execute_command(Command *cmd) {
                 goto error; 
 
             err = send_command(cmd_ask_for_pin);
+            if (err != PIPASS_OK)
+                goto error;
 
+            return PIPASS_OK;
         } else {
             err = ERR_CONN_INVALID_COMM;
+            goto error;
         }
 
     }
 
-
     if (!FL_PIN_ENTERED) {
         if (cmd->type == ASK_FOR_PIN && cmd->is_reply) {
-            err = verify_master_pin_with_db(cmd->options);
+            err = authenticate("test", 4, cmd->options);
+            // err = verify_master_pin_with_db(cmd->options);
             if (err != PIPASS_OK)
                 goto error;
 
@@ -135,8 +158,31 @@ PIPASS_ERR execute_command(Command *cmd) {
     }
 
 
-
 error:
     return err;
 
+}
+
+PIPASS_ERR change_command_to_send(uint8_t command_type, uint8_t force_change) {
+    int32_t ret;
+    PIPASS_ERR err;
+
+    ret = pthread_mutex_trylock(&conn->to_send_lock);
+    if (ret != 0) {
+        return ERR_CONN_TO_SEND_BUSY;
+    }
+
+    if (command_to_send != NO_COMMAND && !force_change) {
+        err = ERR_CONN_TO_SEND_BUSY;
+        goto error;
+    }
+
+    command_to_send = command_type;
+
+    err = PIPASS_OK;
+
+error:
+    pthread_mutex_unlock(&conn->to_send_lock);
+    
+    return err;
 }

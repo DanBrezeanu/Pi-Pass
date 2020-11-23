@@ -1,5 +1,6 @@
 #include <screens_stack.h>
 #include <screens.h>
+#include <pthread.h>
 
 static ScreensStack *st;
 
@@ -8,6 +9,7 @@ PIPASS_ERR stack_init() {
         return ERR_SCREEN_ST_ALREADY_INIT;
 
     PIPASS_ERR err;
+    int32_t ret;
 
     st = calloc(1, sizeof(ScreensStack));
     if (st == NULL)
@@ -22,6 +24,12 @@ PIPASS_ERR stack_init() {
         goto error;
     }
 
+    ret = pthread_mutex_init(&st->lock, NULL);
+    if (ret != 0) {
+        err = ERR_SCREEN_STACK_INIT_FAIL;
+        goto error;
+    }
+
     return PIPASS_OK;
 
 error:
@@ -31,6 +39,7 @@ error:
 }
 
 void stack_push(display_func e) {
+    pthread_mutex_lock(&st->lock);
 
     if (st->size == st->capacity) {
         st->capacity <<= 1;
@@ -38,6 +47,8 @@ void stack_push(display_func e) {
     }
     
     st->array[st->size++] = e;
+
+    pthread_mutex_unlock(&st->lock);
 }
 
 display_func stack_top() {
@@ -49,13 +60,16 @@ display_func stack_top() {
 }
 
 display_func stack_pop() {
+    pthread_mutex_lock(&st->lock);
     if (st->size == 0) {
+        pthread_mutex_unlock(&st->lock);
         return NULL;
     }
 
     display_func ret = stack_top();
     --st->size;
 
+    pthread_mutex_unlock(&st->lock);
     return ret;
 }
 
