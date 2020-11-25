@@ -18,9 +18,8 @@ struct DatabaseHeader {
 struct Database {
     struct DatabaseHeader *header;
 
-    uint32_t cred_len;
+    uint32_t cred_count;
     /* Encrypted values start */
-    struct CredentialHeader *cred_headers; 
     struct Credential *cred;
     struct DataBlob dek;
     /* Encrypted values end */
@@ -34,12 +33,12 @@ PIPASS_ERR db_update_login(uint8_t *login_hash, uint8_t *login_salt);
 PIPASS_ERR db_update_KEK(uint8_t *kek_hash, uint8_t *kek_salt);
 PIPASS_ERR db_raw(uint8_t **raw_db, int32_t *raw_db_size);
 PIPASS_ERR db_header_raw(uint8_t **raw_db_header);
-PIPASS_ERR db_append_credential(struct Credential *cr, struct CredentialHeader *crh);
+PIPASS_ERR db_append_credential(struct Credential *cr);
 PIPASS_ERR db_get_master_pin_hash(struct DataHash *master_pin_hash);
 PIPASS_ERR db_get_length(uint32_t *db_len);
 PIPASS_ERR db_get_DEK(struct DataBlob *dek);
 PIPASS_ERR db_get_encrypted_fp_key(struct DataBlob *fp_key);
-PIPASS_ERR load_database(struct DataBlob *raw_db, uint32_t db_len, uint8_t *kek);
+PIPASS_ERR load_database(uint8_t *raw_db, uint32_t db_len, uint8_t *kek);
 PIPASS_ERR load_database_header(uint8_t *raw_db_header);
 void db_free();
 void db_free_header();

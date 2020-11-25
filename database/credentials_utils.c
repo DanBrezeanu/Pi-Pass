@@ -2,55 +2,104 @@
 #include <credentials_utils.h>
 #include <datablob.h>
 
-PIPASS_ERR memcpy_credential_blobs(struct Credential *dest, struct Credential *src, struct CredentialHeader *crh) {
-    if (dest == NULL || src == NULL || datablob_has_null_fields(dest->username) ||
-      datablob_has_null_fields(dest->password) || datablob_has_null_fields(src->username) ||
-      datablob_has_null_fields(src->password))
-        return ERR_MCPY_CRED_BLOB_INV_PARAMS;
+PIPASS_ERR copy_credential(struct Credential src, struct Credential *copy) {
+    if (copy == NULL)
+        return ERR_DB_COPY_CRED_INV_PARAMS;
 
     PIPASS_ERR err;
 
-    err = datablob_memcpy(&dest->username, &src->username, crh->username_len);
+    copy->fields_count = src.fields_count;
+    err = alloc_credential_arrays(copy);
     if (err != PIPASS_OK)
-      return err;
+        goto error;
 
-    err = datablob_memcpy(&dest->password, &src->password, crh->passw_len);
+    for (int32_t i = 0; i < copy->fields_count; ++i) {
+        copy->fields_names[i] = calloc(src.fields_names_len[i], sizeof(uint8_t));
+        
+        if (!src.fields_encrypted[i]) {
+            copy->fields_data[i].data_plain = calloc(src.fields_data_len[i], sizeof(uint8_t));
+            if (copy->fields_data[i].data_plain == NULL) {
+                err = ERR_DB_MEM_ALLOC;
+                goto error;
+            }
+        
+        } else {
+            err = alloc_datablob(&copy->fields_data[i].data_encryped, src.fields_data_len[i]);
+            if (err != PIPASS_OK)
+                goto error;
+        }
+    }
+
+    err = memcpy_credentials(copy, &src);
     if (err != PIPASS_OK)
-        return err;
+        goto error;
 
     return PIPASS_OK;
+
+error:
+    free_credential(copy);
+
+    return err;
 }
 
-PIPASS_ERR memcpy_credentials(struct Credential *dest, struct Credential *src, struct CredentialHeader *crh) {
-    if (dest == NULL || src == NULL || datablob_has_null_fields(dest->username) ||
-      datablob_has_null_fields(dest->password) || datablob_has_null_fields(src->username) ||
-      datablob_has_null_fields(src->password))
+PIPASS_ERR memcpy_credentials(struct Credential *dest, struct Credential *src) {
+    if (dest == NULL || src == NULL)
         return ERR_MCPY_CRED_INV_PARAMS;
 
     PIPASS_ERR err;
 
-    if (src->name != NULL) {
-        if (dest->name == NULL)
+    dest->cred_size = src->cred_size;
+    dest->type = src->type;
+    dest->fields_count = src->fields_count;
+
+    if (src->fields_count == 0)
+        return PIPASS_OK;
+
+    if (dest->fields_names_len == NULL)
+        return ERR_MCPY_CRED_INV_PARAMS;
+
+    memcpy(dest->fields_names_len, src->fields_names_len, src->fields_count * sizeof(uint16_t));
+
+    if (dest->fields_names == NULL)
+        return ERR_MCPY_CRED_INV_PARAMS;
+
+    for (uint8_t i = 0; i < src->fields_count; ++i) {
+        if (dest->fields_names[i] == NULL)
             return ERR_MCPY_CRED_INV_PARAMS;
-        memcpy(dest->name, src->name, crh->name_len);
+
+        memcpy(dest->fields_names[i], src->fields_names[i], src->fields_names_len[i]);
     }
 
-    if (src->url != NULL) {
-        if (dest->name == NULL)
-            return ERR_MCPY_CRED_INV_PARAMS;
-        memcpy(dest->name, src->name, crh->name_len);
+    if (dest->fields_data_len == NULL)
+        return ERR_MCPY_CRED_INV_PARAMS;
+
+    memcpy(dest->fields_data_len, src->fields_data_len, src->fields_count * sizeof(uint16_t));
+
+    if (dest->fields_encrypted == NULL)
+        return ERR_MCPY_CRED_INV_PARAMS;
+
+    memcpy(dest->fields_encrypted, src->fields_encrypted, src->fields_count * sizeof(uint8_t));
+
+    if (dest->fields_data == NULL)
+        return ERR_MCPY_CRED_BLOB_INV_PARAMS;
+
+    for (uint8_t i = 0; i < src->fields_count; ++i) {
+        if (src->fields_encrypted[i]) {
+            err = datablob_memcpy(
+                &dest->fields_data[i].data_encryped,
+                &src->fields_data[i].data_encryped,
+                src->fields_data_len[i]
+            );
+            if (err != PIPASS_OK)
+                return err;
+        } else {
+            memcpy(
+                dest->fields_data[i].data_plain, 
+                src->fields_data[i].data_plain,
+                src->fields_data_len[i]
+            );
+        }
     }
-
-    if (src->additional != NULL) {
-        if (dest->name == NULL)
-            return ERR_MCPY_CRED_INV_PARAMS;
-        memcpy(dest->name, src->name, crh->name_len);
-    }
-
-    err = memcpy_credential_blobs(dest, src, crh);
-    if (err != PIPASS_OK)
-        return err;
-
 
     return PIPASS_OK;
 } 

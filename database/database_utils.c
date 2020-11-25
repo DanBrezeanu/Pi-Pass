@@ -76,13 +76,14 @@ PIPASS_ERR read_datablob_from_raw(uint8_t *raw_db, uint32_t *read_cursor, uint32
     if (err != PIPASS_OK)
         goto error;
    
+    err = read_bytes_from_raw(raw_db, read_cursor, db_len, &(blob->mac), MAC_SIZE);
+    if (err != PIPASS_OK)
+        goto error;
+        
     err = read_bytes_from_raw(raw_db, read_cursor, db_len, &(blob->iv), IV_SIZE);
     if (err != PIPASS_OK)
         goto error;
     
-    err = read_bytes_from_raw(raw_db, read_cursor, db_len, &(blob->mac), MAC_SIZE);
-    if (err != PIPASS_OK)
-        goto error;
 
     return PIPASS_OK;
 
@@ -93,66 +94,85 @@ error:
 }
 
 PIPASS_ERR read_credentials_from_raw(uint8_t *raw_db, uint32_t *read_cursor, uint32_t db_len, 
-  struct Credential *cred, struct CredentialHeader *cred_headers, uint32_t cred_len) {
+  struct Credential *cred, uint32_t cred_count) {
 
-    if (raw_db || cred == NULL || cred_headers == NULL)
+    if (raw_db || cred == NULL)
         return ERR_DB_READ_FIELD_INV_PARAMS;
 
     PIPASS_ERR err;
 
-    for (int32_t i = 0; i < cred_len; ++i) {
-        struct CredentialHeader *crh = &(cred_headers[i]);
-
-        err = read_db_field_32b_from_raw(raw_db, read_cursor, db_len, &(crh->cred_len));
-        if (err != PIPASS_OK)
-            return err;
-
-        err = read_db_field_16b_from_raw(raw_db, read_cursor, db_len, &(crh->name_len));
-        if (err != PIPASS_OK)
-            return err;
-
-        err = read_db_field_16b_from_raw(raw_db, read_cursor, db_len, &(crh->username_len));
-        if (err != PIPASS_OK)
-            return err;
-
-        err = read_db_field_16b_from_raw(raw_db, read_cursor, db_len, &(crh->passw_len));
-        if (err != PIPASS_OK)
-            return err;
-
-        err = read_db_field_16b_from_raw(raw_db, read_cursor, db_len, &(crh->url_len));
-        if (err != PIPASS_OK)
-            return err;
-
-        err = read_db_field_16b_from_raw(raw_db, read_cursor, db_len, &(crh->additional_len));
-        if (err != PIPASS_OK)
-            return err;
-    }
-
-    for (int32_t i = 0; i < cred_len; ++i) {
+    for (int32_t i = 0; i < cred_count; ++i) {
         struct Credential *cr = &(cred[i]);
-        
-        if (cred_headers[i].name_len) {
-            err = read_bytes_from_raw(raw_db, read_cursor, db_len, &(cr->name), cred_headers[i].name_len);
-            if (err != PIPASS_OK)
-                goto error;
+
+        err = read_db_field_32b_from_raw(raw_db, read_cursor, db_len, &(cr->cred_size));
+        if (err != PIPASS_OK)
+            return err;
+
+        cr->type = raw_db[(*read_cursor)++];
+
+        err = read_db_field_16b_from_raw(raw_db, read_cursor, db_len, &(cr->fields_count));
+        if (err != PIPASS_OK)
+            return err;
+
+        cr->fields_names_len = calloc(cr->fields_count, sizeof(uint16_t));
+        if (cr->fields_names_len == NULL) {
+            err = ERR_DB_MEM_ALLOC;
+            goto error;
         }
 
-        if (cred_headers[i].url_len) {
-            err = read_bytes_from_raw(raw_db, read_cursor, db_len, &(cr->url), cred_headers[i].url_len);
+        for (int32_t i = 0; i < cr->fields_count; ++i) {
+            err = read_db_field_16b_from_raw(raw_db, read_cursor, db_len, &(cr->fields_names_len[i]));
             if (err != PIPASS_OK)
-                goto error;
+                return err;
         }
-        err = read_datablob_from_raw(raw_db, read_cursor, db_len, &(cr->username), cred_headers[i].username_len);
-        if (err != PIPASS_OK)
+
+        cr->fields_names = calloc(cr->fields_count, sizeof(uint8_t *));
+        if (cr->fields_names == NULL) {
+            err = ERR_DB_MEM_ALLOC;
             goto error;
+        }
 
-        err = read_datablob_from_raw(raw_db, read_cursor, db_len, &(cr->password), cred_headers[i].passw_len);
-        if (err != PIPASS_OK)
+        for (int32_t i = 0; i < cr->fields_count; ++i) {
+            err = read_bytes_from_raw(raw_db, read_cursor, db_len, &(cr->fields_names[i]), cr->fields_names_len[i]);
+            if (err != PIPASS_OK)
+                return err;
+        }
+
+        cr->fields_data_len = calloc(cr->fields_count, sizeof(uint16_t));
+        if (cr->fields_data_len == NULL) {
+            err = ERR_DB_MEM_ALLOC;
             goto error;
+        }
 
+        for (int32_t i = 0; i < cr->fields_count; ++i) {
+            err = read_db_field_16b_from_raw(raw_db, read_cursor, db_len, &(cr->fields_data_len[i]));
+            if (err != PIPASS_OK)
+                return err;
+        }
 
-        if (cred_headers[i].name_len) {
-            err = read_bytes_from_raw(raw_db, read_cursor, db_len, &(cr->additional), cred_headers[i].additional_len);
+        cr->fields_encrypted = calloc(cr->fields_count, sizeof(uint8_t));
+        if (cr->fields_encrypted == NULL) {
+            err = ERR_DB_MEM_ALLOC;
+            goto error;
+        }
+
+        for (int32_t i = 0; i < cr->fields_count; ++i) {
+            cr->fields_encrypted[i] = raw_db[(*read_cursor)++];
+        }
+
+        cr->fields_data = calloc(cr->fields_count, sizeof(union CredentialFieldData));
+        if (cr->fields_data == NULL) {
+            err = ERR_DB_MEM_ALLOC;
+            goto error;
+        }
+
+        for (int32_t i = 0; i < cr->fields_count; ++i) {
+            if (cr->fields_encrypted[i]) {
+                err = read_datablob_from_raw(raw_db, read_cursor, db_len, &(cr->fields_data[i].data_encryped), cr->fields_data_len[i]);
+            } else {
+                err = read_bytes_from_raw(raw_db, read_cursor, db_len, &(cr->fields_data[i].data_plain), cr->fields_data_len[i]);
+            }
+
             if (err != PIPASS_OK)
                 goto error;
         }
@@ -161,8 +181,8 @@ PIPASS_ERR read_credentials_from_raw(uint8_t *raw_db, uint32_t *read_cursor, uin
     return PIPASS_OK;
 
 error:
-    for (int i = 0; i < cred_len; ++i)
-        free_credential(&(cred[i]), &(cred_headers[i]));    
+    for (int i = 0; i < cred_count; ++i)
+        free_credential(&(cred[i]));    
 
     return err;
 }

@@ -101,6 +101,6 @@ void init_device() {
     Py_Finalize();
 }
 
-int main() {
-    init_device();
-}
+// int main() {
+//     init_device();
+// }

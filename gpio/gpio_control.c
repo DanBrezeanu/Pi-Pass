@@ -1,4 +1,5 @@
 #include <gpio_control.h>
+#include <stdlib.h>
 
 PIPASS_ERR init_gpio() {
     int32_t ret;
@@ -67,4 +68,13 @@ enum Button get_pressed_button() {
         return B4;
 
     return None;
+}
+
+void wait_for_input(uint8_t gpio, int8_t level) {
+    int8_t status = 0;
+
+    do {
+        status = gpioRead(gpio);
+        usleep(1000);
+    } while (status != level);
 }

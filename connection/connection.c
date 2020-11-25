@@ -145,7 +145,7 @@ PIPASS_ERR execute_command(Command *cmd) {
 
     if (!FL_PIN_ENTERED) {
         if (cmd->type == ASK_FOR_PIN && cmd->is_reply) {
-            err = authenticate("test", 4, cmd->options);
+            // err = authenticate("test", 4, cmd->options);
             // err = verify_master_pin_with_db(cmd->options);
             if (err != PIPASS_OK)
                 goto error;

@@ -24,8 +24,6 @@ PIPASS_ERR register_new_user(uint8_t *user_data, int32_t user_data_len, uint8_t 
         return ERR_REGISTER_USER_INV_PARAMS;
 
     uint8_t *user_hash = NULL;
-    uint8_t *fp_data = NULL;
-    uint16_t fp_index = 0;
     PIPASS_ERR err = PIPASS_OK;
    
     err = generate_user_hash(user_data, user_data_len, &user_hash);
@@ -42,9 +40,7 @@ PIPASS_ERR register_new_user(uint8_t *user_data, int32_t user_data_len, uint8_t 
 
     FL_LOGGED_IN = FL_DB_HEADER_LOADED = FL_DB_INITIALIZED = 1;
 
-
-    /* Not this way */
-    err = dump_database(user_hash, master_pin);
+    err = dump_database(user_hash);
     if (err != DB_OK)
         goto error;
 
@@ -67,61 +63,66 @@ error:
 //     if (err != PIPASS_OK)
 //         goto error;
 
-//     err = fp_get_fingerprint(&fp_data);
-//     if (err != PIPASS_OK)
-//         goto error;
 
-// int main(int argc, char **argv) {
-//     PIPASS_ERR err = -1;
 
-//     if (argc == 1) {
-//         char pin[] = "1234";
-//         err = register_new_user("test", strlen("test"), pin);
-//     } else if (argc == 2) {
-//         uint8_t *user_hash = NULL;
-//         err = generate_user_hash("test", 4, &user_hash);
-//         if (err != STORAGE_OK)
-//             goto error;
+int main(int argc, char **argv) {
+    PIPASS_ERR err = -1;
+    uint8_t *fp_data = NULL;
+    init_fingerprint();
+    init_gpio();
 
-//         char pin[] = "1234";
+    fp_verify_pin("0000");
+    
 
-//         // err = verify_master_pin_with_hashvei(pass, user_hash);
+    printf("%d\n", DB_HEADER_SIZE);
+    if (argc == 1) {
+        char pin[] = "1234";
+        int index = 0;
+        err = fp_enroll_fingerprint(&index);
 
-//         free(user_hash);
-//     }
-    // } else if (argc == 3){
-    //     struct Database *db = NULL;
+        err = fp_get_fingerprint(&fp_data);
+        printf("%.4X\n", err);
 
-    //     uint8_t *user_hash = NULL;
-    //     err = generate_user_hash("test", 4, &user_hash);
-    //     if (err != STORAGE_OK)
-    //         goto error;
+        err = register_new_user("test", strlen("test"), pin, fp_data, "parola", 6);
+        printf("%.4X\n", err);
 
-    //     err = load_database(&db, user_hash);
-    //     if (err != STORAGE_OK)
-    //         goto error;
+    } else if (argc == 2) {
+        uint8_t *user_hash = NULL;
+        // err = fp_get_fingerprint(&fp_data);
+        // printf("%.4X\n", err);
 
-    //     uint8_t *pass = calloc(5, 1); 
-    //     uint8_t *name = calloc(7, 1); 
-    //     uint8_t *username = calloc(10, 1); 
-    //     uint8_t *passw = calloc(7, 1); 
-    //     uint8_t *url = calloc(19, 1); 
+        char pin[] = "1234";
 
-    //     strcpy(pass, "1234");
-    //     strcpy(name, "Amazon");
-    //     strcpy(username, "GUsername");
-    //     strcpy(passw, "GPassw");
-    //     strcpy(url, "https://amazon.com");
+        err = authenticate("test", strlen("test"), pin, NULL, "parola", 6);
+        printf("auth = %.4X\n", err);
 
-    //     err = register_new_credential(db, user_hash, pass, name, 6, username, 9, passw, 6, url, 18, NULL, 0);
-    //     if (err != STORAGE_OK)
-    //         goto error;
+        free(user_hash);
+    } else if (argc == 3){
+        struct Database *db = NULL;
+        char pin[] = "1234";
+        
+        // err = fp_get_fingerprint(&fp_data);
+        // printf("%.4X\n", err);
 
-    //     free(pass); free(name); free(username); free(passw); free(url);
-    //     free(user_hash);
-    //     free_database(db);
+        uint8_t *user_hash = NULL;
+        err = generate_user_hash("test", 4, &user_hash);        
 
-    // } else if (argc == 4) {
+        err = authenticate("test", strlen("test"), pin, NULL, "parola", 6);
+        printf("auth = %.4X\n", err);
+
+        uint16_t names_len[] = {5, 6};
+        uint8_t *names[] = {"UserX", "Parola"};
+
+        uint16_t data_len[] = {4, 5};
+        uint8_t *data[] = {"Wowk", "Passw"};
+
+        uint8_t is_encrypted[] = {0, 1};
+
+        err = register_new_credential(user_hash, PASSWORD_TYPE, 2, names_len, names, data_len, is_encrypted, data);
+        printf("reg = %.4X", err);
+
+    }
+} // else if (argc == 4) {
     //     struct Database *db = NULL;
 
     //     uint8_t *user_hash = NULL;

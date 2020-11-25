@@ -228,25 +228,23 @@ PIPASS_ERR decrypt_DEK_with_KEK(uint8_t *kek, uint8_t **dek) {
         return ERR_DEC_DB_FIELD_MEM_LEAK;
 
     PIPASS_ERR err = CRYPTO_OK;
-    struct DataBlob dek_blob;
+    struct DataBlob dek_blob = {0};
 
     err = db_get_DEK(&dek_blob);
     if (err != PIPASS_OK)
         return err;
 
-    uint32_t cipher_len = 0;
-
     if (datablob_has_null_fields(dek_blob))
         return ERR_DEC_DB_FIELD_MISSING_FIELD;
 
-    *dek = malloc(cipher_len);
+    *dek = malloc(AES256_KEY_SIZE);
     if (*dek == NULL) {
         err = ERR_CRYPTO_MEM_ALLOC;
         goto error;
     }
 
     int32_t data_len = 0;
-    err = decrypt_aes256(dek_blob.ciphertext, cipher_len, NULL, 0, dek_blob.mac, kek, dek_blob.iv, *dek, &data_len);
+    err = decrypt_aes256(dek_blob.ciphertext, AES256_KEY_SIZE, NULL, 0, dek_blob.mac, kek, dek_blob.iv, *dek, &data_len);
     if (err != PIPASS_OK)
         goto error;
 
@@ -424,46 +422,46 @@ error:
 PIPASS_ERR reencrypt_DEK(struct DataBlob *dek_blob, uint8_t *new_master_pin, uint8_t *new_master_pin_salt, 
   uint8_t *old_master_pin, uint8_t *old_master_pin_salt) {
 
-      if (dek_blob == NULL || new_master_pin == NULL || new_master_pin_salt == NULL 
-       || old_master_pin == NULL || old_master_pin_salt == NULL)
-        return ERR_REENCRYPT_DEK_INV_PARAMS;
+//       if (dek_blob == NULL || new_master_pin == NULL || new_master_pin_salt == NULL 
+//        || old_master_pin == NULL || old_master_pin_salt == NULL)
+//         return ERR_REENCRYPT_DEK_INV_PARAMS;
     
-    uint8_t *old_kek = NULL;
-    uint8_t *new_kek = NULL;
-    uint8_t *dek = NULL;
-    struct DataBlob new_dek_blob = {0};
+//     uint8_t *old_kek = NULL;
+//     uint8_t *new_kek = NULL;
+//     uint8_t *dek = NULL;
+//     struct DataBlob new_dek_blob = {0};
 
-    PIPASS_ERR err;
+//     PIPASS_ERR err;
 
-    err = generate_KEK(old_master_pin, old_master_pin_salt, &old_kek);
-    if (err != PIPASS_OK)
-        goto error;    
+//     err = generate_KEK(old_master_pin, old_master_pin_salt, &old_kek);
+//     if (err != PIPASS_OK)
+//         goto error;    
 
-    err = generate_KEK(new_master_pin, new_master_pin_salt, &new_kek);
-    if (err != PIPASS_OK)
-        goto error;    
+//     err = generate_KEK(new_master_pin, new_master_pin_salt, &new_kek);
+//     if (err != PIPASS_OK)
+//         goto error;    
 
-    err = decrypt_DEK_with_KEK(old_kek, &dek);
-    if (err != PIPASS_OK)
-        goto error;    
+//     err = decrypt_DEK_with_KEK(old_kek, &dek);
+//     if (err != PIPASS_OK)
+//         goto error;    
 
-    err = encrypt_DEK_with_KEK(dek, new_kek, &new_dek_blob);
-    if (err != PIPASS_OK)
-        goto error;    
+//     err = encrypt_DEK_with_KEK(dek, new_kek, &new_dek_blob);
+//     if (err != PIPASS_OK)
+//         goto error;    
 
-    err = datablob_memcpy(dek_blob, &new_dek_blob, AES256_KEY_SIZE);
-    if (err != PIPASS_OK)
-        goto error;    
+//     err = datablob_memcpy(dek_blob, &new_dek_blob, AES256_KEY_SIZE);
+//     if (err != PIPASS_OK)
+//         goto error;    
 
-    err = PIPASS_OK;
+//     err = PIPASS_OK;
 
-error:
-    erase_buffer(&new_kek, AES256_KEY_SIZE);
-    erase_buffer(&old_kek, AES256_KEY_SIZE);
-    erase_buffer(&dek, AES256_KEY_SIZE);
-    free_datablob(&new_dek_blob, AES256_KEY_SIZE);
+// error:
+//     erase_buffer(&new_kek, AES256_KEY_SIZE);
+//     erase_buffer(&old_kek, AES256_KEY_SIZE);
+//     erase_buffer(&dek, AES256_KEY_SIZE);
+//     free_datablob(&new_dek_blob, AES256_KEY_SIZE);
 
-    return err;
+    return PIPASS_OK;
 }
 
 PIPASS_ERR verify_master_pin_with_db(uint8_t *pin) {

@@ -6,39 +6,37 @@
 #include <storage.h>
 #include <authentication.h>
 
-PIPASS_ERR register_new_credential(uint8_t *user_hash, uint8_t *name, int32_t name_len, 
- uint8_t *username, int32_t username_len, uint8_t *passw, int32_t passw_len, uint8_t *url, 
- int32_t url_len, uint8_t *additional, int32_t additional_len) {
+PIPASS_ERR register_new_credential(uint8_t *user_hash, enum CredentialType type, uint16_t fields_count, uint16_t *fields_names_len, 
+  uint8_t **fields_names, uint16_t *fields_data_len, uint8_t *fields_encrypted, uint8_t **fields_data) {
 
-    if (username == NULL || passw == NULL || user_hash == NULL || !username_len || !passw_len)
-        return ERR_REG_NEW_CRED_INV_PARAMS;
+    if (fields_names_len == NULL || fields_names == NULL || fields_data_len == NULL || 
+      fields_encrypted == NULL || fields_data == NULL)
+        return ERR_CREATE_CRED_INV_PARAMS;
 
     struct Credential *cr = NULL; 
-    struct CredentialHeader *crh = NULL; 
     PIPASS_ERR err = PIPASS_OK;
 
-    err = populate_credential(&cr, &crh, name, name_len, username, username_len, passw,
-     passw_len, url, url_len, additional, additional_len);
+    err = create_credential(type, fields_count, fields_names_len, fields_names, fields_data_len, 
+      fields_encrypted, fields_data, &cr);
     if (err != PIPASS_OK) {
         goto error;
     }
 
-    err = db_append_credential(cr, crh);
+    err = db_append_credential(cr);
+    if (err != PIPASS_OK)
+        goto error;
+
+    err = dump_database(user_hash);
     if (err != PIPASS_OK)
         goto error;
 
     err = PIPASS_OK;
 
 error:
-    free_credential(cr, crh);
+    free_credential(cr);
     if (cr != NULL) {
         free(cr);
         cr = NULL;
-    }
-
-    if (crh != NULL) {
-        free(crh);
-        crh = NULL;
     }
 
     return err;

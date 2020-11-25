@@ -29,13 +29,15 @@ PIPASS_ERR authenticate(uint8_t *user, uint32_t user_len, uint8_t *master_pin,
         return err;
 
     uint8_t *raw_db_header = NULL;
-    struct DataBlob raw_db = {0};
+    uint8_t *raw_db = NULL;
     uint32_t raw_db_len = 0;
     struct DataHash *master_pin_hash = NULL;
     uint8_t *kek = NULL;
     uint8_t *fp_key = NULL;
     uint8_t *master_passw_key = NULL;
     struct DataBlob encrypted_fp_key = {0};
+    struct DataBlob dek_blob = {0};
+    uint8_t *dek = NULL;
 
     err = read_database_header(user_hash, &raw_db_header);
     if (err != PIPASS_OK)
@@ -98,7 +100,7 @@ PIPASS_ERR authenticate(uint8_t *user, uint32_t user_len, uint8_t *master_pin,
         if (err != PIPASS_OK)
             goto error;
 
-        err = decrypt_cipher_with_key(encrypted_fp_key, AES256_KEY_SIZE, master_passw_key, &fp_key);
+        err = decrypt_cipher_with_key(&encrypted_fp_key, AES256_KEY_SIZE, master_passw_key, &fp_key);
         if (err != PIPASS_OK)
             goto error;
 
@@ -109,11 +111,26 @@ PIPASS_ERR authenticate(uint8_t *user, uint32_t user_len, uint8_t *master_pin,
     if (err != PIPASS_OK)
         goto error;
 
-    err = load_database(&raw_db, raw_db_len, kek);
+    err = load_database(raw_db, raw_db_len, kek);
     if (err != PIPASS_OK)
         goto error;
 
     FL_DB_INITIALIZED = 1;
+
+    err = generate_OTK();
+    if (err != PIPASS_OK)
+        goto error;
+
+    err = decrypt_DEK_with_KEK(kek, &dek);
+    if (err != PIPASS_OK)
+        goto error;
+    
+    err = encrypt_DEK_with_OTK(dek);
+    if (err != PIPASS_OK)
+        goto error;
+
+    erase_buffer(&dek, AES256_KEY_SIZE);
+
 
     err = PIPASS_OK;
     goto cleanup;
@@ -127,10 +144,11 @@ error:
 cleanup:
     erase_buffer(&user_hash, SHA256_HEX_SIZE);
     erase_buffer(&fp_key, AES256_KEY_SIZE);
-    erase_buffer(master_passw_key, AES256_KEY_SIZE);
+    erase_buffer(&master_passw_key, AES256_KEY_SIZE);
     erase_buffer(&kek, AES256_KEY_SIZE);
     erase_buffer(&raw_db_header, DB_HEADER_SIZE);
-    free_datablob(&raw_db, raw_db_len);
+    erase_buffer(&raw_db, raw_db_len);
+    erase_buffer(&dek, AES256_KEY_SIZE);
     free_datahash(master_pin_hash);
     if (master_pin_hash != NULL)
         free(master_pin_hash);

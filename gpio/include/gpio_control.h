@@ -17,6 +17,7 @@ enum Button {None = 0, B1 = 1, B2 = 2, B3 = 3, B4 = 4};
 
 PIPASS_ERR init_gpio();
 enum Button get_pressed_button();
+void wait_for_input(uint8_t gpio, int8_t level);
 
 
 #endif

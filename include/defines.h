@@ -31,7 +31,7 @@
 
 #define CREDENTIALS_FIELD_LIMIT ((1 << 16) - 1)
 #define CREDENTIAL_HEADER_SIZE  (4 + 2*5)
-#define DB_HEADER_SIZE          (2 + 4 + SHA256_DGST_SIZE + SALT_SIZE)
+#define DB_HEADER_SIZE          (2 + 4 + SHA256_DGST_SIZE + SALT_SIZE + AES256_KEY_SIZE + MAC_SIZE + IV_SIZE)
 
 
 #define S_TTY    "/dev/ttyGS0"

@@ -18,7 +18,7 @@ PIPASS_ERR generate_aes256_key(uint8_t *key) {
 }
 
 PIPASS_ERR create_PBKDF2_key(uint8_t *input, int32_t input_len, uint8_t *salt, int32_t salt_len, uint8_t *pbkdf2_key) {
-    if (input == NULL || salt == NULL || pbkdf2_key == NULL || !input_len || !salt_len)
+    if (input == NULL || pbkdf2_key == NULL || !input_len)
         return ERR_AES_PBKDF_INV_PARAMS;
 
     fastpbkdf2_hmac_sha256(input, input_len, salt, salt_len, PBKDF2_ITERATIONS, pbkdf2_key, AES256_KEY_SIZE);
@@ -161,6 +161,7 @@ PIPASS_ERR decrypt_aes256(uint8_t *ciphertext, int32_t ciphertext_len, uint8_t *
         err = ERR_AES_DEC_EVP_FINAL;
         goto error;
     }
+    
     *plaintext_len += length;
 
     EVP_CIPHER_CTX_free(ctx);

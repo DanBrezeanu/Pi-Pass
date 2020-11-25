@@ -29,6 +29,8 @@ PIPASS_ERR encrypt_field_with_DEK(uint8_t *field, int32_t field_len, struct Data
 
 PIPASS_ERR decrypt_field_with_DEK(struct DataBlob *cipher, int16_t cipher_len, uint8_t **data, int32_t *data_len);
 
+PIPASS_ERR merge_keys(uint8_t *key_1, uint8_t *key_2, uint8_t **key);
+
 PIPASS_ERR reencrypt_DEK(struct DataBlob *dek_blob, uint8_t *new_master_pin, uint8_t *new_master_pin_salt, 
   uint8_t *old_master_pin, uint8_t *old_master_pin_salt);
 

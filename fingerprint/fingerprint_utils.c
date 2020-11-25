@@ -13,5 +13,5 @@ uint32_t bin_to_number(uint8_t *bin, size_t size) {
 }
 
 void wait_for_sensor_touch() {
-    
+    wait_for_input(FP_IRQ_PIN, 0);
 }
