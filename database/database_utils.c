@@ -96,7 +96,7 @@ error:
 PIPASS_ERR read_credentials_from_raw(uint8_t *raw_db, uint32_t *read_cursor, uint32_t db_len, 
   struct Credential *cred, uint32_t cred_count) {
 
-    if (raw_db || cred == NULL)
+    if (raw_db == NULL || cred == NULL)
         return ERR_DB_READ_FIELD_INV_PARAMS;
 
     PIPASS_ERR err;

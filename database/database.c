@@ -213,8 +213,6 @@ PIPASS_ERR db_append_credential(struct Credential *cr) {
     if (err != PIPASS_OK)
         return err;
 
-    printf("cred_count %d\n", db->cred_count);
-
     db->header->db_len += cr->cred_size;
 
     return PIPASS_OK;
@@ -264,7 +262,7 @@ PIPASS_ERR db_raw(uint8_t **raw_db, int32_t *raw_db_size) {
     append_to_str(*raw_db, &raw_cursor, db->dek.mac, MAC_SIZE);
     append_to_str(*raw_db, &raw_cursor, db->dek.iv, IV_SIZE);
 
-    *raw_db_size = db->header->db_len;
+    *raw_db_size = raw_cursor;
     return PIPASS_OK;
 
     //TODO: write error for this
@@ -301,6 +299,7 @@ PIPASS_ERR db_header_raw(uint8_t **raw_db_header) {
         err = ERR_RAW_DB_MEM_ALLOC;
         goto error;
     }
+    
     append_to_str(*raw_db_header, &raw_cursor, db_len_bin, sizeof(db_header->db_len));
     erase_buffer(&db_len_bin, sizeof(db_header->db_len));
 
@@ -368,6 +367,8 @@ PIPASS_ERR db_get_DEK(struct DataBlob *dek) {
 
 error:
     free_datablob(dek, AES256_KEY_SIZE);
+
+    return err;
 }
 
 PIPASS_ERR db_get_length(uint32_t *db_len) {

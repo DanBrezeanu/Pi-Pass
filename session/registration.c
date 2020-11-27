@@ -78,7 +78,7 @@ int main(int argc, char **argv) {
     if (argc == 1) {
         char pin[] = "1234";
         int index = 0;
-        err = fp_enroll_fingerprint(&index);
+        // err = fp_enroll_fingerprint(&index);
 
         err = fp_get_fingerprint(&fp_data);
         printf("%.4X\n", err);
@@ -110,11 +110,11 @@ int main(int argc, char **argv) {
         err = authenticate("test", strlen("test"), pin, NULL, "parola", 6);
         printf("auth = %.4X\n", err);
 
-        uint16_t names_len[] = {5, 6};
-        uint8_t *names[] = {"UserX", "Parola"};
+        uint16_t names_len[] = {5, 4};
+        uint8_t *names[] = {"UserX", "PLSS"};
 
-        uint16_t data_len[] = {4, 5};
-        uint8_t *data[] = {"Wowk", "Passw"};
+        uint16_t data_len[] = {6, 3};
+        uint8_t *data[] = {"MyUser", "UFF"};
 
         uint8_t is_encrypted[] = {0, 1};
 

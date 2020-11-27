@@ -9,6 +9,12 @@
 PIPASS_ERR register_new_credential(uint8_t *user_hash, enum CredentialType type, uint16_t fields_count, uint16_t *fields_names_len, 
   uint8_t **fields_names, uint16_t *fields_data_len, uint8_t *fields_encrypted, uint8_t **fields_data) {
 
+    if (!FL_LOGGED_IN)
+        return ERR_NOT_LOGGED_IN;
+
+    if (!FL_DB_INITIALIZED)
+        return ERR_DB_NOT_INITIALIZED;
+
     if (fields_names_len == NULL || fields_names == NULL || fields_data_len == NULL || 
       fields_encrypted == NULL || fields_data == NULL)
         return ERR_CREATE_CRED_INV_PARAMS;
@@ -42,7 +48,7 @@ error:
     return err;
 }
 
-// PIPASS_ERR get_credentials_by_name(struct Database *db, uint8_t *user_hash, uint8_t *master_pass, uint8_t *name, int16_t name_len, 
+// PIPASS_ERR get_credentials_by_name(uint8_t *user_hash, uint8_t *master_pass, uint8_t *name, int16_t name_len, 
 //   struct PlainTextCredential **ptcr, struct CredentialHeader **ptcrh, int32_t *cred_count) {
 //     if (db == NULL || user_hash == NULL || master_pass == NULL || name == NULL || !name_len)
 //         return ERR_GET_CRED_INV_PARAMS;

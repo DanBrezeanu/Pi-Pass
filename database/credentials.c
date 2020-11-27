@@ -205,6 +205,10 @@ PIPASS_ERR add_field_credential(struct Credential *cr, uint8_t *field_name, uint
 
     cr->fields_encrypted[cr->fields_count] = field_is_encrypted;
 
+    err = recalculate_cred_len(cr);
+    if (err != PIPASS_OK)
+        goto error;
+
     cr->fields_count++;
 
     if (field_is_encrypted) {
@@ -218,6 +222,7 @@ PIPASS_ERR add_field_credential(struct Credential *cr, uint8_t *field_name, uint
         goto error;
     }
 
+
     return PIPASS_OK;
 
 error:
@@ -230,7 +235,7 @@ PIPASS_ERR recalculate_cred_len(struct Credential *cr) {
     if (cr == NULL)
         return ERR_RECALC_HEADER_INV_PARAMS;
 
-    cr->cred_size = sizeof(cr->type) + sizeof(cr->fields_count);
+    cr->cred_size = sizeof(cr->cred_size) + sizeof(uint8_t) + sizeof(cr->fields_count);
 
     for (int32_t i = 0; i < cr->fields_count; ++i) {
         cr->cred_size += sizeof(cr->fields_names_len[i]) + cr->fields_names_len[i];
@@ -424,7 +429,7 @@ PIPASS_ERR credential_raw(struct Credential *cr, uint8_t **raw_cr, uint32_t *raw
             err = ERR_DB_MEM_ALLOC;
             goto error;
         }
-        append_to_str(*raw_cr, &cursor, field_data_len_bin, sizeof(cr->fields_names_len[i]));
+        append_to_str(*raw_cr, &cursor, field_data_len_bin, sizeof(cr->fields_data_len[i]));
 
         erase_buffer(&field_data_len_bin, sizeof(cr->fields_data_len[i]));
     }
