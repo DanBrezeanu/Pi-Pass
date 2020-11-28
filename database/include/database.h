@@ -36,6 +36,7 @@ PIPASS_ERR db_header_raw(uint8_t **raw_db_header);
 PIPASS_ERR db_append_credential(struct Credential *cr);
 PIPASS_ERR db_get_master_pin_hash(struct DataHash *master_pin_hash);
 PIPASS_ERR db_get_length(uint32_t *db_len);
+PIPASS_ERR db_get_credentials(struct Credential **cr, uint32_t *cred_count);
 PIPASS_ERR db_get_DEK(struct DataBlob *dek);
 PIPASS_ERR db_get_encrypted_fp_key(struct DataBlob *fp_key);
 PIPASS_ERR load_database(uint8_t *raw_db, uint32_t db_len, uint8_t *kek);

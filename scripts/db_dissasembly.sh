@@ -59,9 +59,10 @@ do
     for (( j=0; j<$FIELD_COUNT_INT; j++))
     do
         NAME=$(xxd -s $SEEK -l ${NAMES_LEN[$j]} -ps -c ${NAMES_LEN[$j]} $file)
-        echo $(echo ${NAME} | xxd -r -ps)
+        echo -n "$(echo ${NAME} | xxd -r -ps)  "
         SEEK=$(($SEEK+${NAMES_LEN[$j]}))
     done
+    echo
 
     echo -n "Data len:  "
     for (( j=0; j<$FIELD_COUNT_INT; j++))

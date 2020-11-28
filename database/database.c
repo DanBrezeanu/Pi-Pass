@@ -380,6 +380,16 @@ PIPASS_ERR db_get_length(uint32_t *db_len) {
     return PIPASS_OK;
 }
 
+PIPASS_ERR db_get_credentials(struct Credential **cr, uint32_t *cred_count) {
+    if (db == NULL || !FL_DB_INITIALIZED)
+        return ERR_DB_NOT_INITIALIZED;
+        
+    *cr = db->cred;
+    *cred_count = db->cred_count;
+
+    return PIPASS_OK;
+}
+
 PIPASS_ERR db_get_encrypted_fp_key(struct DataBlob *fp_key) {
     if (db_header == NULL || !FL_DB_HEADER_LOADED)
         return ERR_DB_HEADER_NOT_LOADED;
@@ -509,7 +519,7 @@ PIPASS_ERR load_database_header(uint8_t *raw_db_header) {
         goto error;
     }
 
-    db_header->db_len = *db_version;
+    db_header->version = *db_version;
     raw_db_header += sizeof(uint16_t);
     
     db_len = (uint32_t *)bin_to_var(raw_db_header, sizeof(uint32_t));

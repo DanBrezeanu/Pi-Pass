@@ -388,12 +388,6 @@ PIPASS_ERR decrypt_field_with_DEK(struct DataBlob *cipher, int16_t cipher_len, u
     PIPASS_ERR err = CRYPTO_OK;
     uint8_t *dek = NULL;
 
-    dek = malloc(AES256_KEY_SIZE);
-    if (dek == NULL) {
-        err = ERR_DEC_CRED_MEM_ALLOC;
-        goto error;
-    }
-
     *data = malloc(cipher_len);
     if (*data == NULL) {
         err = ERR_DEC_CRED_MEM_ALLOC;
@@ -419,6 +413,7 @@ error:
     return err;
 }
 
+/* TODO */
 PIPASS_ERR reencrypt_DEK(struct DataBlob *dek_blob, uint8_t *new_master_pin, uint8_t *new_master_pin_salt, 
   uint8_t *old_master_pin, uint8_t *old_master_pin_salt) {
 

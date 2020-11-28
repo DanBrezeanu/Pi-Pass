@@ -60,4 +60,7 @@ PIPASS_ERR create_credential(enum CredentialType type, uint16_t fields_count, ui
   struct Credential **cr);
 
 PIPASS_ERR credential_raw(struct Credential *cr, uint8_t **raw_cr, uint32_t *raw_cr_len);
+
+PIPASS_ERR decrypt_credential(struct Credential *cr, struct Credential *plain_cr);
+
 #endif

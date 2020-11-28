@@ -52,9 +52,7 @@ PIPASS_ERR populate_plaintext_field(struct Credential *cr, uint8_t *field_name, 
     if (data_len > CREDENTIALS_FIELD_LIMIT)
         return ERR_FIELD_LIMIT_EXCEEDED;
 
-    PIPASS_ERR err = sanity_check_buffer(data, data_len);
-    if (err != PIPASS_OK)
-        return err;
+    PIPASS_ERR err;
 
     uint8_t **field = NULL;
     uint16_t *field_len = 0;
@@ -117,9 +115,7 @@ PIPASS_ERR populate_encrypted_field(struct Credential *cr, uint8_t *field_name, 
     if (data_len > CREDENTIALS_FIELD_LIMIT)
         return ERR_FIELD_LIMIT_EXCEEDED;
 
-    PIPASS_ERR err = sanity_check_buffer(data, data_len);
-    if (err != PIPASS_OK)
-        return err;
+    PIPASS_ERR err;
 
     struct DataBlob *field = NULL;
     uint16_t *field_len = 0;
@@ -462,6 +458,49 @@ cleanup:
     erase_buffer(&fields_count_bin, sizeof(cr->fields_count));
     erase_buffer(&field_name_len_bin, sizeof(uint16_t));
     erase_buffer(&field_data_len_bin, sizeof(uint16_t));
+
+    return err;
+}
+
+PIPASS_ERR decrypt_credential(struct Credential *cr, struct Credential *plain_cr) {
+    if (!FL_LOGGED_IN)
+        return ERR_NOT_LOGGED_IN;
+
+    if (cr == NULL || plain_cr == NULL)
+        return ERR_DECRYPT_CRED_INV_PARAMS;
+
+    PIPASS_ERR err;
+    uint8_t *plain_data = NULL;
+    int32_t plain_data_len = 0;
+
+    plain_cr->type = cr->type;
+
+    for (int32_t i = 0; i < cr->fields_count; ++i) {
+        if (cr->fields_encrypted[i]) {
+            err = decrypt_field_with_DEK(&(cr->fields_data[i].data_encryped), cr->fields_data_len[i], &plain_data, &plain_data_len);
+            if (err != PIPASS_OK)
+                goto error;
+
+            err = add_field_credential(plain_cr, cr->fields_names[i], cr->fields_names_len[i],
+              plain_data, cr->fields_data_len[i], 0);
+            if (err != PIPASS_OK)
+                goto error;
+
+            erase_buffer(&plain_data, plain_data_len);
+
+        } else {
+            err = add_field_credential(plain_cr, cr->fields_names[i], cr->fields_names_len[i],
+              cr->fields_data[i].data_plain, cr->fields_data_len[i], cr->fields_encrypted[i]);
+            if (err != PIPASS_OK)
+                goto error;
+        }
+    }
+
+    return PIPASS_OK;
+
+error:
+    erase_buffer(&plain_data, plain_data_len);
+    free_credential(plain_cr);
 
     return err;
 }

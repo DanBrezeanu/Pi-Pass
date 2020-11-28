@@ -63,7 +63,7 @@ PIPASS_ERR memcpy_credentials(struct Credential *dest, struct Credential *src) {
     if (dest->fields_names == NULL)
         return ERR_MCPY_CRED_INV_PARAMS;
 
-    for (uint8_t i = 0; i < src->fields_count; ++i) {
+    for (uint32_t i = 0; i < src->fields_count; ++i) {
         if (dest->fields_names[i] == NULL)
             return ERR_MCPY_CRED_INV_PARAMS;
 
@@ -83,7 +83,7 @@ PIPASS_ERR memcpy_credentials(struct Credential *dest, struct Credential *src) {
     if (dest->fields_data == NULL)
         return ERR_MCPY_CRED_BLOB_INV_PARAMS;
 
-    for (uint8_t i = 0; i < src->fields_count; ++i) {
+    for (uint32_t i = 0; i < src->fields_count; ++i) {
         if (src->fields_encrypted[i]) {
             err = datablob_memcpy(
                 &dest->fields_data[i].data_encryped,

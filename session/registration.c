@@ -72,11 +72,12 @@ int main(int argc, char **argv) {
     init_gpio();
 
     fp_verify_pin("0000");
+
+    char pin[] = "1234";
     
 
     printf("%d\n", DB_HEADER_SIZE);
     if (argc == 1) {
-        char pin[] = "1234";
         int index = 0;
         // err = fp_enroll_fingerprint(&index);
 
@@ -91,16 +92,11 @@ int main(int argc, char **argv) {
         // err = fp_get_fingerprint(&fp_data);
         // printf("%.4X\n", err);
 
-        char pin[] = "1234";
-
         err = authenticate("test", strlen("test"), pin, NULL, "parola", 6);
         printf("auth = %.4X\n", err);
 
         free(user_hash);
-    } else if (argc == 3){
-        struct Database *db = NULL;
-        char pin[] = "1234";
-        
+    } else if (argc == 3) {
         // err = fp_get_fingerprint(&fp_data);
         // printf("%.4X\n", err);
 
@@ -121,47 +117,34 @@ int main(int argc, char **argv) {
         err = register_new_credential(user_hash, PASSWORD_TYPE, 2, names_len, names, data_len, is_encrypted, data);
         printf("reg = %.4X", err);
 
+    } else if (argc == 4) {
+
+        uint8_t *user_hash = NULL;
+        err = generate_user_hash("test", 4, &user_hash);
+        if (err != STORAGE_OK)
+            goto error;
+
+        err = authenticate("test", strlen("test"), pin, NULL, "parola", 6);
+        if (err != STORAGE_OK)
+            goto error;
+
+        struct Credential *cr = NULL;
+        uint32_t cr_len = 0;
+
+        err = get_credentials(user_hash, "UserX", 5, "MyUser", 6, &cr, &cr_len);
+        if (err != PIPASS_OK)
+            goto error;
+
+        for (int32_t i = 0; i < cr_len; ++i) {
+            for (int32_t j = 0; j < cr[i].fields_count; ++j) {
+                printf("%s\n", cr[i].fields_names[j]);
+                printf("%s\n", cr[i].fields_data[j].data_plain);
+            }
+        }
+
+
     }
-} // else if (argc == 4) {
-    //     struct Database *db = NULL;
-
-    //     uint8_t *user_hash = NULL;
-    //     err = generate_user_hash("test", 4, &user_hash);
-    //     if (err != STORAGE_OK)
-    //         goto error;
-
-    //     err = load_database(&db, user_hash);
-    //     if (err != STORAGE_OK)
-    //         goto error;
-
-    //     struct PlainTextCredential *cr = NULL;
-    //     struct CredentialHeader *crh = NULL;
-    //     int32_t cred_count = 0;
-
-    //     uint8_t *pass = malloc(5);
-    //     strcpy(pass, "1234");
-    //     uint8_t *name = malloc(7); 
-    //     strcpy(name, "Amazon");
-
-    //     //TODO: fix corrupted byte
-    //     err = get_credentials_by_name(db, user_hash, pass, name, 6, &cr, &crh, &cred_count);
-    //     if (err != STORAGE_OK)
-    //         goto error;
-
-    //     for (int i = 0; i < cred_count; ++i) {
-    //         printf("%s\n%s\n%s\n%s\n%s\n", cr[i].name, cr[i].username, cr[i].passw, cr[i].url, cr[i].additional);
-    //         printf("%d %d %d %d %d\n", crh[i].name_len, crh[i].username_len, crh[i].passw_len, crh[i].url_len, crh[i].additional_len);
-    //     }
-    //     free(pass);
-    //     free(name);
-    //     for (int i = 0; i < cred_count; ++i)
-    //         free_plaintext_credential(&(cr[i]), &(crh[i]));
-    //     free(cr);
-    //     free(crh);
-    //     free(user_hash);
-    //     free_database(db);
-    // }
-// error:
-//     printf("0x%.4X\n", err);
-//     return 0;
-// }
+error:
+    printf("0x%.4X\n", err);
+    return 0;
+}
