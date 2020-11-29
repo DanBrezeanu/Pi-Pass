@@ -1,8 +1,8 @@
 #include <storage_utils.h>
 #include <crypto.h>
 
-PIPASS_ERR user_directory(uint8_t *user, uint8_t **user_dir, uint32_t *user_dir_len) {
-    if (user == NULL)
+PIPASS_ERR user_directory(uint8_t *user_hash, uint8_t **user_dir, uint32_t *user_dir_len) {
+    if (user_hash == NULL)
         return ERR_NO_USER_PROVIDED;
 
     if (*user_dir != NULL)
@@ -15,7 +15,7 @@ PIPASS_ERR user_directory(uint8_t *user, uint8_t **user_dir, uint32_t *user_dir_
         return ERR_STORAGE_MEM_ALLOC;
 
     memmove(*user_dir, PIPASS_USERS, PIPASS_USERS_LEN);
-    memmove(*user_dir + PIPASS_USERS_LEN, user, SHA256_HEX_SIZE);
+    memmove(*user_dir + PIPASS_USERS_LEN, user_hash, SHA256_HEX_SIZE);
 
     *user_dir_len = PIPASS_USERS_LEN + SHA256_HEX_SIZE + 1;
     (*user_dir)[*user_dir_len - 1] = '/';
@@ -24,8 +24,8 @@ PIPASS_ERR user_directory(uint8_t *user, uint8_t **user_dir, uint32_t *user_dir_
     return STORAGE_OK;
 }
 
-PIPASS_ERR user_file_path(uint8_t *user, uint8_t *file, uint8_t **user_file_path, uint32_t *user_file_path_len) {
-    if (user == NULL)
+PIPASS_ERR user_file_path(uint8_t *user_hash, uint8_t *file, uint8_t **user_file_path, uint32_t *user_file_path_len) {
+    if (user_hash == NULL)
         return ERR_NO_USER_PROVIDED;
 
     if (file == NULL)
@@ -35,7 +35,7 @@ PIPASS_ERR user_file_path(uint8_t *user, uint8_t *file, uint8_t **user_file_path
         return ERR_MEM_LEAK;
     
     PIPASS_ERR err;
-    err = user_directory(user, user_file_path, user_file_path_len);
+    err = user_directory(user_hash, user_file_path, user_file_path_len);
     if (err != STORAGE_OK)
         return err;
 

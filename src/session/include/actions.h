@@ -11,8 +11,8 @@
 PIPASS_ERR register_new_credential(uint8_t *user_hash, enum CredentialType type, uint16_t fields_count, uint16_t *fields_names_len, 
   uint8_t **fields_names, uint16_t *fields_data_len, uint8_t *fields_encrypted, uint8_t **fields_data);
 
-// PIPASS_ERR get_credentials_by_name(struct Database *db, uint8_t *user_hash, uint8_t *pin, uint8_t *name, int16_t name_len, 
-//  struct PlainTextCredential **ptcr, struct CredentialHeader **ptcrh, int32_t *cred_count);
+PIPASS_ERR get_credentials(uint8_t *user_hash, uint8_t *field_name, uint16_t field_name_len, uint8_t *field_value,
+  uint16_t field_value_len, struct Credential **cr, uint16_t *cr_len);
 
 
 #endif
