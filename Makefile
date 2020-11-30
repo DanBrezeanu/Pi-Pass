@@ -20,7 +20,7 @@ EXTRA_INCLUDE_DIRS  := /usr/include/python3.7
 INCLUDE_DIRS	    := $(patsubst %,%/include,$(SRCDIRS)) $(SRCDIR)/include \
 					   $(EXTRA_INCLUDE_DIRS) $(VENDOR_INCLUDE_DIRS)
 
-VENDOR_LIB_DIRS     := $(patsubst %,%/lib,$(VENDOR_DIRS))		   
+VENDOR_LIB_DIRS     := $(patsubst %,%/lib,$(VENDOR_DIRS))
 LIB_DIRS 		    := lib/ /usr/lib/python3.7/ $(VENDOR_LIB_DIRS)
 
 INCLUDE := $(patsubst %,-I%,$(INCLUDE_DIRS))
@@ -44,26 +44,28 @@ TEST_TARGET   := test_$(TARGET)
 all: createdirs $(OBJS)
 	@echo "   LD $(TARGET)"
 	@$(CC) $(OBJS) $(LDFLAGS) -o $(TARGET) $(LDLIBS)
-	
+
 
 $(BUILDDIR)/%.o: $(SRCDIR)/%.c
-	@echo "   CC  $^" 
+	@echo "   CC  $^"
 	@$(CC) $(CFLAGS) $(INCLUDE) $< -c -o $@
 
 
 test: createdirs $(OBJS) $(TEST_OBJS)
-	$(CC) $(OBJS) $(TEST_OBJS) $(LDFLAGS) -o $(TEST_TARGET) $(LDLIBS) $(TEST_LDLIBS)
+	@$(CC) $(OBJS) $(TEST_OBJS) $(LDFLAGS) -o $(TEST_TARGET) $(LDLIBS) $(TEST_LDLIBS)
 	@echo "Running tests..."
 	@sudo ./$(TEST_TARGET)
 
 $(TEST_BUILDDIR)/%.o: $(TESTDIR)/%.c
-	@echo "   CC  $^" 
+	@echo "   CC  $^"
 	@$(CC) $(CFLAGS) $(INCLUDE) $< -c -o $@
 
+install:
+	@cp vendor/*/lib/*.so* /usr/lib/ -v
+
 clean:
-	$(RM) $(BUILDDIR) $(TARGET) $(TEST_BUILDDIR)
-	
+	$(RM) $(BUILDDIR) $(TARGET) $(TEST_BUILDDIR) $(TEST_TARGET)
+
 createdirs:
-	$(info $(LDLIBS))
 	@$(MKDIR) $(BUILDDIR) $(OBJDIRS) $(TEST_BUILDDIR)
 
