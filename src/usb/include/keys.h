@@ -1,15 +1,16 @@
+/** @file keys.h */
 #ifndef __KEYS_H__
 #define __KEYS_H__
 
 #include <defines.h>
 
-#define key(x)      ((x) & 0xff)
-#define modifier(x) (((x) >> 8) & 0xff)
+#define key(x)      ((x) & 0xff)          ///< Extract the key code from Key
+#define modifier(x) (((x) >> 8) & 0xff)   ///< Extract the modificer from Key
 
-#define  KEY_NONE  0x0000
+#define  KEY_NONE  0x0000       ///< No key
 
-#define  KEY_a  0x0004
-#define  KEY_b  0x0005
+#define  KEY_a  0x0004          ///< "a" key
+#define  KEY_b  0x0005          ///< "b" key
 #define  KEY_c  0x0006
 #define  KEY_d  0x0007
 #define  KEY_e  0x0008

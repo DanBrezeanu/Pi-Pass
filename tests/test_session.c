@@ -123,8 +123,8 @@ START_TEST(test_add_credential) {
     ck_assert_uint_eq(err, PIPASS_OK);
 
     /* Try getting the credential from the database */
-    struct Credential *cr;
-    uint32_t cr_len = 0;
+    struct Credential *cr = NULL;
+    uint16_t cr_len = 0;
 
     err = get_credentials(user_hash, "TestField_1", strlen("TestField_1"), "TestData_1", strlen("TestData_1"), &cr, &cr_len);
     ck_assert_uint_eq(err, PIPASS_OK);
@@ -132,7 +132,11 @@ START_TEST(test_add_credential) {
     ck_assert_uint_ne(cr_len, 0);
 
     for (int32_t i = 0; i < cr->fields_count; ++i) {
-        ck_assert_str_eq(cr->fields_data[i].data_plain, field_data[i]);
+        ck_assert_uint_eq(cr->fields_data_len[i], field_data_len[i]);
+        ck_assert_mem_eq(cr->fields_data[i].data_plain, field_data[i], field_data_len[i]);
+
+        ck_assert_uint_eq(cr->fields_names_len[i], field_names_len[i]);
+        ck_assert_mem_eq(cr->fields_names[i], field_names[i], field_names_len[i]);
     }
 }
 END_TEST
@@ -148,8 +152,8 @@ Suite *session_suite(void) {
 
     tcase_add_unchecked_fixture(tc_core, setup, teardown);
     tcase_add_test(tc_core, test_registration);
-    // tcase_add_test(tc_core, test_authentication_with_password);
-    // tcase_add_test(tc_core, test_authentication_with_fingerprint);
+    tcase_add_test(tc_core, test_authentication_with_password);
+    tcase_add_test(tc_core, test_authentication_with_fingerprint);
     tcase_add_test(tc_core, test_add_credential);
     suite_add_tcase(s, tc_core);
 

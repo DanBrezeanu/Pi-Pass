@@ -11,7 +11,7 @@ int main() {
     size_t suites_count = sizeof(test_suites) / sizeof(test_suites[0]);
 
     sr = srunner_create(test_suites[0]());
-    srunner_set_fork_status(sr, CK_NOFORK);
+    srunner_set_fork_status(sr, CK_FORK);
 
     for (size_t i = 1; i < suites_count; ++i)
         srunner_add_suite(sr, test_suites[i]());

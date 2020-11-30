@@ -1,3 +1,4 @@
+/// @file actions.c
 #include <actions.h>
 #include <database.h>
 #include <database.h>
@@ -5,6 +6,8 @@
 #include <crypto.h>
 #include <storage.h>
 #include <authentication.h>
+
+
 
 PIPASS_ERR register_new_credential(uint8_t *user_hash, enum CredentialType type, uint16_t fields_count, uint16_t *fields_names_len, 
   uint8_t **fields_names, uint16_t *fields_data_len, uint8_t *fields_encrypted, uint8_t **fields_data) {
