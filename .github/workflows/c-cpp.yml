@@ -9,11 +9,9 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
     - uses: actions/checkout@v2
-    - name: make
-      run: make
-    - name: test1
-      run: sudo ./pipass
+    - name: RunTest
+      run: make test
