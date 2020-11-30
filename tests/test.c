@@ -3,6 +3,7 @@
 
 int main() {
     SRunner *sr;
+    int tests_failed = 0;
 
     Suite * (*test_suites[])() = {
         crypto_suite,
@@ -17,7 +18,8 @@ int main() {
         srunner_add_suite(sr, test_suites[i]());
 
     srunner_run_all(sr, CK_VERBOSE);
+    tests_failed = srunner_ntests_failed(sr);
     srunner_free(sr);
 
-    return 0;
+    return !!tests_failed;
 }
