@@ -14,4 +14,4 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: RunTest
-      run: make test
+      run: sudo make install && make test
