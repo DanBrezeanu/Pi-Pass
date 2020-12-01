@@ -1,7 +1,8 @@
+/** @file errors.h */
 #ifndef __ERRORS_H__
 #define __ERRORS_H__
 
-#define PIPASS_OK                      0x0000
+#define PIPASS_OK                      0x0000  /**< Success. */
 
 /* USB Error Codes */
 #define USB_OK                         0x0000
@@ -14,24 +15,24 @@
 
 /* Crypto Error Codes */
 #define CRYPTO_OK                      0x0000
-#define SSL_OK                         0x0001
+#define SSL_OK                         0x0001  /**< Success value for OpenSSL functions */
 #define ERR_SHA_INIT_CTX_FAIL          0x1002
 #define ERR_SHA_UPDATE_FAIL            0x1003
 #define ERR_SHA_FINAL_FAIL             0x1004
 #define ERR_SHA_HASH_INV_PARAMS        0x1005
 #define ERR_READ_HASH_FAIL             0x1006
 #define ERR_HASH_DIFFER                0x1007
-#define ERR_RAND_NOT_SUPPORTED         0x1008
-#define ERR_RAND_FAIL                  0x1009
-#define ERR_AES_PBKDF_INV_PARAMS       0x100A
-#define ERR_AES_ENC_INV_PARAMS         0x100B
-#define ERR_AES_ENC_EVP_INIT           0x100C
-#define ERR_AES_ENC_SET_IVLEN          0x100D
-#define ERR_AES_ENC_EVP_INIT_KEY       0x100E
-#define ERR_AES_ENC_EVP_AAD            0x100F
-#define ERR_AES_ENC_EVP_ENCRYPT        0x1010
-#define ERR_AES_ENC_EVP_FINAL          0x1011
-#define ERR_AES_ENC_EVP_MAC            0x1012
+#define ERR_RAND_NOT_SUPPORTED         0x1008  /**< OpenSSL random is not supported. */
+#define ERR_RAND_FAIL                  0x1009  /**< Random bytes generation has failed. */ 
+#define ERR_AES_PBKDF_INV_PARAMS       0x100A  /**< Invalid parameters specified for #create_PBKDF2_key() function. */
+#define ERR_AES_ENC_INV_PARAMS         0x100B  /**< Invalid paramters specified for #encrypt_aes256() function. */
+#define ERR_AES_ENC_EVP_INIT           0x100C  /**< Encryption context creation failed */
+#define ERR_AES_ENC_SET_IVLEN          0x100D  /**< Setting IV's length failed for the encryption context. */
+#define ERR_AES_ENC_EVP_INIT_KEY       0x100E  /**< Setting the key for the encryption context failed. */
+#define ERR_AES_ENC_EVP_AAD            0x100F  /**< Setting the AAD for the encryption context failed. */
+#define ERR_AES_ENC_EVP_ENCRYPT        0x1010  /**< Setting the plaintext for the encryption context failed. */
+#define ERR_AES_ENC_EVP_FINAL          0x1011  /**< Data encryption failed. */ 
+#define ERR_AES_ENC_EVP_MAC            0x1012  /**< Extracting the MAC from the ciphertext failed */
 #define ERR_AES_DEC_INV_PARAMS         0x1013
 #define ERR_AES_DEC_EVP_INIT           0x1014
 #define ERR_AES_DEC_SET_IVLEN          0x1015
@@ -40,15 +41,15 @@
 #define ERR_AES_DEC_EVP_DECRYPT        0x1018
 #define ERR_AES_DEC_EVP_FINAL          0x1019
 #define ERR_AES_DEC_EVP_MAC            0x101A
-#define ERR_RAW2HEX_INV_PARAMS         0x101B
-#define ERR_CRYPTO_MEM_ALLOC           0x101C
+#define ERR_RAW2HEX_INV_PARAMS         0x101B  /**< Invalid parameters for the #raw_to_hex() function. */
+#define ERR_CRYPTO_MEM_ALLOC           0x101C  /**< `malloc()`, `calloc()` or `realloc()` failed to allocate memory. */
 #define ERR_CRYPTO_KEK_INV_PARAMS      0x101D
 #define ERR_CRYPTO_KEK_MEM_LEAK        0x101E
 #define ERR_CRYPTO_DEK_BLOB_INV_PARAMS 0x101F
 #define ERR_CRYPTO_DEK_BLOB_MEM_LEAK   0x1020
 #define ERR_CRYPTO_GEN_HASH_INV_PARAMS 0x1021
 #define ERR_CRYPTO_HASH_MEM_LEAK       0x1022
-#define ERR_BUF_SANITY_CHECK_FAIL      0x1023
+#define ERR_BUF_SANITY_CHECK_FAIL      0x1023  /**< Buffer is NULL or is not 0-terminated */
 #define ERR_ENC_DB_FIELD_INV_PARAMS    0x1024
 #define ERR_ENC_DB_INV_FIELD           0x1025
 #define ERR_ENC_CRED_INV_PARAMS        0x1026
@@ -64,7 +65,7 @@
 #define ERR_DEC_CRED_INV_PARAMS        0x1030
 #define ERR_DEC_CRED_MISSING_KEK       0x1031
 #define ERR_DEC_CRED_MISSING_DEK       0x1032
-#define ERR_CRYPTO_MEM_LEAK            0x1033
+#define ERR_CRYPTO_MEM_LEAK            0x1033  /**< A non-NULL pointer has been passed when trying to alloc memory, thus resulting in a memory leak.*/
 #define ERR_DEC_CRED_MEM_LEAK          0x1034
 #define ERR_DEC_CRED_MEM_ALLOC         0x1035
 #define ERR_ALLOC_DATAHASH_INV_PARAMS  0x1036
@@ -79,13 +80,13 @@
 #define ERR_DEK_BLOB_NOT_INIT          0x103F
 #define ERR_DEC_DEK_OTK_MEM_ALLOC      0x1040
 #define ERR_ENC_DB_DEK_MEM_ALLOC       0x1041
-#define ERR_RETRIEVE_CPU_ID            0x1042
-#define ERR_CONCAT_PEPPER_INV_PARAMS   0x1043
+#define ERR_RETRIEVE_CPU_ID            0x1042  /**< Could not retrieve the CPU hardware ID */
+#define ERR_CONCAT_PEPPER_INV_PARAMS   0x1043  /**< Invalid parameters for the #concat_pin_pepper() function. */
 #define ERR_VERIFY_PWD_INV_PARAMS      0x1044
 #define ERR_DB_HEADER_NOT_LOADED       0x1045
 #define ERR_DATABLOB_MEMCPY_INV_PARAMS 0x1046
 #define ERR_DATAHASH_MEMCPY_INV_PARAMS 0x1047
-#define ERR_CRYPTO_GEN_KEY_INV_PARAMS  0x1048
+#define ERR_CRYPTO_GEN_KEY_INV_PARAMS  0x1048  /**< Invalid parameters for #generate_aes256_key() function. */
 #define ERR_OTK_ALREADY_INIT           0x1049
 #define ERR_ALREADY_LOGGED_IN          0x104A
 #define ERR_DB_HEADER_ALREADY_LOADED   0x104B

@@ -10,7 +10,7 @@ uint8_t *OTK = NULL;
 struct DataBlob *DEK_BLOB = NULL;
 
 PIPASS_ERR generate_KEK(uint8_t *pin, uint8_t *salt, uint8_t *fp_key, uint8_t **KEK) {
-    PIPASS_ERR err = CRYPTO_OK; 
+    PIPASS_ERR err = PIPASS_OK; 
     uint8_t *pin_pepper = NULL;
     uint8_t *KEK_pin = NULL, *KEK_fp = NULL;
     
@@ -18,7 +18,7 @@ PIPASS_ERR generate_KEK(uint8_t *pin, uint8_t *salt, uint8_t *fp_key, uint8_t **
         return ERR_CRYPTO_KEK_INV_PARAMS;
 
     if (*KEK != NULL)
-        return ERR_CRYPTO_KEK_MEM_LEAK;
+        return ERR_CRYPTO_MEM_LEAK;
 
     KEK_pin = malloc(AES256_KEY_SIZE);
     if (KEK_pin == NULL) {

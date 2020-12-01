@@ -14,7 +14,7 @@ PIPASS_ERR generate_aes256_key(uint8_t *key) {
         return ERR_RAND_FAIL;
     }
 
-    return CRYPTO_OK;
+    return PIPASS_OK;
 }
 
 PIPASS_ERR create_PBKDF2_key(uint8_t *input, int32_t input_len, uint8_t *salt, int32_t salt_len, uint8_t *pbkdf2_key) {
@@ -23,7 +23,7 @@ PIPASS_ERR create_PBKDF2_key(uint8_t *input, int32_t input_len, uint8_t *salt, i
 
     fastpbkdf2_hmac_sha256(input, input_len, salt, salt_len, PBKDF2_ITERATIONS, pbkdf2_key, AES256_KEY_SIZE);
 
-    return CRYPTO_OK;
+    return PIPASS_OK;
 }
 
 PIPASS_ERR encrypt_aes256(uint8_t *plaintext, int32_t plaintext_len, uint8_t *aad, int32_t aad_len, uint8_t *key,
@@ -90,7 +90,7 @@ PIPASS_ERR encrypt_aes256(uint8_t *plaintext, int32_t plaintext_len, uint8_t *aa
     }
 
     EVP_CIPHER_CTX_free(ctx);
-    return CRYPTO_OK;
+    return PIPASS_OK;
 
 error:
     EVP_CIPHER_CTX_free(ctx);

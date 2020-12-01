@@ -19,7 +19,7 @@ PIPASS_ERR raw_to_hex(uint8_t *raw, uint32_t raw_len, uint8_t **hex, uint32_t *h
         return ERR_RAW2HEX_INV_PARAMS;
 
     if (*hex != NULL)
-        return ERR_MEM_LEAK;
+        return ERR_CRYPTO_MEM_LEAK;
 
     *hex = malloc(raw_len * 2 + 1);
     if (*hex == NULL)
@@ -33,7 +33,7 @@ PIPASS_ERR raw_to_hex(uint8_t *raw, uint32_t raw_len, uint8_t **hex, uint32_t *h
         (*hex)[i * 2 + 1] = hx[(raw[i]     ) & 0x0F];
     }
     
-    return CRYPTO_OK;
+    return PIPASS_OK;
 }
 
 PIPASS_ERR sanity_check_buffer(uint8_t *buf, uint8_t buf_len) {

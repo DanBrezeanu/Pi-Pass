@@ -1,3 +1,4 @@
+/** @file defines.h */
 #ifndef __DEFINES_H__
 #define __DEFINES_H__
 
@@ -7,41 +8,36 @@
 #include <stdio.h>
 
 #ifndef PIPASS_VERSION
-    #define PIPASS_VERSION 0x0001
+    #define PIPASS_VERSION 0x0001   /**< Current PiPass version */
 #endif
 
-#ifndef DEFAULT_GUARD_VALUE
-    #define DEFAULT_GUARD_VALUE 0x05F403F2
-#endif 
+#define PACKET_SIZE 8              /**< USB packet size */
 
-#define PACKET_SIZE 8
+#define CPU_ID_SIZE         16     /**< Size of the CPU ID buffer */
 
-#define CPU_ID_SIZE         16
+#define MASTER_PIN_SIZE_WITH_PEPPER  (PEPPER_SIZE + MASTER_PIN_SIZE)    /**< Size of the buffer containing the pin and the pepper */
+#define MASTER_PIN_SIZE    4               /**< Size of the master PIN */
+#define PEPPER_SIZE         CPU_ID_SIZE    /**< Hardware pepper size */
+#define SALT_SIZE           64             /**< Salt size used in SHA256 hashing and PBKDF2 operations */
+#define SHA256_DGST_SIZE    32             /**< Size of a SHA256 digest */
+#define SHA256_HEX_SIZE     64             /**< Size of a SHA256 digest converted in hex representation */
+#define PBKDF2_ITERATIONS   256            /**< Number of PBKDF2 iterations used when derivating keys */
+#define AES256_KEY_SIZE     32             /**< Size of a AES256-GCM key */
+#define IV_SIZE             16             /**< Size of a AES256-GCM initialization vector */
+#define MAC_SIZE            16             /**< Size of a AES256-GCM message authentication code */
 
-#define MASTER_PIN_SIZE_WITH_PEPPER  (PEPPER_SIZE + MASTER_PIN_SIZE)
-#define MASTER_PIN_SIZE    4
-#define PEPPER_SIZE         CPU_ID_SIZE
-#define SALT_SIZE           64
-#define SHA256_DGST_SIZE    32
-#define SHA256_HEX_SIZE     64
-#define PBKDF2_ITERATIONS   256
-#define AES256_KEY_SIZE     32
-#define IV_SIZE             16
-#define MAC_SIZE            16
-
-#define CREDENTIALS_FIELD_LIMIT ((1 << 16) - 1)
-#define CREDENTIAL_HEADER_SIZE  (4 + 2*5)
-#define DB_HEADER_SIZE          (2 + 4 + SHA256_DGST_SIZE + SALT_SIZE + AES256_KEY_SIZE + MAC_SIZE + IV_SIZE)
+#define CREDENTIALS_FIELD_LIMIT ((1 << 16) - 1)   /**< Maximum length for a credential field */
+#define DB_HEADER_SIZE          (2 + 4 + SHA256_DGST_SIZE + SALT_SIZE + AES256_KEY_SIZE + MAC_SIZE + IV_SIZE)  /**< Size of the database header */
 
 
-#define S_TTY    "/dev/ttyGS0"
-#define SERIAL_PKT_SIZE 256
+#define S_TTY    "/dev/ttyGS0"   /**< Serial port used for communicating via USART */
+#define SERIAL_PKT_SIZE 256      /**< Size of a serial packet */
 
-#define FP_PORT  "/dev/ttyS0"
+#define FP_PORT  "/dev/ttyS0"   /**< Serial port used for communicating with the fingerprint sensor */
 
-#define MEDIA_DIR "./media"
-#define IMG_DIR   MEDIA_DIR"/img"
-#define FONTS_DIR MEDIA_DIR"/fonts"
+#define MEDIA_DIR "./media"            /**< The directory containing various media files */
+#define IMG_DIR   MEDIA_DIR"/img"      /**< The directory containing images */
+#define FONTS_DIR MEDIA_DIR"/fonts"    /**< The directory containing fonts */
 
 typedef uint8_t * usb_packet;
 typedef uint8_t   BYTE;

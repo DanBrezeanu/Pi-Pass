@@ -17,7 +17,7 @@
 /**
  * Authenticates and logs in the specified user.
  * Authentication can be accomplished by providing the master pin
- * and the necessary fingerprint or the master password
+ * and the necessary fingerprint or the master password.
  * 
  * This action also decrypts the database if the verification succeeds.
  * 
@@ -43,6 +43,6 @@ PIPASS_ERR authenticate(uint8_t *user, uint32_t user_len, uint8_t *master_pin,
  * @param[in] user_len  Length of the username
  * 
  */
-PIPASS_ERR verify_user_exists(uint8_t *user, int user_len);
+PIPASS_ERR verify_user_exists(uint8_t *user, uint32_t user_len);
 
 #endif
