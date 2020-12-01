@@ -158,7 +158,7 @@ cleanup:
     return err;
 }
 
-PIPASS_ERR verify_user_exists(uint8_t *user, int user_len) {
+PIPASS_ERR verify_user_exists(uint8_t *user, uint32_t user_len) {
     uint8_t *user_hash = NULL;
     PIPASS_ERR err = STORAGE_OK;
     
