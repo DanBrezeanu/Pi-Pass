@@ -9,6 +9,31 @@
 #include <fingerprint.h>
 
 
+PIPASS_ERR init_db_header(uint8_t *user_hash) {
+    if (user_hash == NULL)
+        return ERR_INIT_DB_HEADER_INV_PARAMS;
+
+    PIPASS_ERR err;
+    uint8_t *raw_db_header = NULL;
+
+    err = read_database_header(user_hash, &raw_db_header);
+    if (err != PIPASS_OK)
+        goto error;
+
+    err = load_database_header(raw_db_header);
+    if (err != PIPASS_OK)
+        goto error;
+
+    FL_DB_HEADER_LOADED = 1;
+
+    err = PIPASS_OK;
+
+error:
+    erase_buffer(&raw_db_header, DB_HEADER_SIZE);
+
+    return err;
+}
+
 PIPASS_ERR authenticate(uint8_t *user, uint32_t user_len, uint8_t *master_pin,
   uint8_t *fp_data, uint8_t *master_password, uint32_t master_password_len) {
     if (FL_LOGGED_IN)
@@ -30,7 +55,7 @@ PIPASS_ERR authenticate(uint8_t *user, uint32_t user_len, uint8_t *master_pin,
     if (err != PIPASS_OK)
         return err;
 
-    uint8_t *raw_db_header = NULL;
+    
     uint8_t *raw_db = NULL;
     uint32_t raw_db_len = 0;
     struct DataHash *master_pin_hash = NULL;
@@ -41,11 +66,7 @@ PIPASS_ERR authenticate(uint8_t *user, uint32_t user_len, uint8_t *master_pin,
     struct DataBlob dek_blob = {0};
     uint8_t *dek = NULL;
 
-    err = read_database_header(user_hash, &raw_db_header);
-    if (err != PIPASS_OK)
-        goto error;
-
-    err = load_database_header(raw_db_header);
+    err = init_db_header(user_hash);
     if (err != PIPASS_OK)
         goto error;
 
@@ -148,7 +169,6 @@ cleanup:
     erase_buffer(&fp_key, AES256_KEY_SIZE);
     erase_buffer(&master_passw_key, AES256_KEY_SIZE);
     erase_buffer(&kek, AES256_KEY_SIZE);
-    erase_buffer(&raw_db_header, DB_HEADER_SIZE);
     erase_buffer(&raw_db, raw_db_len);
     erase_buffer(&dek, AES256_KEY_SIZE);
     free_datahash(master_pin_hash);

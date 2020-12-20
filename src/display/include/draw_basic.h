@@ -17,6 +17,7 @@
 #define FREEPIXEL_FONT    0xF1
 #define PIXELMIX_FONT     0xF2
 #define FONTAWESOME_FONT  0xF3
+#define SMALLPIXEL_FONT   0xF4
 
 #define NO_HIGHLIGHT   0x00
 #define WITH_HIGHLIGHT 0x01

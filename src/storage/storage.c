@@ -3,6 +3,8 @@
 #include <sha256.h>
 #include <credentials.h>
 
+#include <stdio.h>
+
 PIPASS_ERR create_user_directory(uint8_t *user_hash) {
     if (FL_LOGGED_IN)
         return ERR_ALREADY_LOGGED_IN;
@@ -57,6 +59,76 @@ error:
     erase_buffer(&user_dir, user_dir_len);
 
     return err;
+}
+
+PIPASS_ERR add_to_users_conf_file(uint8_t *user_name, uint32_t user_name_len) {
+    if (user_name == NULL || !user_name_len)
+        return ERR_ADD_TO_USR_CONF_INV_PARAMS;
+
+    PIPASS_ERR err;
+    FILE *fd = NULL;
+
+    fd = fopen(PIPASS_USERS_CONF, "w");
+    if (fd == NULL)
+        return ERR_OPEN_USERS_CONF;
+
+    int32_t res = fwrite(user_name, 1, user_name_len, fd);
+    if (res != user_name_len) {
+        err = ERR_WRITE_USERS_CONF;
+        goto error;
+    }
+
+    err = PIPASS_OK;
+
+error:
+    if (fd != NULL)
+        fclose(fd);
+
+    return err;    
+}
+
+PIPASS_ERR get_user(uint8_t **user_name) {
+    if (*user_name != NULL)
+        return ERR_GET_USER_MEM_LEAK;
+
+    PIPASS_ERR err;
+    FILE *fd = NULL;
+
+    fd = fopen(PIPASS_USERS_CONF, "r");
+    if (fd == NULL)
+        return ERR_OPEN_USERS_CONF;
+
+    int32_t res = fseek(fd, 0, SEEK_END);
+    if (res != 0) {
+        err = ERR_OPEN_USERS_CONF;
+        goto error;
+    }
+    
+    int32_t file_len = ftell(fd);
+    if (file_len == -1L) {
+        err = ERR_OPEN_USERS_CONF;
+        goto error;
+    }
+    
+    fseek(fd, 0, SEEK_SET);
+
+    *user_name = calloc(file_len + 1, sizeof(uint8_t));
+
+    uint8_t *tmp = fgets(*user_name, file_len + 1, fd);
+    if (tmp == NULL) {
+        err = ERR_READ_USERS_CONF;
+        goto error;
+    }
+
+    (*user_name)[file_len] = 0;
+
+    err = PIPASS_OK;
+
+error:
+    if (fd != NULL)
+        fclose(fd);
+
+    return err;  
 }
 
 PIPASS_ERR dump_database(uint8_t *user_hash) {

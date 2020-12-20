@@ -45,4 +45,7 @@ PIPASS_ERR authenticate(uint8_t *user, uint32_t user_len, uint8_t *master_pin,
  */
 PIPASS_ERR verify_user_exists(uint8_t *user, uint32_t user_len);
 
+
+PIPASS_ERR init_db_header(uint8_t *user_hash);
+
 #endif

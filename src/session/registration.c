@@ -46,9 +46,15 @@ PIPASS_ERR register_new_user(uint8_t *user_data, int32_t user_data_len, uint8_t 
 
     FL_LOGGED_IN = FL_DB_HEADER_LOADED = FL_DB_INITIALIZED = 0;
 
+    err = add_to_users_conf_file(user_data, user_data_len);
+    if (err != PIPASS_OK)
+        goto error;
+
     err = PIPASS_OK;
 
 error:
+
+    /* TODO: remove created files */
     erase_buffer(&user_hash, SHA256_HEX_SIZE);
     db_free();
 

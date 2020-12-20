@@ -3,13 +3,13 @@
 #include <commands_utils.h>
 #include <crypto_utils.h>
 
-PIPASS_ERR create_command(uint8_t cmd_code, Command **cmd) {
+PIPASS_ERR create_command(uint8_t cmd_code, Cmd **cmd) {
     PIPASS_ERR err;
 
     if (*cmd != NULL)
         return ERR_CONN_MEM_LEAK;
 
-    (*cmd) = calloc(1, sizeof(Command));
+    (*cmd) = calloc(1, sizeof(Cmd));
     if (*cmd == NULL)
         return ERR_CONN_MEM_ALLOC;
 
@@ -19,7 +19,7 @@ PIPASS_ERR create_command(uint8_t cmd_code, Command **cmd) {
     return PIPASS_OK;
 }
 
-PIPASS_ERR parse_buffer_to_cmd(uint8_t *buf, int32_t buf_size, Command **cmd) {
+PIPASS_ERR parse_buffer_to_cmd(uint8_t *buf, int32_t buf_size, Cmd **cmd) {
     if (buf == NULL || !buf_size)
         return ERR_PARSE_BUF_2_CMD_INV_PARAMS;
 
@@ -29,7 +29,7 @@ PIPASS_ERR parse_buffer_to_cmd(uint8_t *buf, int32_t buf_size, Command **cmd) {
     PIPASS_ERR err;
     int32_t idx = 2;
 
-    *cmd = calloc(1, sizeof(Command));
+    *cmd = calloc(1, sizeof(Cmd));
 
     (*cmd)->type = buf[0];
     (*cmd)->sender = buf[1];
@@ -71,7 +71,7 @@ error:
     return err;
 }
 
-PIPASS_ERR parse_cmd_to_buffer(Command *cmd, uint8_t *buf) {
+PIPASS_ERR parse_cmd_to_buffer(Cmd *cmd, uint8_t *buf) {
     if (cmd == NULL || buf == NULL)
         return ERR_PARSE_CMD_2_BUF_INV_PARAMS;
 
@@ -118,7 +118,7 @@ cleanup:
     return err;
 }
 
-uint8_t cmd_requires_additional(Command *cmd) {
+uint8_t cmd_requires_additional(Cmd *cmd) {
     if (cmd == NULL)
         return 0;
 

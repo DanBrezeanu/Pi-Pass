@@ -73,7 +73,7 @@
 extern uint8_t command_to_send; 
 
 
-typedef struct Command {
+typedef struct Cmd {
     uint8_t type;
     uint8_t sender;
     uint16_t length;
@@ -83,12 +83,12 @@ typedef struct Command {
     uint8_t is_reply;
     uint8_t reply_code;
     uint16_t crc;
-} Command;
+} Cmd;
 
 
-PIPASS_ERR create_command(uint8_t cmd_code, Command **cmd);
-PIPASS_ERR parse_buffer_to_cmd(uint8_t *buf, int32_t buf_size, Command **cmd);
-PIPASS_ERR parse_cmd_to_buffer(Command *cmd, uint8_t *buf);
-uint8_t cmd_requires_additional(Command *cmd);
+PIPASS_ERR create_command(uint8_t cmd_code, Cmd **cmd);
+PIPASS_ERR parse_buffer_to_cmd(uint8_t *buf, int32_t buf_size, Cmd **cmd);
+PIPASS_ERR parse_cmd_to_buffer(Cmd *cmd, uint8_t *buf);
+uint8_t cmd_requires_additional(Cmd *cmd);
 
 #endif

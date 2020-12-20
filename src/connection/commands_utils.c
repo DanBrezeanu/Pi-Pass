@@ -1,7 +1,8 @@
 #include <commands_utils.h>
+#include <commands.h>
 
 
-PIPASS_ERR calculate_crc(Command *cmd, uint16_t *crc) {
+PIPASS_ERR calculate_crc(Cmd *cmd, uint16_t *crc) {
     if (cmd == NULL || crc == NULL)
         return ERR_CALC_CRC_INV_PARAMS;
 

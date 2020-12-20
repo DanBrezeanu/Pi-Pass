@@ -39,7 +39,7 @@ error:
     return err;
 }
 
-PIPASS_ERR recv_command(Command **cmd) {
+PIPASS_ERR recv_command(Cmd **cmd) {
     if (conn == NULL)
         return ERR_CONN_NOT_INIT;
 
@@ -84,7 +84,7 @@ error:
     return err;
 }
 
-PIPASS_ERR send_command(Command *cmd) {
+PIPASS_ERR send_command(Cmd *cmd) {
     if (conn == NULL)
         return ERR_CONN_NOT_INIT;
 
@@ -111,7 +111,7 @@ error:
     return err;
 }
 
-PIPASS_ERR execute_command(Command *cmd) {
+PIPASS_ERR execute_command(Cmd *cmd) {
     if (conn == NULL)
         return ERR_CONN_NOT_INIT;
 
@@ -122,7 +122,7 @@ PIPASS_ERR execute_command(Command *cmd) {
 
     if (cmd->type == APP_HELLO) {
         if (cmd->sender == SENDER_APP && !cmd->is_reply) {
-            Command *cmd_ask_for_pin = NULL;
+            Cmd *cmd_ask_for_pin = NULL;
             err = create_command(ASK_FOR_PIN, &cmd_ask_for_pin);
             if (err != PIPASS_OK)
                 goto error;

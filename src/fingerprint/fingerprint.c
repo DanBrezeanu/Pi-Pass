@@ -181,3 +181,83 @@ PIPASS_ERR fp_get_fingerprint(uint8_t **fp_data) {
 
     return PIPASS_OK;
 }
+
+void *fp_async_get_fingerprint(void *arg) {
+    struct async_fp_data *data = (struct async_fp_data *) arg;
+
+    if (driver == NULL) {
+        data->err = ERR_FP_NOT_INIT;
+        return NULL;
+    }
+
+    if (!FL_FP_UNLOCKED) {
+        data->err = ERR_FP_NOT_UNLOCKED;
+        return NULL;
+    }
+    
+    Reply reply;
+    PIPASS_ERR err = ERR_FP_VERIFY_FAIL;
+
+    uint16_t index = 0, match_score = 0;
+    do {
+        uint8_t timed_out = wait_for_sensor_touch_with_timeout(100000);
+        if (!timed_out)
+            err = call_cmd(driver, GenImg, &reply, 0);
+        else {
+            if (data->stop) {
+                data->err = ERR_FP_ASYNC_STOPPED;
+                return NULL;
+            }
+        }
+    } while (err != PIPASS_OK);
+
+    
+    err = call_cmd(driver, Img2Tz, &reply, 1, 1);
+    if (err != PIPASS_OK) {
+        data->err = ERR_FP_VERIFY_FAIL;
+        return NULL;
+    }
+
+    err = call_cmd(driver, Search, &reply, 3, 1, 0, 0xFF);
+    switch (err) {
+    case PIPASS_OK:
+        break;
+    case FINGER_NOT_FOUND:
+        data->err = ERR_FP_NO_FINGER_FOUND;
+        return NULL;
+    default:
+        data->err = ERR_FP_VERIFY_FAIL;
+        return NULL;
+    }
+
+    if (reply.body.search.match_score < MINIMUM_MATCH_SCORE) {
+        data->err = ERR_FP_NO_FINGER_FOUND;
+        return NULL;
+    }
+
+    data->index = reply.body.search.index;
+    data->match_score = reply.body.search.match_score;
+
+    err = call_cmd(driver, LoadChar, &reply, 2, 1, data->index);
+    if (err != SUCCESS) {
+        data->err = ERR_FP_GET_DATA_FAIL;
+        return NULL;
+    }
+
+    err = call_cmd(driver, UpChar, &reply, 1, 1);
+    if (err != SUCCESS) {
+        data->err = ERR_FP_GET_DATA_FAIL;
+        return NULL;
+    }
+
+    data->fp_data = malloc(FINGERPRINT_SIZE);
+    if (data->fp_data == NULL) {
+        data->err = ERR_FINGERPRINT_MEM_ALLOC;
+        return NULL;
+    }
+
+    memcpy(data->fp_data, reply.body.up_char.fingerprint, FINGERPRINT_SIZE);
+
+    data->err = PIPASS_OK;
+    return NULL;
+}

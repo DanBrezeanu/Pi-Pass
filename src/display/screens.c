@@ -4,6 +4,10 @@
 #include <display.h>
 #include <connection.h>
 #include <commands.h>
+#include <crypto.h>
+#include <unistd.h>
+#include <pthread.h>
+#include <fingerprint.h>
 
 PIPASS_ERR show_screen(enum Button pressed) {
     PIPASS_ERR err;
@@ -47,11 +51,24 @@ PIPASS_ERR pin_screen(enum Button pressed) {
 
     switch (pressed) {
     case B1:
-        options = (options + num_options - 1) % num_options;
+        if (options != DONE)
+            options = (options + num_options - 1) % num_options;
+        else
+            options =  (options + 1) % num_options;
         break;
     case B2:
         if (options == DONE) {
-            stack_push(main_screen);
+            PIPASS_ERR err;
+
+            for (int32_t i = 0; i < MASTER_PIN_SIZE; ++i)
+                digits[i] += '0';
+
+            err = verify_master_pin_with_db(digits);
+            if (err != PIPASS_OK)
+                stack_push(wrong_pin_screen);
+            else
+                stack_push(fingerprint_screen);
+
             goto cleanup;
         } else {
             digits[options] = (digits[options] + 10 - 1) % 10;
@@ -66,7 +83,10 @@ PIPASS_ERR pin_screen(enum Button pressed) {
         }
         break;
     case B4:
-        options = (options + 1) % num_options;
+        if (options != DONE)
+            options = (options + 1) % num_options;
+        else
+            options = (options + num_options - 1) % num_options;
         break;
     case None:
         break;
@@ -80,7 +100,6 @@ cleanup:
 
     return PIPASS_OK;
 }
-
 
 PIPASS_ERR main_screen(enum Button pressed) {
     const uint32_t num_options = 4;
@@ -146,9 +165,73 @@ PIPASS_ERR shutdown_screen(enum Button pressed) {
 }
 
 PIPASS_ERR fingerprint_screen(enum Button pressed) {
-    const uint32_t num_options = 0;
+    const uint32_t num_options = 2;
+    enum Options {LOGIN_WITH_PASSW, NONE};
+    static enum Options options = NONE;
+    static pthread_t *fp_thread = NULL;
+    static struct async_fp_data *data = NULL;
+    int32_t ret = 0;
 
-    // command_to_send = ASK_FOR_PASSWORD;
+    if (fp_thread == NULL) {
+        fp_thread = calloc(1, sizeof(pthread_t));
+        data = calloc(1, sizeof(struct async_fp_data));        
+        pthread_create(fp_thread, NULL, fp_async_get_fingerprint, data);    
+    }
 
-    return draw_screen(FINGERPRINT_SCREEN, 0, 0);
+    if (fp_thread != NULL) {
+        struct timespec ts;
+
+        clock_gettime(CLOCK_REALTIME, &ts);
+        ts.tv_nsec += 50000000; // 0.05 sec
+
+        ret = pthread_timedjoin_np(*fp_thread, NULL, &ts);
+        if (ret == 0) {
+            if (data->err == 0) {
+                stack_push(main_screen);
+            }
+           
+            free(data);
+            free(fp_thread);
+            data = NULL;
+            fp_thread = NULL;
+        }
+    }
+
+    switch (pressed) {
+    case B1:
+        options = (options + num_options - 1) % num_options;
+        break;
+    case B2:
+        /* Send command to PC */
+        if (options == LOGIN_WITH_PASSW) {
+            if (fp_thread != NULL) {
+                data->stop = 1;
+                usleep(200000); // wait for thread to end properly
+                free(data);
+                free(fp_thread);
+
+                data = NULL;
+                fp_thread = NULL;
+            }
+            
+            stack_push(main_screen);
+        }
+
+        break;
+    case B3:
+        break;
+    case B4:
+        options = (options +  1) % num_options;
+    case None:
+        break;
+    }
+
+    return draw_screen(FINGERPRINT_SCREEN, (int32_t)options, 0);
+}
+
+PIPASS_ERR wrong_pin_screen(enum Button pressed) {
+    PIPASS_ERR err = draw_screen(ERROR_SCREEN, 0, 1, "Wrong pin. \n Please try again.");
+    stack_pop();
+
+    return err;
 }

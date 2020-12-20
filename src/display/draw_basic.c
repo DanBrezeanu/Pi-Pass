@@ -5,9 +5,11 @@
 
 static PyObject *render_module;
 static PyObject *pillow_module;
+
 static PyObject *free_pixel_font;
 static PyObject *pixelmix_font;
 static PyObject *fontawesome_font;
+static PyObject *smallpixel_font;
 
 PIPASS_ERR load_fonts();
 
@@ -38,18 +40,20 @@ error:
 
 PIPASS_ERR load_fonts() {
     PIPASS_ERR err;
-    const uint32_t FONTS_COUNT = 3;
+    const uint32_t FONTS_COUNT = 4;
 
     uint8_t *font_paths[] = {
         FREEPIXEL_FONT_PATH,
         PIXELMIX_FONT_PATH,
-        FONTAWESOME_FONT_PATH
+        FONTAWESOME_FONT_PATH,
+        SMALLPIXEL_FONT_PATH
     };
-    uint32_t font_sizes[] = {12, 25, 12};
+    uint32_t font_sizes[] = {12, 25, 12, 7};
     PyObject **font_pyobjects[] = {
         &free_pixel_font,
         &pixelmix_font,
-        &fontawesome_font
+        &fontawesome_font,
+        &smallpixel_font,
     };
     PyObject *image_font = NULL;
 
@@ -177,6 +181,9 @@ PIPASS_ERR _draw_text(PyObject *device, int32_t x, int32_t y, uint8_t *text, uin
         break;
     case FONTAWESOME_FONT:
         font = fontawesome_font;
+        break;
+    case SMALLPIXEL_FONT:
+        font = smallpixel_font;
         break;
     default:
         err = ERR_DISPLAY_NO_SUCH_FONT;

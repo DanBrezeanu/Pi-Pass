@@ -39,6 +39,8 @@
 #define IMG_DIR   MEDIA_DIR"/img"      /**< The directory containing images */
 #define FONTS_DIR MEDIA_DIR"/fonts"    /**< The directory containing fonts */
 
+#define REFRESH_RATE 100000
+
 typedef uint8_t * usb_packet;
 typedef uint8_t   BYTE;
 typedef uint32_t  PIPASS_ERR;

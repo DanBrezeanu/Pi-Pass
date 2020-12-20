@@ -14,6 +14,7 @@
 #define FREEPIXEL_FONT_PATH FONTS_DIR"/FreePixel.ttf"
 #define PIXELMIX_FONT_PATH FONTS_DIR"/pixelmix.ttf"
 #define FONTAWESOME_FONT_PATH FONTS_DIR"/fontawesome-webfont.ttf"
+#define SMALLPIXEL_FONT_PATH FONTS_DIR"/small_pixel.ttf"
 
 
 PIPASS_ERR draw_screen(uint8_t screen, int32_t option, int32_t nargs, ...);

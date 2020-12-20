@@ -13,10 +13,19 @@
 #define MINIMUM_MATCH_SCORE 80
 #define FINGERPRINT_SIZE 1536
 
+struct async_fp_data {
+    uint16_t index;
+    uint16_t match_score;
+    uint8_t *fp_data;
+    uint8_t  stop;
+    PIPASS_ERR err;
+};
+
 PIPASS_ERR init_fingerprint();
 PIPASS_ERR fp_verify_pin(uint8_t *pin);
 PIPASS_ERR fp_enroll_fingerprint(uint16_t *fp_index);
 PIPASS_ERR fp_verify_fingerprint(uint16_t *index, uint16_t *match_score);
 PIPASS_ERR fp_get_fingerprint(uint8_t **fp_data);
+void *fp_async_get_fingerprint(void *arg);
 
 #endif

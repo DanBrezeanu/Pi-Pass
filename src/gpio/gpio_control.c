@@ -18,7 +18,6 @@ PIPASS_ERR init_gpio() {
         goto error;
     ret = gpioSetPullUpDown(B1_GPIO, PI_PUD_UP);
     if (ret != 0)
-        goto error;
 
     ret = gpioSetMode(B2_GPIO, PI_INPUT);
     if (ret != 0)
@@ -75,6 +74,25 @@ void wait_for_input(uint8_t gpio, int8_t level) {
 
     do {
         status = gpioRead(gpio);
-        usleep(1000);
+        usleep(10000);
     } while (status != level);
+}
+
+uint8_t wait_for_input_with_timeout(uint8_t gpio, int8_t level, uint32_t timeout) {
+    int8_t status = 0;
+    uint32_t elapsed = 0;
+
+    do {
+        status = gpioRead(gpio);
+        usleep(10000);
+        elapsed += 10000;
+    } while (status != level && elapsed < timeout);
+
+    if (elapsed >= timeout) {
+        return 1;
+    }
+
+    
+
+    return 0;
 }

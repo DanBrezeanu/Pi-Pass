@@ -129,6 +129,12 @@
 #define ERR_GET_CRED_DIFF_INDICES      0x201E
 #define ERR_AUTH_INV_PARAMS            0x201F
 #define ERR_AUTH_MEM_ALLOC             0x2020
+#define ERR_ADD_TO_USR_CONF_INV_PARAMS 0x2021
+#define ERR_OPEN_USERS_CONF            0x2022
+#define ERR_WRITE_USERS_CONF           0x2023
+#define ERR_READ_USERS_CONF            0x2024
+#define ERR_INIT_DB_HEADER_INV_PARAMS  0x2025
+#define ERR_GET_USER_MEM_LEAK          0x2026
 
 
 /* Database Error Codes */
@@ -274,6 +280,7 @@
 #define ERR_FP_NO_FINGER_FOUND         0x700C
 #define ERR_FP_MEM_LEAK                0x700D
 #define ERR_FP_GET_DATA_FAIL           0x700E
+#define ERR_FP_ASYNC_STOPPED           0x700F
 
 /* GPIO Error Codes */
 #define ERR_GPIO_INIT_FAIL             0x8001

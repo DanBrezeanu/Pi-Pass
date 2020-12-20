@@ -8,6 +8,7 @@ static PIPASS_ERR _draw_shutdown_screen(int32_t option);
 static PIPASS_ERR _draw_menu_tile(uint8_t *image, int32_t image_x, int32_t image_y, uint8_t *text, 
   int32_t text_x, int32_t text_y, PyObject **canvas);
 static PIPASS_ERR _draw_pin_screen(int32_t option, va_list args);
+static PIPASS_ERR _draw_error_screen(va_list args);
 static PIPASS_ERR _draw_fingerprint_screen(int32_t option, va_list args);
 
 PIPASS_ERR draw_screen(uint8_t screen, int32_t option, int32_t nargs, ...) {
@@ -28,6 +29,10 @@ PIPASS_ERR draw_screen(uint8_t screen, int32_t option, int32_t nargs, ...) {
     case SHUTDOWN_SCREEN:
         err = _draw_shutdown_screen(option);
         break;
+    case ERROR_SCREEN:
+        err = _draw_error_screen(args);
+        break;
+
     default:
         err = ERR_DISPLAY_NO_SUCH_SCREEN;
     }
@@ -120,11 +125,17 @@ static PIPASS_ERR _draw_pin_screen(int32_t option, va_list args) {
         );
     }
 
-    draw_text(0, 30, "Done", ((option == DONE) ? "black" : "white"),
+    err = draw_text(0, 30, "Done", ((option == DONE) ? "black" : "white"),
       ((option == DONE) ? WITH_HIGHLIGHT : NO_HIGHLIGHT), DEFAULT_FONT, canvas,
        ALIGN_TEXT,ALIGN_CENTER, DISPLAY_WIDTH, 30);
+    if (err != PIPASS_OK)
+        goto error;
 
-    err = _draw_controls(CARET_LEFT, CARET_DOWN, CARET_UP, CARET_RIGHT, canvas);
+    if (option != DONE)
+        err = _draw_controls(CARET_LEFT, CARET_UP, CARET_DOWN, CARET_RIGHT, canvas);
+    else
+        err = _draw_controls(CARET_LEFT, "Enter", "Back", CARET_RIGHT, canvas);
+
     if (err != PIPASS_OK)
         goto error;
 
@@ -136,18 +147,26 @@ error:
 }
 
 static PIPASS_ERR _draw_fingerprint_screen(int32_t option, va_list args) {
+    enum Options {LOGIN_WITH_PASSW, NONE};
+
     PyObject *background = NULL;
     PyObject *canvas = NULL;
     PIPASS_ERR err;
 
 
-    err = draw_image(40, 0, FINGERPRINT_IMAGE, &background);
+    err = draw_image(50, 1, FINGERPRINT_IMAGE, &background);
     if (err != PIPASS_OK)
         goto error;
 
     err = create_canvas(background, &canvas);
     if (err != PIPASS_OK)
         goto error;
+
+    err = draw_text(0, 20, "Authenticate with\n password instead", ((option == LOGIN_WITH_PASSW) ? "black" : "white"),
+      ((option == LOGIN_WITH_PASSW) ? WITH_HIGHLIGHT : NO_HIGHLIGHT), SMALLPIXEL_FONT, canvas,
+       ALIGN_TEXT, ALIGN_CENTER, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+
+    err = _draw_controls(CARET_LEFT, "Enter", "", CARET_RIGHT, canvas);
 
     display(canvas);
 
@@ -253,6 +272,26 @@ error:
     return err;
 }
 
+static PIPASS_ERR _draw_error_screen(va_list args) {
+    PyObject *canvas = NULL;
+    PIPASS_ERR err;
+
+    err = create_canvas(NULL, &canvas);
+    if (err != PIPASS_OK)
+        goto error;
+
+    uint8_t *text = va_arg(args, uint8_t *);
+
+    err = draw_text(0, 0, text, "white", NO_HIGHLIGHT, FREEPIXEL_FONT, canvas, ALIGN_TEXT,
+            ALIGN_CENTER, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+    if (err != PIPASS_OK)
+        goto error;
+
+    display(canvas);
+error:
+    return err;
+}
+
 static PIPASS_ERR _draw_menu_tile(uint8_t *image, int32_t image_x, int32_t image_y, uint8_t *text, 
   int32_t text_x, int32_t text_y, PyObject **canvas) {
     if (image == NULL || text == NULL)
@@ -276,8 +315,8 @@ static PIPASS_ERR _draw_menu_tile(uint8_t *image, int32_t image_x, int32_t image
 
     err = PIPASS_OK;
 
+
 error:
     return err;
 }
-
 
