@@ -131,3 +131,15 @@ uint8_t cmd_requires_additional(Cmd *cmd) {
 
     return 0;
 }
+
+
+void free_command(Cmd **cmd) {
+    if (*cmd == NULL)
+        return;
+
+    if ((*cmd)->options != NULL)
+        erase_buffer(&((*cmd)->options), (*cmd)->length);
+
+    free(*cmd);
+    *cmd = NULL;
+}

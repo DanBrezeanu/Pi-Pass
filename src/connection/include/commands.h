@@ -69,6 +69,7 @@
 #define ASK_FOR_PASSWORD   0xCC
 #define ASK_FOR_PIN        0xCD
 
+#define DEVICE_AUTHENTICATED 0xCE
 
 extern uint8_t command_to_send; 
 
@@ -90,5 +91,6 @@ PIPASS_ERR create_command(uint8_t cmd_code, Cmd **cmd);
 PIPASS_ERR parse_buffer_to_cmd(uint8_t *buf, int32_t buf_size, Cmd **cmd);
 PIPASS_ERR parse_cmd_to_buffer(Cmd *cmd, uint8_t *buf);
 uint8_t cmd_requires_additional(Cmd *cmd);
+void free_command(Cmd **cmd);
 
 #endif

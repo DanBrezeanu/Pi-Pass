@@ -1,7 +1,7 @@
 #include <fingerprint.h>
 #include <fingerprint_utils.h>
 #include <gpio_control.h>
-
+#include <aes256.h>
 #include <errors.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -63,6 +63,7 @@ PIPASS_ERR fp_enroll_fingerprint(uint16_t *fp_index) {
 
     Reply reply;
     PIPASS_ERR err;
+    uint8_t *fp_key = NULL;
 
     err = call_cmd(driver, TemplateNum, &reply, 0);
     if (err != PIPASS_OK) {
@@ -97,9 +98,26 @@ PIPASS_ERR fp_enroll_fingerprint(uint16_t *fp_index) {
 
     *fp_index = index;
 
-    return PIPASS_OK;
+    fp_key = malloc(AES256_KEY_SIZE);
+    if (fp_key == NULL) {
+        return ERR_FINGERPRINT_MEM_ALLOC;
+    }
+
+    err = generate_aes256_key(fp_key);
+    if (err != PIPASS_OK)
+        return err;
+
+    err = call_cmd(driver, WriteNotepad, &reply, 2, 0, fp_key);
+    if (err != PIPASS_OK) {
+        err = ERR_FP_ENROLL_FAIL;
+        goto error;
+    }
+
+    err = PIPASS_OK;
 
 error:
+    erase_buffer(&fp_key, AES256_KEY_SIZE);
+
     return err;
 }
 
@@ -147,14 +165,14 @@ error:
     return err;
 }
 
-PIPASS_ERR fp_get_fingerprint(uint8_t **fp_data) {
+PIPASS_ERR fp_get_fingerprint(uint8_t **fp_key) {
     if (driver == NULL)
         return ERR_FP_NOT_INIT;
 
     if (!FL_FP_UNLOCKED)
         return ERR_FP_NOT_UNLOCKED;
 
-    if (*fp_data != NULL)
+    if (*fp_key != NULL)
         return ERR_FP_MEM_LEAK;
 
     Reply reply;
@@ -165,19 +183,15 @@ PIPASS_ERR fp_get_fingerprint(uint8_t **fp_data) {
     if (err != PIPASS_OK)
         return err;
 
-    err = call_cmd(driver, LoadChar, &reply, 2, 1, index);
+    err = call_cmd(driver, ReadNotepad, &reply, 1, 0);
     if (err != SUCCESS)
         return ERR_FP_GET_DATA_FAIL;
 
-    err = call_cmd(driver, UpChar, &reply, 1, 1);
-    if (err != SUCCESS)
-        return ERR_FP_GET_DATA_FAIL;
-
-    *fp_data = malloc(FINGERPRINT_SIZE);
-    if (*fp_data == NULL)
+    *fp_key = malloc(AES256_KEY_SIZE);
+    if (*fp_key == NULL)
         return ERR_FINGERPRINT_MEM_ALLOC;
 
-    memcpy(*fp_data, reply.body.up_char.fingerprint, FINGERPRINT_SIZE);
+    memcpy(*fp_key, reply.body.read_notepad.data, AES256_KEY_SIZE);
 
     return PIPASS_OK;
 }
@@ -235,28 +249,19 @@ void *fp_async_get_fingerprint(void *arg) {
         return NULL;
     }
 
-    data->index = reply.body.search.index;
-    data->match_score = reply.body.search.match_score;
-
-    err = call_cmd(driver, LoadChar, &reply, 2, 1, data->index);
+    err = call_cmd(driver, ReadNotepad, &reply, 1, 0);
     if (err != SUCCESS) {
         data->err = ERR_FP_GET_DATA_FAIL;
         return NULL;
     }
 
-    err = call_cmd(driver, UpChar, &reply, 1, 1);
-    if (err != SUCCESS) {
-        data->err = ERR_FP_GET_DATA_FAIL;
-        return NULL;
-    }
-
-    data->fp_data = malloc(FINGERPRINT_SIZE);
-    if (data->fp_data == NULL) {
+    data->fp_key = malloc(AES256_KEY_SIZE);
+    if (data->fp_key == NULL) {
         data->err = ERR_FINGERPRINT_MEM_ALLOC;
         return NULL;
     }
 
-    memcpy(data->fp_data, reply.body.up_char.fingerprint, FINGERPRINT_SIZE);
+    memcpy(data->fp_key, reply.body.read_notepad.data, AES256_KEY_SIZE);
 
     data->err = PIPASS_OK;
     return NULL;

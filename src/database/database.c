@@ -12,12 +12,12 @@
 static struct Database *db;
 static struct DatabaseHeader *db_header;
 
-PIPASS_ERR db_create_new(uint8_t *master_pin, uint8_t *fp_data, uint8_t *master_password,
+PIPASS_ERR db_create_new(uint8_t *master_pin, uint8_t *fp_key, uint8_t *master_password,
   uint32_t master_password_len) {
     if (db != NULL || FL_DB_INITIALIZED)
         return ERR_DB_ALREADY_INIT;
 
-    if (master_pin == NULL || fp_data == NULL || master_password == NULL || !master_password_len)
+    if (master_pin == NULL || fp_key == NULL || master_password == NULL || !master_password_len)
         return ERR_DB_NEW_INV_PARAMS;
 
     db = calloc(1, sizeof(struct Database));
@@ -38,19 +38,8 @@ PIPASS_ERR db_create_new(uint8_t *master_pin, uint8_t *fp_data, uint8_t *master_
     uint8_t *dek = NULL;  
     uint8_t *kek = NULL;
     uint8_t *passw_key = NULL;
-    uint8_t *fp_key = NULL;
 
     err = generate_new_master_pin_hash(master_pin, &db->header->master_pin_hash);
-    if (err != PIPASS_OK)
-        goto error;
-    
-    fp_key = malloc(AES256_KEY_SIZE);
-    if (fp_key == NULL) {
-        err = ERR_DB_MEM_ALLOC;
-        goto error;
-    }
-
-    err = create_PBKDF2_key(fp_data, FINGERPRINT_SIZE, NULL, 0, fp_key);
     if (err != PIPASS_OK)
         goto error;
 
@@ -87,7 +76,6 @@ PIPASS_ERR db_create_new(uint8_t *master_pin, uint8_t *fp_data, uint8_t *master_
         goto error;
 
     db->header->version = PIPASS_VERSION;
-
     db->header->db_len = sizeof(db->cred_count) + AES256_KEY_SIZE + MAC_SIZE + IV_SIZE; 
 
     erase_buffer(&dek, AES256_KEY_SIZE);
@@ -102,7 +90,6 @@ cleanup:
     erase_buffer(&dek, AES256_KEY_SIZE);
     erase_buffer(&kek, AES256_KEY_SIZE);
     erase_buffer(&passw_key, AES256_KEY_SIZE);
-    erase_buffer(&fp_key, AES256_KEY_SIZE);
 
     return err;
 }
@@ -430,6 +417,10 @@ void db_free() {
 
     free(db);
     db = NULL;
+
+    FL_DB_INITIALIZED = FL_LOGGED_IN = 0;
+
+    printf("%p\n", db);
 }
 
 void db_free_header() {
@@ -441,6 +432,8 @@ void db_free_header() {
 
     free(db_header);
     db_header = NULL;
+
+    FL_DB_HEADER_LOADED = 0;
 }
 
 PIPASS_ERR load_database(uint8_t *raw_db, uint32_t db_len, uint8_t *kek) {
@@ -569,4 +562,15 @@ cleanup:
         free(db_len);
 
     return err;
+}
+
+void print_bytes(char *p, int size, char *name) {
+    printf("%s\n", name);
+    for (int i = 0; i < size; ++i) {
+        if (i % 16 == 0 && i) {
+            printf("\n");
+        }
+        printf("0x%.2X ", p[i]);
+    }
+    printf("\n");
 }

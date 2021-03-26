@@ -8,6 +8,7 @@
 #include <pthread.h>
 
 extern uint8_t FL_PIN_ENTERED;
+extern uint8_t FL_APP_ACTIVE;
 
 typedef struct Connection {
     SerialConnection *s_conn;
@@ -20,6 +21,5 @@ typedef struct Connection {
 PIPASS_ERR open_connection();
 PIPASS_ERR recv_command(Cmd **cmd);
 PIPASS_ERR send_command(Cmd *cmd);
-PIPASS_ERR execute_command(Cmd *cmd);
 PIPASS_ERR change_command_to_send(uint8_t command_type, uint8_t force_change);
 #endif

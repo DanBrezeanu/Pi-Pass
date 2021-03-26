@@ -2,10 +2,12 @@
 #include <commands_utils.h>
 #include <commands.h>
 #include <authentication.h>
+#include <command_execution.h>
 
 
 static Connection *conn;
 uint8_t FL_PIN_ENTERED = 0;
+uint8_t FL_APP_ACTIVE = 0;
 
 uint8_t command_to_send = NO_COMMAND;
 
@@ -84,6 +86,13 @@ error:
     return err;
 }
 
+PIPASS_ERR execute_command(Cmd *cmd) {
+    if (conn == NULL)
+        return ERR_CONN_NOT_INIT;
+
+    return _execute_command(cmd);
+}
+
 PIPASS_ERR send_command(Cmd *cmd) {
     if (conn == NULL)
         return ERR_CONN_NOT_INIT;
@@ -111,57 +120,6 @@ error:
     return err;
 }
 
-PIPASS_ERR execute_command(Cmd *cmd) {
-    if (conn == NULL)
-        return ERR_CONN_NOT_INIT;
-
-    if (cmd == NULL)
-        return ERR_SEND_CMD_INV_PARAMS;
-
-    PIPASS_ERR err = PIPASS_OK;
-
-    if (cmd->type == APP_HELLO) {
-        if (cmd->sender == SENDER_APP && !cmd->is_reply) {
-            Cmd *cmd_ask_for_pin = NULL;
-            err = create_command(ASK_FOR_PIN, &cmd_ask_for_pin);
-            if (err != PIPASS_OK)
-                goto error;
-
-            err = calculate_crc(cmd_ask_for_pin, &(cmd_ask_for_pin->crc));
-            if (err != PIPASS_OK)
-                goto error; 
-
-            err = send_command(cmd_ask_for_pin);
-            if (err != PIPASS_OK)
-                goto error;
-
-            return PIPASS_OK;
-        } else {
-            err = ERR_CONN_INVALID_COMM;
-            goto error;
-        }
-
-    }
-
-    if (!FL_PIN_ENTERED) {
-        if (cmd->type == ASK_FOR_PIN && cmd->is_reply) {
-            // err = authenticate("test", 4, cmd->options);
-            // err = verify_master_pin_with_db(cmd->options);
-            if (err != PIPASS_OK)
-                goto error;
-
-            FL_PIN_ENTERED = 1;
-        } else {
-            err = ERR_PIN_NOT_ENTERED;
-            goto error;
-        }
-    }
-
-
-error:
-    return err;
-
-}
 
 PIPASS_ERR change_command_to_send(uint8_t command_type, uint8_t force_change) {
     int32_t ret;

@@ -24,7 +24,7 @@
  * @param[in] user                  Username to log in with   
  * @param[in] user_len              Length of the username string 
  * @param[in] master_pin            The four digit master pin
- * @param[in] fp_data               Fingerprint data. Can be NULL if authentication
+ * @param[in] fp_data               Fingerprint key. Can be NULL if authentication
  *                                  is performed with master password
  * @param[in] master_password       The master password. Can be NULL if authentication
  *                                  is performed with fingerprint
@@ -33,7 +33,7 @@
  *
  */
 PIPASS_ERR authenticate(uint8_t *user, uint32_t user_len, uint8_t *master_pin,
-  uint8_t *fp_data, uint8_t *master_password, uint32_t master_password_len);
+  uint8_t *fp_key, uint8_t *master_password, uint32_t master_password_len);
 
 /**
  * Verifies if the user provided exists. Verification is done by

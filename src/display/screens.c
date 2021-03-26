@@ -8,6 +8,10 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <fingerprint.h>
+#include <authentication.h>
+#include <storage.h>
+
+static uint8_t *entered_pin = NULL;
 
 PIPASS_ERR show_screen(enum Button pressed) {
     PIPASS_ERR err;
@@ -66,8 +70,11 @@ PIPASS_ERR pin_screen(enum Button pressed) {
             err = verify_master_pin_with_db(digits);
             if (err != PIPASS_OK)
                 stack_push(wrong_pin_screen);
-            else
+            else {
+                entered_pin = calloc(4, sizeof(uint8_t));
+                memcpy(entered_pin, digits, 4);
                 stack_push(fingerprint_screen);
+            }
 
             goto cleanup;
         } else {
@@ -187,6 +194,18 @@ PIPASS_ERR fingerprint_screen(enum Button pressed) {
         ret = pthread_timedjoin_np(*fp_thread, NULL, &ts);
         if (ret == 0) {
             if (data->err == 0) {
+                PIPASS_ERR err;
+                uint8_t *user = NULL;
+                err = get_user(&user);
+                err = authenticate(user, strlen(user), entered_pin, data->fp_data, NULL, 0);
+                printf("user: %s   pin: %s, err: %X", user, entered_pin, err);
+                if (err != PIPASS_OK)
+                    printf("Fail!\n");
+                else
+                    printf("Ok!\n");
+
+                change_command_to_send(DEVICE_AUTHENTICATED, 1);
+
                 stack_push(main_screen);
             }
            

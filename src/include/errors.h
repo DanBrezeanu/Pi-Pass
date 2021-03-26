@@ -264,6 +264,7 @@
 #define ERR_READ_TIMED_OUT             0x6015
 #define ERR_CONN_INIT_FAIL             0x6016
 #define ERR_CONN_TO_SEND_BUSY          0x6017
+#define ERR_UNKNOWN_COMMAND            0x6018
 
 /* Fingerprint Error Codes */
 #define ERR_VERIFY_PIN_INV_PARAMS      0x7001
