@@ -3,6 +3,7 @@
 
 #include <defines.h>
 #include <errors.h>
+#include <json.h>
 
 #define SENDER_PIPASS 0x01
 #define SENDER_APP    0x02
@@ -75,17 +76,11 @@ extern uint8_t command_to_send;
 
 
 typedef struct Cmd {
-    uint8_t type;
-    uint8_t sender;
-    uint16_t length;
-
-    uint8_t *options;
-
-    uint8_t is_reply;
-    uint8_t reply_code;
+    json_object *body;
     uint16_t crc;
 } Cmd;
 
+#define AUTH_TOKEN_SIZE  16
 
 PIPASS_ERR create_command(uint8_t cmd_code, Cmd **cmd);
 PIPASS_ERR parse_buffer_to_cmd(uint8_t *buf, int32_t buf_size, Cmd **cmd);

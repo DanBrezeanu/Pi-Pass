@@ -11,6 +11,7 @@
 #include <storage.h>
 #include <registration.h>
 #include <fingerprint.h>
+#include <command_execution.h>
 
 
 void *connection_loop(void *arg) {
@@ -144,21 +145,21 @@ int main() {
     init_gpio();
     init_fingerprint();
     fp_verify_pin("0000");
-    PIPASS_ERR err;
-    uint8_t *fp_key = NULL;
-    uint16_t index;
-    err =  fp_enroll_fingerprint(&index);
-    err =  fp_get_fingerprint(&fp_key);
-    if (err != PIPASS_OK) {
-        printf("fp_get %X\n", err);
-        return 0;
-    }
+    // PIPASS_ERR err;
+    // uint8_t *fp_key = NULL;
+    // uint16_t index;
+    // err =  fp_enroll_fingerprint(&index);
+    // err =  fp_get_fingerprint(&fp_key);
+    // if (err != PIPASS_OK) {
+    //     printf("fp_get %X\n", err);
+    //     return 0;
+    // }
 
-    register_new_user("test", strlen("test"), "1234", fp_key, "parola", strlen("parola"));
-    if (err != PIPASS_OK) {
-        printf("%X\n", err);
-        return 0;
-    }
+    // register_new_user("test", strlen("test"), "1234", fp_key, "parola", strlen("parola"));
+    // if (err != PIPASS_OK) {
+    //     printf("%X\n", err);
+    //     return 0;
+    // }
 
     init_device();
 }

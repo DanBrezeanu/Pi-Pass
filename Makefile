@@ -24,7 +24,7 @@ VENDOR_LIB_DIRS     := $(patsubst %,%/lib,$(VENDOR_DIRS))
 LIB_DIRS 		    := lib/ /usr/lib/python3.7/ $(VENDOR_LIB_DIRS)
 
 INCLUDE := $(patsubst %,-I%,$(INCLUDE_DIRS))
-LIBS    := ssl crypto fastpbkdf2 pigpio pthread rt r502 python3.7m serialport
+LIBS    := ssl crypto fastpbkdf2 pigpio pthread rt r502 python3.7m serialport json-c
 
 CFLAGS  := -g -std=gnu99
 LDFLAGS := $(patsubst %,-L%,$(LIB_DIRS))

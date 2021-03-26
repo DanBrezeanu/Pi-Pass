@@ -4,6 +4,6 @@
 #include <errors.h>
 #include <defines.h>
 
-PIPASS_ERR execute_command(Cmd *cmd);
+PIPASS_ERR _execute_command(Cmd *cmd);
 
 #endif

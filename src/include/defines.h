@@ -43,7 +43,7 @@
 
 typedef uint8_t * usb_packet;
 typedef uint8_t   BYTE;
-typedef uint32_t  PIPASS_ERR;
+typedef uint16_t  PIPASS_ERR;
 typedef uint16_t  KEY;
 
 #define MIN(x,y) (((x) < (y)) ? (x) : (y))

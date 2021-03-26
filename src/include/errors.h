@@ -265,6 +265,12 @@
 #define ERR_CONN_INIT_FAIL             0x6016
 #define ERR_CONN_TO_SEND_BUSY          0x6017
 #define ERR_UNKNOWN_COMMAND            0x6018
+#define ERR_INVALID_AUTH_TOKEN         0x6019
+#define ERR_CMD_BUF_TOO_SMALL          0x601A
+#define ERR_CMD_JSON_ADD               0x601B
+#define ERR_CMD_JSON_PARSE             0x601C
+#define ERR_CMD_JSON_TO_STRING         0x601D
+#define ERR_JSON_INVALID_KEY           0x601E
 
 /* Fingerprint Error Codes */
 #define ERR_VERIFY_PIN_INV_PARAMS      0x7001

@@ -2,6 +2,7 @@
 #include <storage_utils.h>
 #include <commands_utils.h>
 #include <crypto_utils.h>
+#include <json.h>
 
 PIPASS_ERR create_command(uint8_t cmd_code, Cmd **cmd) {
     PIPASS_ERR err;
@@ -13,8 +14,18 @@ PIPASS_ERR create_command(uint8_t cmd_code, Cmd **cmd) {
     if (*cmd == NULL)
         return ERR_CONN_MEM_ALLOC;
 
-    (*cmd)->type = cmd_code;
-    (*cmd)->sender = SENDER_PIPASS;
+    (*cmd)->body = json_object_new_object();
+    
+    json_object *type = json_object_new_int(cmd_code);
+    json_object *sender = json_object_new_int(SENDER_PIPASS);
+
+    err = json_object_object_add((*cmd)->body, "type", type);
+    if (err != PIPASS_OK)
+        return ERR_CMD_JSON_ADD;
+
+    err = json_object_object_add((*cmd)->body, "sender", sender);
+    if (err != PIPASS_OK)
+        return ERR_CMD_JSON_ADD;
 
     return PIPASS_OK;
 }
@@ -27,47 +38,15 @@ PIPASS_ERR parse_buffer_to_cmd(uint8_t *buf, int32_t buf_size, Cmd **cmd) {
         return ERR_CONN_MEM_LEAK;
 
     PIPASS_ERR err;
-    int32_t idx = 2;
+    int32_t idx = 0;
 
-    *cmd = calloc(1, sizeof(Cmd));
+    memcpy(&(*cmd)->crc, buf + buf_size - sizeof((*cmd)->crc), sizeof((*cmd)->crc));
+    buf[buf_size - sizeof((*cmd)->crc)] = 0;
 
-    (*cmd)->type = buf[0];
-    (*cmd)->sender = buf[1];
-
-    uint16_t *tmp = bin_to_var(buf + idx, sizeof((*cmd)->length));
-    if (tmp == NULL) {
-        err = ERR_CONN_MEM_ALLOC;
-        goto error;
-    }
-    (*cmd)->length = *tmp;
-    free(tmp);
-    idx += sizeof((*cmd)->length);
-
-    (*cmd)->options = malloc((*cmd)->length);
-    if ((*cmd)->options == NULL) {
-        err = ERR_CONN_MEM_ALLOC;
-        goto error;
-    }
-
-    memcpy((*cmd)->options, buf + idx, (*cmd)->length);
-    idx += (*cmd)->length;
-
-    (*cmd)->is_reply = buf[idx++];
-    (*cmd)->reply_code = buf[idx++];
-
-    tmp = bin_to_var(buf + idx, sizeof((*cmd)->crc));
-    if (tmp == NULL) {
-        err = ERR_CONN_MEM_ALLOC;
-        goto error;
-    }
-    (*cmd)->crc = *tmp;
-    free(tmp);
-    idx += sizeof((*cmd)->crc);
-
-    return PIPASS_OK;
-
-error:
-    erase_buffer(&(*cmd)->options, (*cmd)->length);
+    (*cmd)->body = json_tokener_parse(buf);
+    if ((*cmd)->body == NULL)
+        return ERR_CMD_JSON_PARSE;
+    
     return err;
 }
 
@@ -75,46 +54,25 @@ PIPASS_ERR parse_cmd_to_buffer(Cmd *cmd, uint8_t *buf) {
     if (cmd == NULL || buf == NULL)
         return ERR_PARSE_CMD_2_BUF_INV_PARAMS;
 
-    uint32_t idx = 2;
     PIPASS_ERR err;
+    uint8_t *tmp = json_object_to_json_string(cmd->body);
+    if (tmp == NULL)
+        return ERR_CMD_JSON_TO_STRING;
 
-    buf[0] = cmd->type;
-    buf[1] = cmd->sender;
-
-    uint8_t *length_bin = var_to_bin(&cmd->length, sizeof(cmd->length));
-    if (length_bin == NULL) {
-        err = ERR_CONN_MEM_ALLOC;
-        goto error;
+    if (strlen(tmp) > PACKET_SIZE - 2) {
+        // TODO;
     }
 
-    append_to_str(buf, &idx, length_bin, sizeof(cmd->length));
-
-    if (cmd->options != NULL)
-        append_to_str(buf, &idx, cmd->options, cmd->length);
-
-    buf[idx++] = cmd->is_reply;
-    buf[idx++] = cmd->reply_code;
+    memcpy(buf, tmp, strlen(tmp));
 
     err = calculate_crc(cmd, &(cmd->crc));
     if (err != PIPASS_OK)
         goto error;
 
-    uint8_t *crc_bin = var_to_bin(&cmd->crc, sizeof(cmd->crc));
-    if (crc_bin == NULL) {
-        err = ERR_CONN_MEM_ALLOC;
-        goto error;
-    }
+    memcpy(buf + strlen(tmp), &(cmd->crc), sizeof(cmd->crc));
 
-    append_to_str(buf, &idx, crc_bin, sizeof(cmd->crc));
     err = PIPASS_OK;
-    goto cleanup;
-
 error:
-    zero_buffer(buf, idx);
-cleanup:
-    erase_buffer(&length_bin, sizeof(cmd->length));
-    erase_buffer(&crc_bin, sizeof(cmd->crc));
-
     return err;
 }
 
@@ -122,14 +80,14 @@ uint8_t cmd_requires_additional(Cmd *cmd) {
     if (cmd == NULL)
         return 0;
 
-    switch(cmd->type) {
-    case STORE_CREDENTIALS:
-        return 1;
-    case EDIT_CREDENTIALS:
-        return 1;
-    }
+    // switch(cmd->type) {
+    // case STORE_CREDENTIALS:
+    //     return 1;
+    // case EDIT_CREDENTIALS:
+    //     return 1;
+    // }
 
-    return 0;
+    // return 0;
 }
 
 
@@ -137,8 +95,7 @@ void free_command(Cmd **cmd) {
     if (*cmd == NULL)
         return;
 
-    if ((*cmd)->options != NULL)
-        erase_buffer(&((*cmd)->options), (*cmd)->length);
+    json_object_put((*cmd)->body);
 
     free(*cmd);
     *cmd = NULL;
