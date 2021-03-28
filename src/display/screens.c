@@ -197,7 +197,7 @@ PIPASS_ERR fingerprint_screen(enum Button pressed) {
                 PIPASS_ERR err;
                 uint8_t *user = NULL;
                 err = get_user(&user);
-                err = authenticate(user, strlen(user), entered_pin, data->fp_data, NULL, 0);
+                err = authenticate(user, strlen(user), entered_pin, data->fp_key, NULL, 0);
                 printf("user: %s   pin: %s, err: %X", user, entered_pin, err);
                 if (err != PIPASS_OK)
                     printf("Fail!\n");

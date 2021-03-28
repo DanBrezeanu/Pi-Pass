@@ -43,8 +43,6 @@ static PIPASS_ERR _execute_app_hello(Cmd *cmd) {
     PIPASS_ERR err;
     Cmd *cmd_hello = NULL;
 
-    uint8_t *auth_token = NULL;
-
     json_object *sender = NULL;
     json_object *is_reply = NULL;
 
@@ -58,25 +56,20 @@ static PIPASS_ERR _execute_app_hello(Cmd *cmd) {
 
     if (json_object_get_int(sender) == SENDER_APP && !json_object_get_boolean(is_reply)) {
         
+        /* Create reply */
         err = create_command(APP_HELLO, &cmd_hello);
         if (err != PIPASS_OK)
             goto error;
 
+        /* Set is_reply = 1 */
         err = json_object_object_add(cmd_hello->body, "is_reply", json_object_new_boolean(1));
         if (err != PIPASS_OK)
             return ERR_CMD_JSON_ADD;
 
-        err = get_rand_auth_token(&auth_token);
-        if (err != PIPASS_OK)
-            goto error;
-
-        err = json_object_object_add(cmd_hello->body, "auth_token", json_object_new_string(auth_token));
+        /* Set options to either 0 or 1 depending if the device was unlocked */
+        err = json_object_object_add(cmd_hello->body, "options", json_object_new_string(((FL_DB_INITIALIZED && FL_LOGGED_IN) ? "1" : "0")));
         if (err != PIPASS_OK)
             return ERR_CMD_JSON_ADD;
-
-        err = calculate_crc(cmd_hello, &(cmd_hello->crc));
-        if (err != PIPASS_OK)
-            goto error; 
 
         err = send_command(cmd_hello);
         if (err != PIPASS_OK)
@@ -96,40 +89,89 @@ error:
 }
 
 static PIPASS_ERR _execute_ask_for_pin(Cmd *cmd) {
-    if (!FL_LOGGED_IN || !FL_DB_HEADER_LOADED)
-        return ERR_NOT_LOGGED_IN;
-
     PIPASS_ERR err;
     Cmd *cmd_send_pin = NULL;
 
-    if (cmd->type == ASK_FOR_PIN && !cmd->is_reply && !check_auth_token(cmd, auth_token)) {
-        printf("Pin recvd: %s\n", cmd->options);
+    uint8_t *recvd_pin = NULL;
 
-        err = verify_master_pin_with_db(cmd->options);
-        printf("err verify_with_db: %.4X\n", err);
+    json_object *sender   = NULL;
+    json_object *is_reply = NULL;
+    json_object *json_pin      = NULL;
+
+    if (!json_object_object_get_ex(cmd->body, "sender", &sender) 
+        || json_object_get_type(sender) != json_type_int)
+        return ERR_JSON_INVALID_KEY;
+
+    if (!json_object_object_get_ex(cmd->body, "is_reply", &is_reply) 
+        || json_object_get_type(is_reply) != json_type_boolean)
+        return ERR_JSON_INVALID_KEY;
+
+    if (json_object_get_int(sender) == SENDER_APP && !json_object_get_boolean(is_reply)) {
 
         /* Create reply */
         err = create_command(ASK_FOR_PIN, &cmd_send_pin);
         if (err != PIPASS_OK)
             goto error;
+        
+        if (!FL_DB_INITIALIZED || !FL_LOGGED_IN) {
+            goto reply_with_error;
+        }
+        
+        /* Check pin was received */
+        if (!json_object_object_get_ex(cmd_send_pin->body, "options", &json_pin) ||
+            json_object_get_type(json_pin) != json_type_string) {
 
-        cmd_send_pin->is_reply = 1;
-        cmd_send_pin->reply_code = err;
+           goto reply_with_error;
+        }  
 
-        err = calculate_crc(cmd_send_pin, &(cmd_send_pin->crc));
+        /* Check pin size */
+        if (json_object_get_string_len(json_pin) != MASTER_PIN_SIZE) {
+            goto reply_with_error;
+        }
+
+        /* Check pin is correct */
+        err = verify_master_pin_with_db(json_object_get_string(json_pin));
+        if (err != PIPASS_OK) {
+            goto reply_with_error;
+        }
+        printf("err verify_with_db: %.4X\n", err);
+
+        /* Set is_reply = 1 */
+        err = json_object_object_add(cmd_send_pin->body, "is_reply", json_object_new_boolean(1));
         if (err != PIPASS_OK)
-            goto error; 
+            return ERR_CMD_JSON_ADD;
 
-        err = send_command(cmd_send_pin);
+        /* Set new auth_token */
+        if (auth_token != NULL) {
+            erase_buffer(&auth_token, AUTH_TOKEN_SIZE);
+        }
+        
+        err = get_rand_auth_token(&auth_token);
         if (err != PIPASS_OK)
             goto error;
 
-        FL_APP_ACTIVE = 1;
+        err = json_object_object_add(cmd_send_pin->body, "auth_token", json_object_new_string(auth_token));
+        if (err != PIPASS_OK)
+            return ERR_CMD_JSON_ADD;
 
-        return PIPASS_OK;
+        goto send;
+
     } else {
         err = ERR_PIN_NOT_ENTERED;
+        goto error;
     }
+
+reply_with_error:
+    err = json_object_object_add(cmd_send_pin->body, "reply_code", json_object_new_int(1));
+    if (err != PIPASS_OK) {
+        err = ERR_CMD_JSON_ADD;
+        goto error;
+    }
+
+send:
+    err = send_command(cmd_send_pin);
+    if (err != PIPASS_OK)
+        goto error;
 
 error:
     free_command(&cmd_send_pin);

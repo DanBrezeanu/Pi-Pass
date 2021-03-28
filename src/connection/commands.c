@@ -18,12 +18,17 @@ PIPASS_ERR create_command(uint8_t cmd_code, Cmd **cmd) {
     
     json_object *type = json_object_new_int(cmd_code);
     json_object *sender = json_object_new_int(SENDER_PIPASS);
+    json_object *reply_code = json_object_new_int(0);
 
     err = json_object_object_add((*cmd)->body, "type", type);
     if (err != PIPASS_OK)
         return ERR_CMD_JSON_ADD;
 
     err = json_object_object_add((*cmd)->body, "sender", sender);
+    if (err != PIPASS_OK)
+        return ERR_CMD_JSON_ADD;
+
+    err = json_object_object_add((*cmd)->body, "reply_code", reply_code);
     if (err != PIPASS_OK)
         return ERR_CMD_JSON_ADD;
 
@@ -65,7 +70,7 @@ PIPASS_ERR parse_cmd_to_buffer(Cmd *cmd, uint8_t *buf) {
 
     memcpy(buf, tmp, strlen(tmp));
 
-    err = calculate_crc(cmd, &(cmd->crc));
+    err = calculate_crc(tmp, &(cmd->crc));
     if (err != PIPASS_OK)
         goto error;
 

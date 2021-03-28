@@ -12,6 +12,7 @@
 #include <registration.h>
 #include <fingerprint.h>
 #include <command_execution.h>
+#include <json.h>
 
 
 void *connection_loop(void *arg) {
@@ -49,17 +50,21 @@ void *connection_loop(void *arg) {
                 err = change_command_to_send(NO_COMMAND, 1);                
             } while (err != PIPASS_OK);
         } else {
+            json_object *type;
+
             err = recv_command(&cmd);
             if (err != PIPASS_OK)
                 goto error;
-            printf("[INFO]  Command received: %.2X\n", cmd->type);
 
-            printf("[INFO]       Executing command: %.2X\n", cmd->type);
+            json_object_object_get_ex(cmd->body, "type", &type);
+            printf("[INFO]  Command received: %.2X\n", json_object_get_int(type));
+
+            printf("[INFO]       Executing command: %.2X\n", json_object_get_int(type));
             err = execute_command(cmd);
             if (err != PIPASS_OK)
-                printf("[ERROR]       Command execution failed: %.2X. Err: %.4X\n", cmd->type, err);
+                printf("[ERROR]       Command execution failed: %.2X. Err: %.4X\n", json_object_get_int(type), err);
             else
-                printf("[INFO]       Command executed: %.2X\n", cmd->type);
+                printf("[INFO]        Command executed: %.2X\n", json_object_get_int(type));
         }
 
 error:
