@@ -46,6 +46,8 @@ static PIPASS_ERR _execute_app_hello(Cmd *cmd) {
     json_object *sender = NULL;
     json_object *is_reply = NULL;
 
+    printf("Sending HELLO reply\n");
+
     if (!json_object_object_get_ex(cmd->body, "sender", &sender) 
         || json_object_get_type(sender) != json_type_int)
         return ERR_JSON_INVALID_KEY;
@@ -61,15 +63,12 @@ static PIPASS_ERR _execute_app_hello(Cmd *cmd) {
         if (err != PIPASS_OK)
             goto error;
 
-        /* Set is_reply = 1 */
-        err = json_object_object_add(cmd_hello->body, "is_reply", json_object_new_boolean(1));
-        if (err != PIPASS_OK)
-            return ERR_CMD_JSON_ADD;
-
         /* Set options to either 0 or 1 depending if the device was unlocked */
         err = json_object_object_add(cmd_hello->body, "options", json_object_new_string(((FL_DB_INITIALIZED && FL_LOGGED_IN) ? "1" : "0")));
         if (err != PIPASS_OK)
             return ERR_CMD_JSON_ADD;
+
+        printf("Before send_command\n");
 
         err = send_command(cmd_hello);
         if (err != PIPASS_OK)
@@ -122,7 +121,7 @@ static PIPASS_ERR _execute_ask_for_pin(Cmd *cmd) {
             json_object_get_type(json_pin) != json_type_string) {
 
            goto reply_with_error;
-        }  
+        } 
 
         /* Check pin size */
         if (json_object_get_string_len(json_pin) != MASTER_PIN_SIZE) {
@@ -135,11 +134,6 @@ static PIPASS_ERR _execute_ask_for_pin(Cmd *cmd) {
             goto reply_with_error;
         }
         printf("err verify_with_db: %.4X\n", err);
-
-        /* Set is_reply = 1 */
-        err = json_object_object_add(cmd_send_pin->body, "is_reply", json_object_new_boolean(1));
-        if (err != PIPASS_OK)
-            return ERR_CMD_JSON_ADD;
 
         /* Set new auth_token */
         if (auth_token != NULL) {

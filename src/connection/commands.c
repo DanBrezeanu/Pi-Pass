@@ -32,6 +32,10 @@ PIPASS_ERR create_command(uint8_t cmd_code, Cmd **cmd) {
     if (err != PIPASS_OK)
         return ERR_CMD_JSON_ADD;
 
+    err = json_object_object_add((*cmd)->body, "is_reply", json_object_new_boolean(1));
+        if (err != PIPASS_OK)
+            return ERR_CMD_JSON_ADD;
+
     return PIPASS_OK;
 }
 
@@ -42,17 +46,29 @@ PIPASS_ERR parse_buffer_to_cmd(uint8_t *buf, int32_t buf_size, Cmd **cmd) {
     if (*cmd != NULL)
         return ERR_CONN_MEM_LEAK;
 
-    PIPASS_ERR err;
+    PIPASS_ERR err = PIPASS_OK;
     int32_t idx = 0;
+    uint16_t crc = 0;
 
-    memcpy(&(*cmd)->crc, buf + buf_size - sizeof((*cmd)->crc), sizeof((*cmd)->crc));
-    buf[buf_size - sizeof((*cmd)->crc)] = 0;
+    *cmd = calloc(1, sizeof(Cmd));
+    // TODO: add check
 
-    (*cmd)->body = json_tokener_parse(buf);
+    memcpy(&((*cmd)->header.length), buf, sizeof((*cmd)->header.length));
+    memcpy(&((*cmd)->header.crc), buf + sizeof((*cmd)->header.length), sizeof((*cmd)->header.crc));
+
+    err = calculate_crc(buf + SERIAL_HEADER_SIZE, &crc);
+    if (err != PIPASS_OK)
+        return err;
+
+    if (crc != (*cmd)->header.crc) {
+        return ERR_CRC_DIFFERENT;
+    }
+
+    (*cmd)->body = json_tokener_parse(buf + SERIAL_HEADER_SIZE);
     if ((*cmd)->body == NULL)
         return ERR_CMD_JSON_PARSE;
     
-    return err;
+    return PIPASS_OK;
 }
 
 PIPASS_ERR parse_cmd_to_buffer(Cmd *cmd, uint8_t *buf) {
@@ -68,13 +84,17 @@ PIPASS_ERR parse_cmd_to_buffer(Cmd *cmd, uint8_t *buf) {
         // TODO;
     }
 
-    memcpy(buf, tmp, strlen(tmp));
-
-    err = calculate_crc(tmp, &(cmd->crc));
+    err = calculate_crc(tmp, &(cmd->header.crc));
     if (err != PIPASS_OK)
         goto error;
 
-    memcpy(buf + strlen(tmp), &(cmd->crc), sizeof(cmd->crc));
+    printf("Before send crc=%d\n", cmd->header.crc);
+
+    cmd->header.length = strlen(tmp);
+
+    memcpy(buf, &(cmd->header.length), sizeof(cmd->header.length));
+    memcpy(buf + sizeof(cmd->header.length), &(cmd->header.crc), sizeof(cmd->header.crc));
+    memcpy(buf + SERIAL_HEADER_SIZE, tmp, cmd->header.length);
 
     err = PIPASS_OK;
 error:

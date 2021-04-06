@@ -204,7 +204,7 @@ PIPASS_ERR fingerprint_screen(enum Button pressed) {
                 else
                     printf("Ok!\n");
 
-                change_command_to_send(DEVICE_AUTHENTICATED, 1);
+                // change_command_to_send(DEVICE_AUTHENTICATED, 1);
 
                 stack_push(main_screen);
             }

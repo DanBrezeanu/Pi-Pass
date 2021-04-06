@@ -7,10 +7,9 @@ PIPASS_ERR calculate_crc(uint8_t *buf, uint16_t *crc) {
     if (buf == NULL || crc == NULL)
         return ERR_CALC_CRC_INV_PARAMS;
 
-    size_t len = strlen(buf);
-
-    for (uint16_t i = 0; i < len; ++i) {
-        *crc = ((uint32_t) *crc + buf[i]) % UINT16_MAX;
+    while (*buf) {
+        *crc = ((uint32_t) *crc + *buf) % UINT16_MAX;
+        ++buf;
     }
 
     return PIPASS_OK;

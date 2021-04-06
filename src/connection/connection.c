@@ -63,7 +63,9 @@ PIPASS_ERR recv_command(Cmd **cmd) {
         goto error;
     }
 
-    err = parse_buffer_to_cmd(buf, SERIAL_PKT_SIZE, cmd);
+    printf("got data\n");
+
+    err = parse_buffer_to_cmd(buf, bytes_read, cmd);
     if (err != PIPASS_OK)
         goto error;
 
@@ -73,10 +75,10 @@ PIPASS_ERR recv_command(Cmd **cmd) {
     if (err != PIPASS_OK)
         goto error;
 
-    if (crc != (*cmd)->crc) {
-        err = ERR_CRC_DIFFERENT;
-        goto error;
-    }
+    // if (crc != (*cmd)->crc) {
+    //     err = ERR_CRC_DIFFERENT;
+    //     goto error;
+    // }
 
     if (!cmd_requires_additional(*cmd)) {
         pthread_mutex_unlock(&(conn->s_conn->serial_lock));

@@ -75,12 +75,18 @@
 extern uint8_t command_to_send; 
 
 
-typedef struct Cmd {
-    json_object *body;
+struct cmd_header {
+    uint16_t length;          // 2 bytes in case SERIAL_PKG_SIZE is bigger than 256
     uint16_t crc;
+};
+
+typedef struct Cmd {
+    struct cmd_header header;
+    json_object *body;
 } Cmd;
 
-#define AUTH_TOKEN_SIZE  16
+#define AUTH_TOKEN_SIZE     16
+#define SERIAL_HEADER_SIZE  4
 
 PIPASS_ERR create_command(uint8_t cmd_code, Cmd **cmd);
 PIPASS_ERR parse_buffer_to_cmd(uint8_t *buf, int32_t buf_size, Cmd **cmd);
