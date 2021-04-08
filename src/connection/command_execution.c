@@ -117,7 +117,7 @@ static PIPASS_ERR _execute_ask_for_pin(Cmd *cmd) {
         }
         
         /* Check pin was received */
-        if (!json_object_object_get_ex(cmd_send_pin->body, "options", &json_pin) ||
+        if (!json_object_object_get_ex(cmd->body, "options", &json_pin) ||
             json_object_get_type(json_pin) != json_type_string) {
 
            goto reply_with_error;

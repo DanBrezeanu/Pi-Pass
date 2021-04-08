@@ -40,20 +40,20 @@ PIPASS_ERR get_rand_auth_token(uint8_t **auth_token) {
     uint16_t count = 0;
     uint8_t *tmp = NULL;
 
-    auth_token = malloc(AUTH_TOKEN_SIZE);
-    if (auth_token == NULL)
+    *auth_token = malloc(AUTH_TOKEN_SIZE);
+    if (*auth_token == NULL)
         return ERR_CONN_MEM_ALLOC;
 
     tmp = malloc(AUTH_TOKEN_SIZE);
     if (tmp == NULL)
         return ERR_CONN_MEM_ALLOC;
 
-    while (1) {
+    while (count < AUTH_TOKEN_SIZE) {
         RAND_bytes(tmp, AUTH_TOKEN_SIZE);
 
         for (uint8_t i = 0; i < AUTH_TOKEN_SIZE; ++i)
             if (isprint(tmp[i])) {
-                auth_token[count++] = tmp[i];
+                (*auth_token)[count++] = tmp[i];
 
                 if (count == AUTH_TOKEN_SIZE)
                     break;
