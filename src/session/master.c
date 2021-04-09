@@ -86,7 +86,7 @@ void *device_loop(void *arg) {
     while (1) {        
         pressed = get_pressed_button();
         
-        if (pressed != None || (pressed == None && stack_top() != screen) || elapsed > REFRESH_RATE) {
+        if (pressed != None || (pressed == None && stack_top() != screen) || elapsed > REFRESH_RATE * 10) {
             err = show_screen(pressed);
             elapsed = 0;
             usleep(50000);

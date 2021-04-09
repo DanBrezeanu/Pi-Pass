@@ -10,6 +10,7 @@ static PIPASS_ERR _draw_menu_tile(uint8_t *image, int32_t image_x, int32_t image
 static PIPASS_ERR _draw_pin_screen(int32_t option, va_list args);
 static PIPASS_ERR _draw_error_screen(va_list args);
 static PIPASS_ERR _draw_fingerprint_screen(int32_t option, va_list args);
+static PIPASS_ERR _draw_waiting_for_password_screen(int32_t option);
 
 PIPASS_ERR draw_screen(uint8_t screen, int32_t option, int32_t nargs, ...) {
     PIPASS_ERR err;
@@ -28,6 +29,9 @@ PIPASS_ERR draw_screen(uint8_t screen, int32_t option, int32_t nargs, ...) {
         break;
     case SHUTDOWN_SCREEN:
         err = _draw_shutdown_screen(option);
+        break;
+    case WAITING_FOR_PASSWORD_SCREEN:
+        err = _draw_waiting_for_password_screen(option);
         break;
     case ERROR_SCREEN:
         err = _draw_error_screen(args);
@@ -94,7 +98,7 @@ error:
 static PIPASS_ERR _draw_pin_screen(int32_t option, va_list args) {
     enum Options {FIRST_DIGIT = 0, SECOND_DIGIT, THIRD_DIGIT, FOURTH_DIGIT, DONE};
 
-    PyObject *canvas = NULL;
+    PyObject *canvas = NULL, *_ = NULL;
     PIPASS_ERR err;
 
     err = create_canvas(NULL, &canvas);
@@ -141,7 +145,11 @@ static PIPASS_ERR _draw_pin_screen(int32_t option, va_list args) {
 
     display(canvas);
 
+    get_and_call_function(canvas, "__exit__", &_, 0);
+
 error:
+    // Py_XDECREF(canvas);
+    // PyObject_Free(canvas);
 
     return err;
 }
@@ -255,6 +263,50 @@ static PIPASS_ERR _draw_shutdown_screen(int32_t option) {
 
         err = draw_text(78, 30, "No", "black", WITH_HIGHLIGHT,
           FREEPIXEL_FONT, canvas, ALIGN_TEXT, ALIGN_CENTER, 97, 40);
+        if (err != PIPASS_OK)
+            goto error;
+
+        break;
+    }
+
+    err = _draw_controls(CARET_LEFT, "Enter", "Back", CARET_RIGHT, canvas);
+    if (err != PIPASS_OK)
+        goto error;
+
+    display(canvas);
+
+error:
+
+    return err;
+}
+
+static PIPASS_ERR _draw_waiting_for_password_screen(int32_t option) {
+    enum Options {CANCEL, NONE};
+
+    PyObject *canvas = NULL;
+    PIPASS_ERR err;
+
+    err = create_canvas(NULL, &canvas);
+    if (err != PIPASS_OK)
+        goto error;
+
+    err = draw_text(0, 2, "Type the password in\n   the application", "white", NO_HIGHLIGHT,
+     FREEPIXEL_FONT, canvas, ALIGN_TEXT, ALIGN_CENTER, DISPLAY_WIDTH, 20);
+    if (err != PIPASS_OK)
+        goto error;
+
+    switch (option) {
+    case CANCEL:        
+        err = draw_text(30, 40, "CANCEL", "black", WITH_HIGHLIGHT,
+          FREEPIXEL_FONT, canvas, ALIGN_TEXT, ALIGN_CENTER, 90, 40);
+        if (err != PIPASS_OK)
+            goto error;
+
+        break;
+
+case NONE:
+        err = draw_text(0, 40, "CANCEL", "white", NO_HIGHLIGHT,
+          FREEPIXEL_FONT, canvas, ALIGN_TEXT, ALIGN_CENTER, DISPLAY_WIDTH, 40);
         if (err != PIPASS_OK)
             goto error;
 

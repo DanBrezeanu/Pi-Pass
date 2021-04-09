@@ -143,7 +143,6 @@ PIPASS_ERR _draw_image(PyObject *device, int32_t x, int32_t y, uint8_t* image_re
 
 error:
     Py_XDECREF(pillow_image);
-    Py_XDECREF(image);
     Py_XDECREF(xy);
     Py_XDECREF(_);
 
@@ -315,6 +314,7 @@ PIPASS_ERR _create_canvas(PyObject *device, PyObject *background, PyObject **can
     *canvas = canv;
 
     err = PIPASS_OK;
+
     goto cleanup;
 
 error:
@@ -434,8 +434,8 @@ PIPASS_ERR get_text_size(uint8_t *text, PyObject *font, PyObject *canvas, uint32
 
 error:
     Py_XDECREF(draw);
-    Py_XDECREF(_width);
-    Py_XDECREF(_height);
+    Py_XDECREF(width_height);
+    // Py_XDECREF(width_height);
 
     return err;
 }

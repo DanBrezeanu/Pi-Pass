@@ -6,11 +6,12 @@
 #include <string.h>
 #include <gpio_control.h>
 
-#define MAIN_SCREEN         0xA0
-#define FINGERPRINT_SCREEN  0xA1
-#define SHUTDOWN_SCREEN     0xA3
-#define PIN_SCREEN          0xA4
-#define ERROR_SCREEN        0xA5
+#define MAIN_SCREEN                 0xA0
+#define FINGERPRINT_SCREEN          0xA1
+#define SHUTDOWN_SCREEN             0xA3
+#define PIN_SCREEN                  0xA4
+#define ERROR_SCREEN                0xA5
+#define WAITING_FOR_PASSWORD_SCREEN 0xA6
 
 PIPASS_ERR show_screen(enum Button pressed);
 PIPASS_ERR pin_screen(enum Button pressed);
@@ -18,6 +19,8 @@ PIPASS_ERR main_screen(enum Button pressed);
 PIPASS_ERR shutdown_screen(enum Button pressed);
 PIPASS_ERR fingerprint_screen(enum Button pressed);
 PIPASS_ERR wrong_pin_screen(enum Button pressed);
+PIPASS_ERR wrong_password_screen(enum Button pressed);
+PIPASS_ERR waiting_for_password_screen(enum Button pressed);
 
 
 #endif

@@ -35,15 +35,19 @@ error:
 }
 
 PIPASS_ERR authenticate(uint8_t *user, uint32_t user_len, uint8_t *master_pin,
-  uint8_t *fp_key, uint8_t *master_password, uint32_t master_password_len) {
-    if (FL_LOGGED_IN)
-        return ERR_ALREADY_LOGGED_IN;
-    
-    if (user == NULL || master_pin == NULL || !user_len ||
-      (fp_key == NULL && (master_password == NULL || !master_password_len)))
-        return ERR_AUTH_INV_PARAMS;
+  uint8_t *fp_key, uint8_t *master_password, uint32_t master_password_len) {  
 
     PIPASS_ERR err = PIPASS_OK;
+
+    if (FL_LOGGED_IN) {
+        err = ERR_ALREADY_LOGGED_IN;
+        goto error;
+    }
+    if (user == NULL || master_pin == NULL || !user_len ||
+      (fp_key == NULL && (master_password == NULL || !master_password_len))){
+        err = ERR_AUTH_INV_PARAMS;
+        goto error;
+    }
 
     uint8_t *user_hash = NULL;
     err = generate_user_hash(user, user_len, &user_hash);
@@ -53,7 +57,7 @@ PIPASS_ERR authenticate(uint8_t *user, uint32_t user_len, uint8_t *master_pin,
     //TODO: check db file exists
     err = verify_user_directory(user_hash);
     if (err != PIPASS_OK)
-        return err;
+        goto error;
 
     
     uint8_t *raw_db = NULL;
@@ -75,7 +79,7 @@ PIPASS_ERR authenticate(uint8_t *user, uint32_t user_len, uint8_t *master_pin,
     
     err = verify_master_pin_with_db(master_pin);
     if (err != PIPASS_OK)
-        return err;
+        goto error;
 
     FL_LOGGED_IN = 1;
 
@@ -155,6 +159,7 @@ error:
     db_free_header();
 
 cleanup:
+    erase_buffer(&entered_pin, MASTER_PIN_SIZE);
     erase_buffer(&user_hash, SHA256_HEX_SIZE);
     erase_buffer(&master_passw_key, AES256_KEY_SIZE);
     erase_buffer(&kek, AES256_KEY_SIZE);

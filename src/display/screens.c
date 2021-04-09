@@ -11,8 +11,6 @@
 #include <authentication.h>
 #include <storage.h>
 
-static uint8_t *entered_pin = NULL;
-
 PIPASS_ERR show_screen(enum Button pressed) {
     PIPASS_ERR err;
     int32_t ret;
@@ -155,7 +153,10 @@ PIPASS_ERR shutdown_screen(enum Button pressed) {
         options = (options + num_options - 1) % num_options;
         break;
     case B2:
-        /* select */
+        if (options == YES) {
+            //TODO: do it properly
+            exit(0);
+        }
         break;
     case B3:
         stack_pop();
@@ -224,7 +225,8 @@ PIPASS_ERR fingerprint_screen(enum Button pressed) {
         /* Send command to PC */
         if (options == LOGIN_WITH_PASSW) {
             if (fp_thread != NULL) {
-                data->stop = 1;
+                if (data != NULL)
+                    data->stop = 1;
                 usleep(200000); // wait for thread to end properly
                 free(data);
                 free(fp_thread);
@@ -233,7 +235,7 @@ PIPASS_ERR fingerprint_screen(enum Button pressed) {
                 fp_thread = NULL;
             }
             
-            stack_push(main_screen);
+            stack_push(waiting_for_password_screen);
         }
 
         break;
@@ -249,8 +251,67 @@ PIPASS_ERR fingerprint_screen(enum Button pressed) {
 }
 
 PIPASS_ERR wrong_pin_screen(enum Button pressed) {
-    PIPASS_ERR err = draw_screen(ERROR_SCREEN, 0, 1, "Wrong pin. \n Please try again.");
+    PIPASS_ERR err = draw_screen(ERROR_SCREEN, 0, 1, "    Wrong pin. \n Please try again.");
+    sleep(2);
     stack_pop();
 
     return err;
+}
+
+PIPASS_ERR wrong_password_screen(enum Button pressed) {
+    PIPASS_ERR err = draw_screen(ERROR_SCREEN, 0, 1, "    Wrong password. \n Please try again.");
+    sleep(2);
+    stack_push(pin_screen);
+    stack_pop();
+
+    return err;
+}
+
+PIPASS_ERR waiting_for_password_screen(enum Button pressed) {
+    const uint32_t num_options = 2;
+    enum Options {CANCEL, NONE};
+    static enum Options options = NONE;
+    static uint8_t already_sent_request = 0;  
+
+    if (!already_sent_request) {
+        already_sent_request = 1;
+        change_command_to_send(ASK_FOR_PASSWORD, 1);
+    } else {
+        if (FL_RECEIVED_PASSWORD && !FL_LOGGED_IN) {
+            FL_RECEIVED_PASSWORD = 0;
+            stack_pop(); // Remove this
+            stack_pop(); // And the fp screen
+            stack_push(wrong_password_screen);
+        } else if (FL_RECEIVED_PASSWORD && FL_LOGGED_IN) {
+            FL_RECEIVED_PASSWORD = 0;
+            stack_pop(); // Remove this
+            stack_pop(); // And the fp screen
+            stack_push(main_screen);
+        }
+    }
+
+    switch (pressed) {
+    case B1:
+        options = (options + num_options - 1) % num_options;
+        break;
+    case B2:
+        if (options == CANCEL) 
+            goto exit_screen;
+        break;
+    case B3:
+        goto exit_screen;
+        break;
+    case B4:
+        options = (options + 1) % num_options;
+        break;
+    case None:
+        break;
+    }
+
+    return draw_screen(WAITING_FOR_PASSWORD_SCREEN, (int32_t)options, 0);
+
+exit_screen:
+    stack_pop();
+    already_sent_request = 0;
+    return PIPASS_OK;
 }
