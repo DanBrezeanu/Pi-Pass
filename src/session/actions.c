@@ -197,3 +197,45 @@ error:
 
     return err;    
 }
+
+
+PIPASS_ERR get_encrypted_field_value(uint8_t *cred_name, uint8_t *field_name, uint8_t **value) {
+    if (!FL_LOGGED_IN)
+        return ERR_NOT_LOGGED_IN;
+
+    if (!FL_DB_INITIALIZED)
+        return ERR_DB_NOT_INITIALIZED;
+
+    if (*value != NULL)
+        return ERR_DB_MEM_LEAK;
+
+    if (cred_name == NULL || field_name == NULL)
+        return ERR_DB_MEM_LEAK;
+    
+    PIPASS_ERR err;
+    struct Credential *cr = NULL;
+    struct Credential *plain_cr = NULL;
+
+    err = get_credential_details(cred_name, &cr);
+    if (err != PIPASS_OK)
+        return err;
+
+    err = alloc_credential(&plain_cr);
+    if (err != PIPASS_OK)
+        return err;
+
+    err = decrypt_credential(cr, plain_cr);
+    if (err != PIPASS_OK)
+        return err;
+
+    for (uint8_t i = 0; i < plain_cr->fields_count; ++i) {
+        if (memcmp(plain_cr->fields_names[i], field_name, plain_cr->fields_names_len[i]) == 0) {
+            *value = malloc(plain_cr->fields_data_len[i]);
+            memcpy(*value, plain_cr->fields_data[i].data_plain, plain_cr->fields_data_len[i]);
+            
+            return PIPASS_OK;
+        }
+    }
+
+    return ERR_FIELD_NOT_FOUND;
+}

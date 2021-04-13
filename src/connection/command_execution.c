@@ -15,6 +15,7 @@ static PIPASS_ERR _execute_ask_for_pin(Cmd *cmd);
 static PIPASS_ERR _execute_ask_for_password(Cmd *cmd);
 static PIPASS_ERR _execute_list_credentials(Cmd *cmd);
 static PIPASS_ERR _execute_credential_details(Cmd *cmd);
+static PIPASS_ERR _execute_encrypted_field_value(Cmd *cmd);
 
 
 PIPASS_ERR _execute_command(Cmd *cmd) {
@@ -42,6 +43,8 @@ PIPASS_ERR _execute_command(Cmd *cmd) {
         return _execute_list_credentials(cmd);
     case CREDENTIAL_DETAILS:
         return _execute_credential_details(cmd);
+    case ENCRYPTED_FIELD_VALUE:
+        return _execute_encrypted_field_value(cmd);
     default:
         err = ERR_UNKNOWN_COMMAND;
         break;
@@ -378,7 +381,78 @@ error:
 }
 
 
+static PIPASS_ERR _execute_encrypted_field_value(Cmd *cmd) {
+    PIPASS_ERR err;
+    Cmd *cmd_enc_field = NULL;
 
+    json_object *sender = NULL;
+    json_object *is_reply = NULL;
+    json_object *options = NULL;
+    json_object *credential_name = NULL;
+    json_object *field_name = NULL;
+    json_object *reply_options = NULL;
 
+    printf("Sending CRED_DETAILS reply\n");
+
+    if (!json_object_object_get_ex(cmd->body, "sender", &sender) 
+        || json_object_get_type(sender) != json_type_int)
+        return ERR_JSON_INVALID_KEY;
+
+    if (!json_object_object_get_ex(cmd->body, "is_reply", &is_reply) 
+        || json_object_get_type(is_reply) != json_type_boolean)
+        return ERR_JSON_INVALID_KEY;
+
+    if (!json_object_object_get_ex(cmd->body, "options", &options) 
+        || json_object_get_type(options) != json_type_object)
+        return ERR_JSON_INVALID_KEY;
+
+    if (!json_object_object_get_ex(options, "credential_name", &credential_name) 
+        || json_object_get_type(credential_name) != json_type_string)
+        return ERR_JSON_INVALID_KEY;
+
+    if (!json_object_object_get_ex(options, "field_name", &field_name) 
+        || json_object_get_type(field_name) != json_type_string)
+        return ERR_JSON_INVALID_KEY;
+
+    if (json_object_get_int(sender) == SENDER_APP && !json_object_get_boolean(is_reply)) {
+        
+        /* Create reply */
+        err = create_command(ENCRYPTED_FIELD_VALUE, &cmd_enc_field);
+        if (err != PIPASS_OK)
+            goto error;
+
+        struct Credential *field_value = NULL;
+        err = get_encrypted_field_value(
+            json_object_get_string(credential_name),
+            json_object_get_string(field_name),
+            &field_value
+        );
+
+        if (err != PIPASS_OK)
+            goto error;
+
+        reply_options = json_object_new_string(field_value);
+        err = json_object_object_add(cmd_enc_field->body, "options", reply_options);
+        if (err != PIPASS_OK)
+            return ERR_CMD_JSON_ADD;
+
+        printf("Before send_command\n");
+
+        err = send_command(cmd_enc_field);
+        if (err != PIPASS_OK)
+            goto error;
+
+        return PIPASS_OK;
+    } else {
+        err = ERR_CONN_INVALID_COMM;
+        goto error;
+    }
+
+    err = PIPASS_OK;
+
+error:
+    free_command(&cmd_enc_field);
+    return err;
+}
 
 

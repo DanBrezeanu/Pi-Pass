@@ -69,9 +69,10 @@
 
 #define ASK_FOR_PASSWORD   0xCC
 #define ASK_FOR_PIN        0xCD
-#define CREDENTIAL_DETAILS 0XCE
+#define CREDENTIAL_DETAILS 0xCE
+#define ENCRYPTED_FIELD_VALUE 0xCF
 
-#define DEVICE_AUTHENTICATED 0xCF
+#define DEVICE_AUTHENTICATED 0xE0
 
 extern uint8_t command_to_send; 
 
