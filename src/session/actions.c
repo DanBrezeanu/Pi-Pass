@@ -106,3 +106,94 @@ error:
 
     return err;
 }
+
+PIPASS_ERR get_credential_names(uint8_t ***cr_names, uint16_t *cr_names_count) {
+    if (!FL_LOGGED_IN)
+        return ERR_NOT_LOGGED_IN;
+
+    if (!FL_DB_INITIALIZED)
+        return ERR_DB_NOT_INITIALIZED;
+
+    if (*cr_names != NULL)
+        return ERR_DB_MEM_LEAK;
+
+    PIPASS_ERR err;
+    uint32_t cred_count = 0;
+
+    *cr_names_count = 0;
+    struct Credential *credentials = NULL; 
+
+    err = db_get_credentials(&credentials, &cred_count);
+    if (err != PIPASS_OK)
+        goto error;
+
+    for (int32_t i = 0; i < cred_count; ++i) {
+        for (int32_t j = 0; j < credentials[i].fields_count; ++j) {
+            if (credentials[i].fields_names_len[j] == strlen("name") && !credentials[i].fields_encrypted[j] && 
+              memcmp(credentials[i].fields_names[j], "name", strlen("name")) == 0) {
+
+                *cr_names = realloc(*cr_names, (*cr_names_count + 1) * sizeof(uint8_t *));
+                (*cr_names)[*cr_names_count] = calloc(credentials[i].fields_data_len[j], sizeof(uint8_t));
+                memcpy((*cr_names)[*cr_names_count], credentials[i].fields_data[j].data_plain, credentials[i].fields_data_len[j]);
+                (*cr_names_count)++;
+
+                break;
+            }
+        }
+    }
+    
+    return PIPASS_OK;
+
+error:
+
+    return err;
+}
+
+PIPASS_ERR get_credential_details(uint8_t *name, struct Credential **cr) {
+    if (!FL_LOGGED_IN)
+        return ERR_NOT_LOGGED_IN;
+
+    if (!FL_DB_INITIALIZED)
+        return ERR_DB_NOT_INITIALIZED;
+
+    if (*cr != NULL)
+        return ERR_DB_MEM_LEAK;
+
+    if (name == NULL)
+        return ERR_DB_MEM_LEAK;
+
+    PIPASS_ERR err;
+    uint32_t cred_count = 0;
+
+    struct Credential *credentials = NULL; 
+
+    err = db_get_credentials(&credentials, &cred_count);
+    if (err != PIPASS_OK)
+        goto error;
+
+    for (int32_t i = 0; i < cred_count; ++i) {
+        for (int32_t j = 0; j < credentials[i].fields_count; ++j) {
+            if (credentials[i].fields_names_len[j] == strlen("name") &&
+                !credentials[i].fields_encrypted[j] && 
+                memcmp(credentials[i].fields_names[j], "name", strlen("name")) == 0 &&
+                memcmp(credentials[i].fields_data[j].data_plain, name, credentials[i].fields_data_len[j]) == 0
+            ) {
+                err = alloc_credential(cr);
+                if (err != PIPASS_OK)
+                    goto error;
+                
+                err = copy_credential(credentials[i], *cr);
+                if (err != PIPASS_OK)
+                    goto error;
+
+                return PIPASS_OK;
+            }
+        }
+    }
+
+    return ERR_NO_CRED_FOUND;
+
+error:
+
+    return err;    
+}

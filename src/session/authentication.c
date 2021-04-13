@@ -68,6 +68,8 @@ PIPASS_ERR authenticate(uint8_t *user, uint32_t user_len, uint8_t *master_pin,
     struct DataBlob encrypted_fp_key = {0};
     struct DataBlob dek_blob = {0};
     uint8_t *dek = NULL;
+    uint8_t initial_header_loaded = 1;
+
 
     if (!FL_DB_HEADER_LOADED) {
         err = init_db_header(user_hash);
@@ -75,6 +77,7 @@ PIPASS_ERR authenticate(uint8_t *user, uint32_t user_len, uint8_t *master_pin,
             goto error;
 
         FL_DB_HEADER_LOADED = 1;
+        initial_header_loaded = 0;
     }
     
     err = verify_master_pin_with_db(master_pin);
@@ -153,11 +156,10 @@ PIPASS_ERR authenticate(uint8_t *user, uint32_t user_len, uint8_t *master_pin,
     goto cleanup;
 
 error:
-    FL_DB_HEADER_LOADED = 0;
     FL_DB_INITIALIZED = 0;
     FL_LOGGED_IN = 0;
-    db_free_header();
-
+    if (!initial_header_loaded)
+        db_free_header();
 cleanup:
     erase_buffer(&entered_pin, MASTER_PIN_SIZE);
     erase_buffer(&user_hash, SHA256_HEX_SIZE);

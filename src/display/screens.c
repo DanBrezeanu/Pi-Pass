@@ -66,8 +66,10 @@ PIPASS_ERR pin_screen(enum Button pressed) {
                 digits[i] += '0';
 
             err = verify_master_pin_with_db(digits);
-            if (err != PIPASS_OK)
+            if (err != PIPASS_OK){
+                printf("verify_pin_with_db err %.4X\n", err);
                 stack_push(wrong_pin_screen);
+            }
             else {
                 entered_pin = calloc(4, sizeof(uint8_t));
                 memcpy(entered_pin, digits, 4);
@@ -261,9 +263,8 @@ PIPASS_ERR wrong_pin_screen(enum Button pressed) {
 PIPASS_ERR wrong_password_screen(enum Button pressed) {
     PIPASS_ERR err = draw_screen(ERROR_SCREEN, 0, 1, "    Wrong password. \n Please try again.");
     sleep(2);
-    stack_push(pin_screen);
     stack_pop();
-
+    stack_push(pin_screen);
     return err;
 }
 
@@ -279,13 +280,13 @@ PIPASS_ERR waiting_for_password_screen(enum Button pressed) {
     } else {
         if (FL_RECEIVED_PASSWORD && !FL_LOGGED_IN) {
             FL_RECEIVED_PASSWORD = 0;
-            stack_pop(); // Remove this
-            stack_pop(); // And the fp screen
+            stack_pop();
+            stack_pop();
             stack_push(wrong_password_screen);
         } else if (FL_RECEIVED_PASSWORD && FL_LOGGED_IN) {
             FL_RECEIVED_PASSWORD = 0;
-            stack_pop(); // Remove this
-            stack_pop(); // And the fp screen
+            already_sent_request = 0;
+            stack_pop();
             stack_push(main_screen);
         }
     }

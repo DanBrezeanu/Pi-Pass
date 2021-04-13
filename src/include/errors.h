@@ -135,6 +135,7 @@
 #define ERR_READ_USERS_CONF            0x2024
 #define ERR_INIT_DB_HEADER_INV_PARAMS  0x2025
 #define ERR_GET_USER_MEM_LEAK          0x2026
+#define ERR_NO_CRED_FOUND              0x2027
 
 
 /* Database Error Codes */

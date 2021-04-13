@@ -6,12 +6,15 @@
 #include <flags.h>
 #include <aes256.h>
 #include <authentication.h>
+#include <actions.h>
 
 static uint8_t *auth_token = NULL;
 
 static PIPASS_ERR _execute_app_hello(Cmd *cmd);
 static PIPASS_ERR _execute_ask_for_pin(Cmd *cmd);
 static PIPASS_ERR _execute_ask_for_password(Cmd *cmd);
+static PIPASS_ERR _execute_list_credentials(Cmd *cmd);
+static PIPASS_ERR _execute_credential_details(Cmd *cmd);
 
 
 PIPASS_ERR _execute_command(Cmd *cmd) {
@@ -35,6 +38,10 @@ PIPASS_ERR _execute_command(Cmd *cmd) {
     case ASK_FOR_PASSWORD:
         return _execute_ask_for_password(cmd);
         break;
+    case LIST_CREDENTIALS:
+        return _execute_list_credentials(cmd);
+    case CREDENTIAL_DETAILS:
+        return _execute_credential_details(cmd);
     default:
         err = ERR_UNKNOWN_COMMAND;
         break;
@@ -233,6 +240,140 @@ static PIPASS_ERR _execute_ask_for_password(Cmd *cmd) {
 
 error:
     free_command(&cmd_ask_passw);
+    return err;
+}
+
+static PIPASS_ERR _execute_list_credentials(Cmd *cmd) {
+    PIPASS_ERR err;
+    Cmd *cmd_list_cred = NULL;
+
+    json_object *sender = NULL;
+    json_object *is_reply = NULL;
+    json_object *options = NULL;
+
+    printf("Sending LIST_CRED reply\n");
+
+    if (!json_object_object_get_ex(cmd->body, "sender", &sender) 
+        || json_object_get_type(sender) != json_type_int)
+        return ERR_JSON_INVALID_KEY;
+
+    if (!json_object_object_get_ex(cmd->body, "is_reply", &is_reply) 
+        || json_object_get_type(is_reply) != json_type_boolean)
+        return ERR_JSON_INVALID_KEY;
+
+    if (json_object_get_int(sender) == SENDER_APP && !json_object_get_boolean(is_reply)) {
+        
+        /* Create reply */
+        err = create_command(LIST_CREDENTIALS, &cmd_list_cred);
+        if (err != PIPASS_OK)
+            goto error;
+
+        uint8_t **credential_names = NULL;
+        uint16_t credential_count = 0;
+
+        err = get_credential_names(&credential_names, &credential_count);
+        if (err != PIPASS_OK)
+            goto error;
+
+        options = json_object_new_array_ext(credential_count);
+        for (uint16_t i = 0; i < credential_count; ++i) {
+            err = json_object_array_add(options, json_object_new_string(credential_names[i]));
+            if (err != PIPASS_OK)
+                return ERR_CMD_JSON_ADD;
+        }
+        
+
+        err = json_object_object_add(cmd_list_cred->body, "options", options);
+        if (err != PIPASS_OK)
+            return ERR_CMD_JSON_ADD;
+
+        printf("Before send_command\n");
+
+        err = send_command(cmd_list_cred);
+        if (err != PIPASS_OK)
+            goto error;
+
+        return PIPASS_OK;
+    } else {
+        err = ERR_CONN_INVALID_COMM;
+        goto error;
+    }
+
+    err = PIPASS_OK;
+
+error:
+    free_command(&cmd_list_cred);
+    return err;
+}
+
+static PIPASS_ERR _execute_credential_details(Cmd *cmd) {
+    PIPASS_ERR err;
+    Cmd *cmd_cred_details = NULL;
+
+    json_object *sender = NULL;
+    json_object *is_reply = NULL;
+    json_object *options = NULL;
+    json_object *reply_options = NULL;
+
+    printf("Sending CRED_DETAILS reply\n");
+
+    if (!json_object_object_get_ex(cmd->body, "sender", &sender) 
+        || json_object_get_type(sender) != json_type_int)
+        return ERR_JSON_INVALID_KEY;
+
+    if (!json_object_object_get_ex(cmd->body, "is_reply", &is_reply) 
+        || json_object_get_type(is_reply) != json_type_boolean)
+        return ERR_JSON_INVALID_KEY;
+
+    if (!json_object_object_get_ex(cmd->body, "options", &options) 
+        || json_object_get_type(options) != json_type_string)
+        return ERR_JSON_INVALID_KEY;
+
+    if (json_object_get_int(sender) == SENDER_APP && !json_object_get_boolean(is_reply)) {
+        
+        /* Create reply */
+        err = create_command(CREDENTIAL_DETAILS, &cmd_cred_details);
+        if (err != PIPASS_OK)
+            goto error;
+
+        struct Credential *cred = NULL;
+        err = get_credential_details(json_object_get_string(options), &cred);
+        if (err != PIPASS_OK)
+            goto error;
+
+
+        reply_options = json_object_new_object();
+        for (uint16_t i = 0; i < cred->fields_count; ++i) {
+            err = json_object_object_add(
+                reply_options,
+                cred->fields_names[i],
+                (!cred->fields_encrypted[i]) ? (json_object_new_string(cred->fields_data[i].data_plain)) : (NULL)
+            );
+            if (err != PIPASS_OK)
+                return ERR_CMD_JSON_ADD;
+        }
+        
+
+        err = json_object_object_add(cmd_cred_details->body, "options", reply_options);
+        if (err != PIPASS_OK)
+            return ERR_CMD_JSON_ADD;
+
+        printf("Before send_command\n");
+
+        err = send_command(cmd_cred_details);
+        if (err != PIPASS_OK)
+            goto error;
+
+        return PIPASS_OK;
+    } else {
+        err = ERR_CONN_INVALID_COMM;
+        goto error;
+    }
+
+    err = PIPASS_OK;
+
+error:
+    free_command(&cmd_cred_details);
     return err;
 }
 

@@ -150,9 +150,9 @@ int main() {
     init_gpio();
     init_fingerprint();
     fp_verify_pin("0000");
-    // PIPASS_ERR err;
-    // uint8_t *fp_key = NULL;
-    // uint16_t index;
+    PIPASS_ERR err;
+    uint8_t *fp_key = NULL;
+    uint16_t index;
     // err =  fp_enroll_fingerprint(&index);
     // err =  fp_get_fingerprint(&fp_key);
     // if (err != PIPASS_OK) {
@@ -165,6 +165,23 @@ int main() {
     //     printf("%X\n", err);
     //     return 0;
     // }
+
+
+    // err = authenticate("test", strlen("test"), "1234", NULL, "parola", 6);
+    // printf("%.4X", err);
+
+    // uint16_t fields_names_len[] = {strlen("name"), strlen("url"), strlen("user"), strlen("password")};
+    // uint8_t *fields_names[] = {"name", "url", "user", "password"};
+    // uint16_t fields_data_len[] = {strlen("github"), strlen("https://github.com"), strlen("test"), strlen("passw")};
+    // uint8_t fields_encrypted[] = {0, 0, 1, 1};
+    // uint8_t *fields_data[] = {"github", "https://github.com", "test", "passw"};
+    // uint8_t *user_hash = NULL;
+
+    // err = generate_user_hash("test", strlen("test"), &user_hash);
+    // printf("%.4X\n", err);
+
+    // err = register_new_credential(user_hash, PASSWORD_TYPE, 4, fields_names_len, fields_names, fields_data_len, fields_encrypted, fields_data);
+    // printf("%.4X\n", err);
 
     init_device();
 }
