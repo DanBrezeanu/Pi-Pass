@@ -272,15 +272,21 @@ static PIPASS_ERR _execute_list_credentials(Cmd *cmd) {
             goto error;
 
         uint8_t **credential_names = NULL;
+        uint8_t **credential_urls = NULL;
+        json_object *cred_details = NULL;
         uint16_t credential_count = 0;
 
-        err = get_credential_names(&credential_names, &credential_count);
+        err = get_credential_names(&credential_names, &credential_urls, &credential_count);
         if (err != PIPASS_OK)
             goto error;
 
-        options = json_object_new_array_ext(credential_count);
+        options = json_object_new_array();
         for (uint16_t i = 0; i < credential_count; ++i) {
-            err = json_object_array_add(options, json_object_new_string(credential_names[i]));
+            cred_details = json_object_new_object();
+            json_object_object_add(cred_details, "name",  json_object_new_string(credential_names[i]));
+            json_object_object_add(cred_details, "url", json_object_new_string(credential_urls[i]));
+
+            err = json_object_array_add(options, cred_details);
             if (err != PIPASS_OK)
                 return ERR_CMD_JSON_ADD;
         }

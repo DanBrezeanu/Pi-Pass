@@ -172,9 +172,9 @@ int main() {
 
     // uint16_t fields_names_len[] = {strlen("name"), strlen("url"), strlen("user"), strlen("password")};
     // uint8_t *fields_names[] = {"name", "url", "user", "password"};
-    // uint16_t fields_data_len[] = {strlen("github"), strlen("https://github.com"), strlen("test"), strlen("passw")};
+    // uint16_t fields_data_len[] = {strlen("facebook"), strlen("https://facebook.com"), strlen("MyFacebookName"), strlen("MyFacebookPassword")};
     // uint8_t fields_encrypted[] = {0, 0, 1, 1};
-    // uint8_t *fields_data[] = {"github", "https://github.com", "test", "passw"};
+    // uint8_t *fields_data[] = {"facebook", "https://facebook.com", "MyFacebookName", "MyFacebookPassword"};
     // uint8_t *user_hash = NULL;
 
     // err = generate_user_hash("test", strlen("test"), &user_hash);

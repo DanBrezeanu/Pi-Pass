@@ -42,7 +42,7 @@ PIPASS_ERR get_credentials(uint8_t *user_hash, uint8_t *field_name, uint16_t fie
   uint16_t field_value_len, struct Credential **cr, uint16_t *cr_len);
 
 
-PIPASS_ERR get_credential_names(uint8_t ***cr_names, uint16_t *cr_names_count);
+PIPASS_ERR get_credential_names(uint8_t ***cr_names, uint8_t ***cr_urls, uint16_t *cr_results_count);
 PIPASS_ERR get_credential_details(uint8_t *name, struct Credential **cr);
 PIPASS_ERR get_encrypted_field_value(uint8_t *cred_name, uint8_t *field_name, uint8_t **value);
 
