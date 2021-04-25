@@ -16,6 +16,7 @@ static PIPASS_ERR _execute_ask_for_password(Cmd *cmd);
 static PIPASS_ERR _execute_list_credentials(Cmd *cmd);
 static PIPASS_ERR _execute_credential_details(Cmd *cmd);
 static PIPASS_ERR _execute_encrypted_field_value(Cmd *cmd);
+static PIPASS_ERR _execute_add_credential(Cmd *cmd);
 
 
 PIPASS_ERR _execute_command(Cmd *cmd) {
@@ -45,6 +46,8 @@ PIPASS_ERR _execute_command(Cmd *cmd) {
         return _execute_credential_details(cmd);
     case ENCRYPTED_FIELD_VALUE:
         return _execute_encrypted_field_value(cmd);
+    case ADD_CREDENTIAL:
+        return _execute_add_credential(cmd);
     default:
         err = ERR_UNKNOWN_COMMAND;
         break;
@@ -438,6 +441,137 @@ static PIPASS_ERR _execute_encrypted_field_value(Cmd *cmd) {
             goto error;
 
         reply_options = json_object_new_string(field_value);
+        err = json_object_object_add(cmd_enc_field->body, "options", reply_options);
+        if (err != PIPASS_OK)
+            return ERR_CMD_JSON_ADD;
+
+        printf("Before send_command\n");
+
+        err = send_command(cmd_enc_field);
+        if (err != PIPASS_OK)
+            goto error;
+
+        return PIPASS_OK;
+    } else {
+        err = ERR_CONN_INVALID_COMM;
+        goto error;
+    }
+
+    err = PIPASS_OK;
+
+error:
+    free_command(&cmd_enc_field);
+    return err;
+}
+
+static PIPASS_ERR _execute_add_credential(Cmd *cmd) {
+    PIPASS_ERR err;
+    Cmd *cmd_enc_field = NULL;
+
+    json_object *sender = NULL;
+    json_object *is_reply = NULL;
+    json_object *options = NULL;
+    json_object *credential_type = NULL;
+    json_object *credential_fields = NULL;
+    json_object *field = NULL;
+    json_object *reply_options = NULL;
+
+    uint8_t **fields_names = NULL;
+    uint16_t *fields_names_len = NULL;
+    uint8_t **fields_data = NULL;
+    uint16_t *fields_data_len = NULL;
+    uint8_t *fields_encrypted = NULL;
+
+    uint8_t *user = NULL;
+    uint8_t *user_hash = NULL;
+
+    printf("Sending ADD_CREDENTIAl reply\n");
+
+    if (!json_object_object_get_ex(cmd->body, "sender", &sender) 
+        || json_object_get_type(sender) != json_type_int)
+        return ERR_JSON_INVALID_KEY;
+
+    if (!json_object_object_get_ex(cmd->body, "is_reply", &is_reply) 
+        || json_object_get_type(is_reply) != json_type_boolean)
+        return ERR_JSON_INVALID_KEY;
+
+    if (!json_object_object_get_ex(cmd->body, "options", &options) 
+        || json_object_get_type(options) != json_type_object)
+        return ERR_JSON_INVALID_KEY;
+
+    if (!json_object_object_get_ex(options, "type", &credential_type) 
+        || json_object_get_type(credential_type) != json_type_int ||
+        json_object_get_int(credential_type) < 0 || json_object_get_int(credential_type) >= CREDENTIAL_TYPES_COUNT)
+        return ERR_JSON_INVALID_KEY;
+
+    if (!json_object_object_get_ex(options, "fields", &credential_fields) 
+        || json_object_get_type(credential_fields) != json_type_array)
+        return ERR_JSON_INVALID_KEY;
+
+    uint32_t fields_len = json_object_array_length(credential_fields);
+
+    fields_names = calloc(fields_len, sizeof(uint8_t *));
+    fields_names_len = calloc(fields_len, sizeof(uint16_t));
+    fields_data = calloc(fields_len, sizeof(uint8_t *));
+    fields_data_len = calloc(fields_len, sizeof(uint16_t));
+    fields_encrypted = calloc(fields_len, sizeof(uint8_t));
+
+    if (json_object_get_int(sender) == SENDER_APP && !json_object_get_boolean(is_reply)) {
+        
+        /* Create reply */
+        err = create_command(ADD_CREDENTIAL, &cmd_enc_field);
+        if (err != PIPASS_OK)
+            goto error;
+
+        for (uint32_t i = 0; i < fields_len; ++i) {
+            json_object *field_name;
+            json_object *field_data;
+            json_object *field_encrypted;
+
+            field = json_object_array_get_idx(credential_fields, i);
+            if (json_object_get_type(field) != json_type_object)
+                return ERR_JSON_INVALID_KEY;
+
+            if (!json_object_object_get_ex(field, "name", &field_name) 
+                || json_object_get_type(field_name) != json_type_string)
+                return ERR_JSON_INVALID_KEY;
+
+            if (!json_object_object_get_ex(field, "data", &field_data) 
+                || json_object_get_type(field_data) != json_type_string)
+                return ERR_JSON_INVALID_KEY;
+
+            if (!json_object_object_get_ex(field, "encrypted", &field_encrypted) 
+                || json_object_get_type(field_encrypted) != json_type_boolean)
+                return ERR_JSON_INVALID_KEY;
+
+            fields_names[i] = calloc(json_object_get_string_len(field_name) + 1, sizeof(uint8_t));
+            fields_data[i] = calloc(json_object_get_string_len(field_data) + 1, sizeof(uint8_t));
+
+            memcpy(fields_names[i], json_object_get_string(field_name), json_object_get_string_len(field_name));
+            memcpy(fields_data[i], json_object_get_string(field_data), json_object_get_string_len(field_data));
+            fields_encrypted[i] = json_object_get_boolean(field_encrypted);
+            fields_names_len[i] = json_object_get_string_len(field_name);
+            fields_data_len[i] = json_object_get_string_len(field_data);
+        }
+
+
+        err = get_user(&user);
+        err = generate_user_hash(user, strlen(user), &user_hash);
+        err = register_new_credential(
+            user_hash,
+            (enum CredentialType) json_object_get_int(credential_type),
+            fields_len,
+            fields_names_len,
+            fields_names,
+            fields_data_len,
+            fields_encrypted,
+            fields_data
+        );
+
+        if (err != PIPASS_OK)
+            goto error;
+
+        reply_options = json_object_new_string("1");
         err = json_object_object_add(cmd_enc_field->body, "options", reply_options);
         if (err != PIPASS_OK)
             return ERR_CMD_JSON_ADD;

@@ -10,8 +10,10 @@
 #include <credentials_utils.h>
 #include <datablob.h>
 
+#define CREDENTIAL_TYPES_COUNT 3
+
 enum CredentialType {
-  PASSWORD_TYPE, CREDIT_CARD_TYPE, OTHER_TYPE 
+  PASSWORD_TYPE = 0, CREDIT_CARD_TYPE, OTHER_TYPE 
 };
 
 union CredentialFieldData {

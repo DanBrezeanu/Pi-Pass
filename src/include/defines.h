@@ -31,7 +31,7 @@
 
 
 #define S_TTY    "/dev/ttyGS0"   /**< Serial port used for communicating via USART */
-#define SERIAL_PKT_SIZE 256      /**< Size of a serial packet */
+#define SERIAL_PKT_SIZE 1024      /**< Size of a serial packet */
 
 #define FP_PORT  "/dev/ttyS0"   /**< Serial port used for communicating with the fingerprint sensor */
 
