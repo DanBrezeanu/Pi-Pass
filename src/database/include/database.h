@@ -34,6 +34,7 @@ PIPASS_ERR db_update_KEK(uint8_t *kek_hash, uint8_t *kek_salt);
 PIPASS_ERR db_raw(uint8_t **raw_db, int32_t *raw_db_size);
 PIPASS_ERR db_header_raw(uint8_t **raw_db_header);
 PIPASS_ERR db_append_credential(struct Credential *cr);
+PIPASS_ERR db_remove_credential(uint8_t *cred_name, uint16_t cred_name_len);
 PIPASS_ERR db_get_master_pin_hash(struct DataHash *master_pin_hash);
 PIPASS_ERR db_get_length(uint32_t *db_len);
 PIPASS_ERR db_get_credentials(struct Credential **cr, uint32_t *cred_count);

@@ -280,3 +280,29 @@ PIPASS_ERR get_encrypted_field_value(uint8_t *cred_name, uint8_t *field_name, ui
 
     return ERR_FIELD_NOT_FOUND;
 }
+
+PIPASS_ERR remove_credential(uint8_t *user_hash, uint8_t *cred_name, uint16_t cred_name_len)
+{
+    if (!FL_LOGGED_IN)
+        return ERR_NOT_LOGGED_IN;
+
+    if (!FL_DB_INITIALIZED)
+        return ERR_DB_NOT_INITIALIZED;
+
+    if (cred_name == NULL)
+        return ERR_DB_MEM_LEAK;
+
+    PIPASS_ERR err;
+
+    err = db_remove_credential(cred_name, cred_name_len);
+    if (err != PIPASS_OK)
+        return err;
+
+    err = dump_database(user_hash);
+    if (err != PIPASS_OK)
+        return err;
+
+
+    return PIPASS_OK;
+}
+

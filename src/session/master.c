@@ -169,16 +169,20 @@ int main() {
 
     // err = authenticate("test", strlen("test"), "1234", NULL, "parola", 6);
     // printf("%.4X", err);
+    
+    // uint8_t *user_hash = NULL;
+
+    // err = generate_user_hash("test", strlen("test"), &user_hash);
+    // printf("%.4X\n", err);
+
+    // err = remove_credential(user_hash, "Insta", strlen("Insta"));
+    // printf("%.4X", err);
 
     // uint16_t fields_names_len[] = {strlen("name"), strlen("url"), strlen("user"), strlen("password")};
     // uint8_t *fields_names[] = {"name", "url", "user", "password"};
     // uint16_t fields_data_len[] = {strlen("facebook"), strlen("https://facebook.com"), strlen("MyFacebookName"), strlen("MyFacebookPassword")};
     // uint8_t fields_encrypted[] = {0, 0, 1, 1};
     // uint8_t *fields_data[] = {"facebook", "https://facebook.com", "MyFacebookName", "MyFacebookPassword"};
-    // uint8_t *user_hash = NULL;
-
-    // err = generate_user_hash("test", strlen("test"), &user_hash);
-    // printf("%.4X\n", err);
 
     // err = register_new_credential(user_hash, PASSWORD_TYPE, 4, fields_names_len, fields_names, fields_data_len, fields_encrypted, fields_data);
     // printf("%.4X\n", err);

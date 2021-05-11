@@ -208,6 +208,61 @@ error:
     return err;
 }
 
+PIPASS_ERR db_remove_credential(uint8_t *cred_name, uint16_t cred_name_len) {
+    if (!FL_LOGGED_IN)
+        return ERR_NOT_LOGGED_IN;
+
+    if (!FL_DB_INITIALIZED || db == NULL)
+        return ERR_DB_NOT_INITIALIZED;
+
+    if (cred_name == NULL)
+        return ERR_DB_APPEND_CRED_INV_PARAMS;
+
+    PIPASS_ERR err = PIPASS_OK;
+
+    for (int32_t i = 0; i < db->cred_count; ++i)
+    {
+        for (int32_t j = 0; j < db->cred[i].fields_count; ++j)
+        {
+            if (db->cred[i].fields_names_len[j] == strlen("name") &&
+                !db->cred[i].fields_encrypted[j] &&
+                memcmp(db->cred[i].fields_names[j], "name", strlen("name")) == 0 &&
+                memcmp(
+                    db->cred[i].fields_data[j].data_plain,
+                    cred_name,
+                    MIN(db->cred[i].fields_data_len[j], cred_name_len)
+                ) == 0)
+            {
+                db->header->db_len -= db->cred[i].cred_size;
+
+                for (int32_t k = i + 1; k < db->cred_count; ++k) {
+                    free_credential(&(db->cred[k - 1]));
+                    
+                    struct Credential *cr = &(db->cred[k - 1]);
+
+                    err = alloc_credential(&cr);
+                    if (err != PIPASS_OK)
+                        goto error;
+
+                    err = copy_credential(db->cred[k], cr);
+                    if (err != PIPASS_OK)
+                        goto error;
+                }
+
+                free_credential(&db->cred[db->cred_count - 1]);
+                db->cred_count--;
+
+                return PIPASS_OK;
+            }
+        }
+    }
+
+    return ERR_GET_CRED_NOT_FOUND;
+
+error:
+    return err;
+}
+
 PIPASS_ERR db_raw(uint8_t **raw_db, int32_t *raw_db_size) {
     if (!FL_LOGGED_IN)
         return ERR_NOT_LOGGED_IN;
